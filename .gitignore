@@ -1,0 +1,19 @@
+# .NET
+backend/BudgetApp.Api/bin/
+backend/BudgetApp.Api/obj/
+backend/.vs/
+backend/**/*.user
+backend/**/appsettings.*.local.json
+backend/**/firebase-service-account.json
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+
+# Editor
+.idea/
+*.suo
+*.swp
+.DS_Store

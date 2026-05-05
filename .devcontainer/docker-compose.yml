@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  devcontainer:
+    image: mcr.microsoft.com/devcontainers/base:ubuntu-22.04
+    volumes:
+      - ..:/workspace:cached
+    command: sleep infinity
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/budgetapp
+    depends_on:
+      - mongo
+    networks:
+      - budget-net
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: budgetapp
+    networks:
+      - budget-net
+
+networks:
+  budget-net:
+
+volumes:
+  mongodb_data:

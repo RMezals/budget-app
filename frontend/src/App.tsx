@@ -1,69 +1,39 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom'
+import { onAuthStateChanged, signOut, type User } from 'firebase/auth'
+import { auth } from './firebase'
+import LoginPage from './modules/auth/LoginPage'
+import DashboardPage from './modules/dashboard/DashboardPage'
+import TransactionsPage from './modules/transactions/TransactionsPage'
+import SavingsPage from './modules/savings/SavingsPage'
+import PortfolioPage from './modules/portfolio/PortfolioPage'
 
 function App() {
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'))
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const [user, setUser] = useState<User | null | undefined>(undefined)
 
-  const login = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
+  useEffect(() => onAuthStateChanged(auth, setUser), [])
 
-    try {
-      const res = await fetch('http://localhost:8080/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
+  if (user === undefined) return null // waiting for Firebase to initialise
 
-      if (!res.ok) {
-        setError('Invalid credentials')
-        return
-      }
-
-      const data = await res.json()
-      localStorage.setItem('token', data.token)
-      setToken(data.token)
-    } catch {
-      setError('Could not connect to server')
-    }
-  }
-
-  const logout = () => {
-    localStorage.removeItem('token')
-    setToken(null)
-  }
-
-  if (token) {
-    return (
-      <div>
-        <p>Logged in</p>
-        <button onClick={logout}>Logout</button>
-      </div>
-    )
-  }
+  if (!user) return <LoginPage />
 
   return (
-    <form onSubmit={login}>
-      <h1>Login</h1>
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={e => setEmail(e.target.value)}
-        required
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={e => setPassword(e.target.value)}
-        required
-      />
-      {error && <p>{error}</p>}
-      <button type="submit">Login</button>
-    </form>
+    <BrowserRouter>
+      <nav>
+        <NavLink to="/">Dashboard</NavLink>
+        <NavLink to="/transactions">Transactions</NavLink>
+        <NavLink to="/savings">Savings</NavLink>
+        <NavLink to="/portfolio">Portfolio</NavLink>
+        <button onClick={() => signOut(auth)}>Sign out</button>
+      </nav>
+      <Routes>
+        <Route path="/"             element={<DashboardPage />} />
+        <Route path="/transactions" element={<TransactionsPage />} />
+        <Route path="/savings"      element={<SavingsPage />} />
+        <Route path="/portfolio"    element={<PortfolioPage />} />
+        <Route path="*"             element={<Navigate to="/" />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 

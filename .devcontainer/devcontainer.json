@@ -1,0 +1,36 @@
+{
+  "name": "Budget App",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "devcontainer",
+  "workspaceFolder": "/workspace",
+  "features": {
+    "ghcr.io/devcontainers/features/dotnet:2": { "version": "8.0" },
+    "ghcr.io/devcontainers/features/node:1": { "version": "20" }
+  },
+  "forwardPorts": [5000, 5001, 5173, 27017],
+  "portsAttributes": {
+    "5000": { "label": "API (HTTP)", "onAutoForward": "notify" },
+    "5001": { "label": "API (HTTPS)", "onAutoForward": "notify" },
+    "5173": { "label": "Frontend (Vite)", "onAutoForward": "openBrowser" },
+    "27017": { "label": "MongoDB" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.csdevkit",
+        "mongodb.mongodb-vscode",
+        "biomejs.biome"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "biomejs.biome",
+        "files.autoSave": "afterDelay",
+        "files.autoSaveDelay": 1000
+      }
+    }
+  },
+  "postCreateCommand": "cd /workspace/frontend && npm install && cd /workspace/backend && dotnet restore",
+  "postStartCommand": "nohup bash -c 'cd /workspace/backend/BudgetApp.Api && dotnet run > /tmp/backend.log 2>&1 &' && nohup bash -c 'cd /workspace/frontend && npm run dev > /tmp/frontend.log 2>&1 &'"
+}
