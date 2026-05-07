@@ -1,27 +1,25 @@
 using BudgetApp.Api.Controllers;
 using BudgetApp.Api.Modules.Portfolio.Models;
+using BudgetApp.Api.Modules.Portfolio.Repositories;
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Driver;
 
 namespace BudgetApp.Api.Modules.Portfolio;
 
 [ApiController]
 [Route("api/liabilities")]
-public class LiabilitiesController(IMongoDatabase db) : ApiControllerBase
+public class LiabilitiesController(ILiabilityRepository repo) : ApiControllerBase
 {
-    private readonly IMongoCollection<Liability> _liabilities = db.GetCollection<Liability>("liabilities");
-
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var list = await _liabilities.Find(l => l.UserId == UserId).ToListAsync();
+        var list = await repo.GetByUserAsync(UserId);
         return Ok(list);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id)
     {
-        var item = await _liabilities.Find(l => l.Id == id && l.UserId == UserId).FirstOrDefaultAsync();
+        var item = await repo.GetByIdAsync(id, UserId);
         return item is null ? NotFound() : Ok(item);
     }
 
@@ -35,7 +33,7 @@ public class LiabilitiesController(IMongoDatabase db) : ApiControllerBase
             Type   = request.Type,
             Amount = [new AmountEntry { Value = request.InitialAmount, Date = request.Date }]
         };
-        await _liabilities.InsertOneAsync(liability);
+        await repo.InsertAsync(liability);
         return CreatedAtAction(nameof(GetById), new { id = liability.Id }, liability);
     }
 
@@ -43,17 +41,16 @@ public class LiabilitiesController(IMongoDatabase db) : ApiControllerBase
     [HttpPost("{id}/amounts")]
     public async Task<IActionResult> AddAmount(string id, [FromBody] AddAmountRequest request)
     {
-        var entry  = new AmountEntry { Value = request.Value, Date = request.Date };
-        var update = Builders<Liability>.Update.Push(l => l.Amount, entry);
-        var result = await _liabilities.UpdateOneAsync(l => l.Id == id && l.UserId == UserId, update);
-        return result.MatchedCount == 0 ? NotFound() : NoContent();
+        var entry   = new AmountEntry { Value = request.Value, Date = request.Date };
+        var updated = await repo.AddAmountAsync(id, UserId, entry);
+        return updated ? NoContent() : NotFound();
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
-        var result = await _liabilities.DeleteOneAsync(l => l.Id == id && l.UserId == UserId);
-        return result.DeletedCount == 0 ? NotFound() : NoContent();
+        var deleted = await repo.DeleteAsync(id, UserId);
+        return deleted ? NoContent() : NotFound();
     }
 }
 

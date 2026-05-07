@@ -1,28 +1,26 @@
 using BudgetApp.Api.Controllers;
 using BudgetApp.Api.Modules.Savings.Models;
+using BudgetApp.Api.Modules.Savings.Repositories;
+using BudgetApp.Api.Modules.Savings.Services;
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Driver;
 
 namespace BudgetApp.Api.Modules.Savings;
 
 [ApiController]
 [Route("api/goals")]
-public class GoalsController(IMongoDatabase db) : ApiControllerBase
+public class GoalsController(ISavingsGoalRepository goalRepo, ISavingsService savingsService) : ApiControllerBase
 {
-    private readonly IMongoCollection<SavingsGoal>     _goals = db.GetCollection<SavingsGoal>("savings_goals");
-    private readonly IMongoCollection<GoalContribution> _contributions = db.GetCollection<GoalContribution>("goal_contributions");
-
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var goals = await _goals.Find(g => g.UserId == UserId).ToListAsync();
+        var goals = await goalRepo.GetByUserAsync(UserId);
         return Ok(goals);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id)
     {
-        var goal = await _goals.Find(g => g.Id == id && g.UserId == UserId).FirstOrDefaultAsync();
+        var goal = await goalRepo.GetByIdAsync(id, UserId);
         return goal is null ? NotFound() : Ok(goal);
     }
 
@@ -31,65 +29,50 @@ public class GoalsController(IMongoDatabase db) : ApiControllerBase
     {
         var goal = new SavingsGoal
         {
-            UserId        = UserId,
-            Name          = request.Name,
-            TargetAmount  = request.TargetAmount,
-            Deadline      = request.Deadline,
-            Description   = request.Description
+            UserId       = UserId,
+            Name         = request.Name,
+            TargetAmount = request.TargetAmount,
+            Deadline     = request.Deadline,
+            Description  = request.Description
         };
-        await _goals.InsertOneAsync(goal);
+        await goalRepo.InsertAsync(goal);
         return CreatedAtAction(nameof(GetById), new { id = goal.Id }, goal);
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(string id, [FromBody] UpdateGoalRequest request)
     {
-        var update = Builders<SavingsGoal>.Update
-            .Set(g => g.Name,         request.Name)
-            .Set(g => g.TargetAmount, request.TargetAmount)
-            .Set(g => g.Deadline,     request.Deadline)
-            .Set(g => g.Description,  request.Description);
-
-        var result = await _goals.UpdateOneAsync(g => g.Id == id && g.UserId == UserId, update);
-        return result.MatchedCount == 0 ? NotFound() : NoContent();
+        var updated = await goalRepo.UpdateAsync(id, UserId, request.Name, request.TargetAmount, request.Deadline, request.Description);
+        return updated ? NoContent() : NotFound();
     }
 
     [HttpPut("{id}/status")]
     public async Task<IActionResult> UpdateStatus(string id, [FromBody] UpdateStatusRequest request)
     {
-        var update = Builders<SavingsGoal>.Update.Set(g => g.Status, request.Status);
-        var result = await _goals.UpdateOneAsync(g => g.Id == id && g.UserId == UserId, update);
-        return result.MatchedCount == 0 ? NotFound() : NoContent();
+        var updated = await goalRepo.UpdateStatusAsync(id, UserId, request.Status);
+        return updated ? NoContent() : NotFound();
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
-        var result = await _goals.DeleteOneAsync(g => g.Id == id && g.UserId == UserId);
-        return result.DeletedCount == 0 ? NotFound() : NoContent();
+        var deleted = await goalRepo.DeleteAsync(id, UserId);
+        return deleted ? NoContent() : NotFound();
     }
 
     // Projected completion date based on last 30 days average daily contribution rate
     [HttpGet("{id}/projection")]
     public async Task<IActionResult> GetProjection(string id)
     {
-        var goal = await _goals.Find(g => g.Id == id && g.UserId == UserId).FirstOrDefaultAsync();
-        if (goal is null) return NotFound();
-
-        var since = DateTime.UtcNow.AddDays(-30);
-        var recent = await _contributions
-            .Find(c => c.GoalId == id && c.UserId == UserId && c.Date >= since)
-            .ToListAsync();
-
-        var netAdded = recent.Sum(c => c.Amount);
-        var dailyRate = netAdded / 30m;
-
-        if (dailyRate <= 0)
-            return Ok(new { projectedCompletion = (DateTime?)null, reason = "Insufficient contribution rate" });
-
-        var remaining = goal.TargetAmount - goal.CurrentAmount;
-        var days = (int)Math.Ceiling(remaining / dailyRate);
-        return Ok(new { projectedCompletion = DateTime.UtcNow.AddDays(days) });
+        try
+        {
+            var result = await savingsService.GetProjectionAsync(id, UserId);
+            return Ok(new { projectedCompletion = result.ProjectedCompletion, reason = result.Reason });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
     }
 }
 

@@ -1,27 +1,25 @@
 using BudgetApp.Api.Controllers;
 using BudgetApp.Api.Modules.Portfolio.Models;
+using BudgetApp.Api.Modules.Portfolio.Repositories;
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Driver;
 
 namespace BudgetApp.Api.Modules.Portfolio;
 
 [ApiController]
 [Route("api/assets")]
-public class AssetsController(IMongoDatabase db) : ApiControllerBase
+public class AssetsController(IAssetRepository repo) : ApiControllerBase
 {
-    private readonly IMongoCollection<Asset> _assets = db.GetCollection<Asset>("assets");
-
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var assets = await _assets.Find(a => a.UserId == UserId).ToListAsync();
+        var assets = await repo.GetByUserAsync(UserId);
         return Ok(assets);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id)
     {
-        var asset = await _assets.Find(a => a.Id == id && a.UserId == UserId).FirstOrDefaultAsync();
+        var asset = await repo.GetByIdAsync(id, UserId);
         return asset is null ? NotFound() : Ok(asset);
     }
 
@@ -38,36 +36,31 @@ public class AssetsController(IMongoDatabase db) : ApiControllerBase
             PurchaseDate  = request.PurchaseDate,
             Price         = [new PriceEntry { Value = request.PurchasePrice, Date = request.PurchaseDate }]
         };
-        await _assets.InsertOneAsync(asset);
+        await repo.InsertAsync(asset);
         return CreatedAtAction(nameof(GetById), new { id = asset.Id }, asset);
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(string id, [FromBody] UpdateAssetRequest request)
     {
-        var update = Builders<Asset>.Update
-            .Set(a => a.Name,     request.Name)
-            .Set(a => a.Type,     request.Type)
-            .Set(a => a.Quantity, request.Quantity);
-        var result = await _assets.UpdateOneAsync(a => a.Id == id && a.UserId == UserId, update);
-        return result.MatchedCount == 0 ? NotFound() : NoContent();
+        var updated = await repo.UpdateAsync(id, UserId, request.Name, request.Type, request.Quantity);
+        return updated ? NoContent() : NotFound();
     }
 
     // Append a new price entry — never modifies existing entries
     [HttpPost("{id}/prices")]
     public async Task<IActionResult> AddPrice(string id, [FromBody] AddPriceRequest request)
     {
-        var entry  = new PriceEntry { Value = request.Value, Date = request.Date };
-        var update = Builders<Asset>.Update.Push(a => a.Price, entry);
-        var result = await _assets.UpdateOneAsync(a => a.Id == id && a.UserId == UserId, update);
-        return result.MatchedCount == 0 ? NotFound() : NoContent();
+        var entry   = new PriceEntry { Value = request.Value, Date = request.Date };
+        var updated = await repo.AddPriceAsync(id, UserId, entry);
+        return updated ? NoContent() : NotFound();
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
-        var result = await _assets.DeleteOneAsync(a => a.Id == id && a.UserId == UserId);
-        return result.DeletedCount == 0 ? NotFound() : NoContent();
+        var deleted = await repo.DeleteAsync(id, UserId);
+        return deleted ? NoContent() : NotFound();
     }
 }
 

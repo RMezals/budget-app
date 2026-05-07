@@ -1,59 +1,33 @@
 using BudgetApp.Api.Controllers;
-using BudgetApp.Api.Modules.Portfolio.Models;
+using BudgetApp.Api.Modules.Portfolio.Services;
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Driver;
 
 namespace BudgetApp.Api.Modules.Portfolio;
 
 [ApiController]
 [Route("api/networth")]
-public class NetWorthController(IMongoDatabase db) : ApiControllerBase
+public class NetWorthController(IPortfolioService portfolioService) : ApiControllerBase
 {
-    private readonly IMongoCollection<Asset>     _assets      = db.GetCollection<Asset>("assets");
-    private readonly IMongoCollection<Liability> _liabilities = db.GetCollection<Liability>("liabilities");
-
     [HttpGet]
     public async Task<IActionResult> GetCurrent()
     {
-        var (assets, liabilities) = await FetchAll();
-        var today = DateTime.UtcNow;
-        return Ok(Compute(assets, liabilities, today));
+        var (assets, liabilities) = await portfolioService.GetAllAsync(UserId);
+        var snapshot = portfolioService.ComputeNetWorth(assets, liabilities, DateTime.UtcNow);
+        return Ok(snapshot);
     }
 
     // Reconstructs net worth series entirely in memory — no additional DB queries per date
     [HttpGet("history")]
     public async Task<IActionResult> GetHistory([FromQuery] DateTime from, [FromQuery] DateTime to)
     {
-        var (assets, liabilities) = await FetchAll();
+        var (assets, liabilities) = await portfolioService.GetAllAsync(UserId);
 
-        var series = new List<object>();
+        var series = new List<NetWorthHistoryPoint>();
         for (var date = from.Date; date <= to.Date; date = date.AddDays(1))
         {
-            var point = Compute(assets, liabilities, date);
-            series.Add(new { date, point.NetWorth, point.TotalAssets, point.TotalLiabilities });
+            var s = portfolioService.ComputeNetWorth(assets, liabilities, date);
+            series.Add(new NetWorthHistoryPoint(date, s.TotalAssets, s.TotalLiabilities, s.NetWorth));
         }
         return Ok(series);
     }
-
-    private async Task<(List<Asset>, List<Liability>)> FetchAll()
-    {
-        var assets      = await _assets.Find(a => a.UserId == UserId).ToListAsync();
-        var liabilities = await _liabilities.Find(l => l.UserId == UserId).ToListAsync();
-        return (assets, liabilities);
-    }
-
-    private static NetWorthSnapshot Compute(List<Asset> assets, List<Liability> liabilities, DateTime date)
-    {
-        var totalAssets      = assets.Sum(a => ResolvePrice(a.Price, date) * a.Quantity);
-        var totalLiabilities = liabilities.Sum(l => ResolveAmount(l.Amount, date));
-        return new NetWorthSnapshot(totalAssets, totalLiabilities, totalAssets - totalLiabilities);
-    }
-
-    private static decimal ResolvePrice(List<PriceEntry> history, DateTime date) =>
-        history.Where(e => e.Date <= date).MaxBy(e => e.Date)?.Value ?? 0;
-
-    private static decimal ResolveAmount(List<AmountEntry> history, DateTime date) =>
-        history.Where(e => e.Date <= date).MaxBy(e => e.Date)?.Value ?? 0;
 }
-
-public record NetWorthSnapshot(decimal TotalAssets, decimal TotalLiabilities, decimal NetWorth);
