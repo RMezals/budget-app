@@ -32,5 +32,5 @@
     }
   },
   "postCreateCommand": "cd /workspace/frontend && npm install && cd /workspace/backend && dotnet restore",
-  "postStartCommand": "nohup bash -c 'cd /workspace/backend/BudgetApp.Api && dotnet run > /tmp/backend.log 2>&1 &' && nohup bash -c 'cd /workspace/frontend && npm run dev > /tmp/frontend.log 2>&1 &'"
+  "postStartCommand": "nohup bash -c 'cd /workspace/backend/BudgetApp.Api && dotnet run > /tmp/backend.log 2>&1 &' && nohup bash -c 'cd /workspace/frontend && npm run dev > /tmp/frontend.log 2>&1 &' && nohup bash -c '/workspace/.devcontainer/pull-ollama-model.sh > /tmp/ollama-pull.log 2>&1 &'"
 }

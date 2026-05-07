@@ -8,7 +8,8 @@ A full-stack personal finance application for tracking transactions, managing bu
 - ASP.NET Core 8.0 (C#)
 - MongoDB 7
 - Firebase Admin SDK (Authentication)
-- Anthropic API (AI Financial Advisor)
+- Anthropic Claude API (AI Financial Advisor — cloud)
+- Ollama (AI Financial Advisor — local)
 
 **Frontend**
 - React 19 with TypeScript
@@ -19,7 +20,7 @@ A full-stack personal finance application for tracking transactions, managing bu
 - Biome (Linting & Formatting)
 
 **Infrastructure**
-- Docker & Docker Compose
+- Docker & Docker Compose (MongoDB + Ollama services)
 - Dev Container support
 
 ## Features
@@ -143,14 +144,21 @@ User Action → Component → API Client → Backend API → MongoDB
 3. Open project in VS Code
 4. Click "Reopen in Container" when prompted (or use Command Palette: `Dev Containers: Reopen in Container`)
 5. Container will automatically:
-   - Install .NET 8 SDK
-   - Install Node.js 20
-   - Start MongoDB 7
-   - Install dependencies
-   - **🚀 Start backend and frontend automatically**
-   - **🌐 Open frontend in your browser**
+   - Install .NET 8 SDK and Node.js 20
+   - Start MongoDB 7 and Ollama
+   - Run `npm install` and `dotnet restore`
+   - **Start the backend and frontend** (via `postStartCommand`)
+   - Pull the `llama3.2` model into Ollama in the background
+   - Open the frontend at http://localhost:5173 in your browser
 
-That's it! Your development environment is ready with all services running.
+That's it — all services start automatically on every container start.
+
+**View logs:**
+```bash
+tail -f /tmp/backend.log    # ASP.NET Core API
+tail -f /tmp/frontend.log   # Vite dev server
+tail -f /tmp/ollama-pull.log  # Ollama model pull
+```
 
 ### Option 2: Manual Setup
 
@@ -209,35 +217,7 @@ That's it! Your development environment is ready with all services running.
 
 ## Running the Application
 
-### Auto-Start (Dev Container Only) 🚀
-
-When you open the project in a dev container, **both backend and frontend start automatically**!
-
-- Services start in the background via `postStartCommand`
-- Backend logs: `/tmp/backend.log`
-- Frontend logs: `/tmp/frontend.log`
-- Frontend opens automatically in your browser at http://localhost:5173
-
-**View logs:**
-```bash
-# Backend logs
-tail -f /tmp/backend.log
-
-# Frontend logs
-tail -f /tmp/frontend.log
-```
-
-**Stop/restart services:**
-```bash
-# Find and kill processes
-pkill -f "dotnet run"
-pkill -f "npm run dev"
-
-# Or use the startup script
-./start-dev.sh
-```
-
-### Manual Start
+### Start
 
 **Option 1: VS Code Tasks (Recommended)**
 
@@ -313,6 +293,40 @@ MongoDB port 27017 is forwarded to the host machine for external access.
 ## Authentication
 
 The app uses Firebase Authentication. Users must sign up/login through the Firebase Auth UI in the frontend.
+
+**Development without Firebase:** If `VITE_FIREBASE_API_KEY` is not set in `frontend/.env`, the frontend skips the login screen entirely. On the backend, `FirebaseAuthMiddleware` detects that Firebase Admin SDK is not initialised and assigns a fixed `dev-user` ID to every request. This lets you develop and test all API endpoints without a Firebase project.
+
+## AI Advisor
+
+The advisor supports two providers, selectable per-request from the Dashboard:
+
+| Provider | How it works | Requires |
+|---|---|---|
+| **Ollama** (default) | Runs `llama3.2` locally in the `ollama` Docker service | Nothing — included in docker-compose |
+| **Claude** | Calls Anthropic's API | `Anthropic:ApiKey` in `appsettings.json` |
+
+### Setting up Ollama
+
+The `ollama` Docker service starts automatically with the dev container. The script `.devcontainer/pull-ollama-model.sh` runs in the background on every container start — it waits for Ollama to be ready then pulls `llama3.2` if not already present. No manual steps needed.
+
+The model name and Ollama URL are configured in `appsettings.json`:
+```json
+"Ollama": {
+  "BaseUrl": "http://ollama:11434",
+  "Model": "llama3.2"
+}
+```
+
+### Setting up Claude
+
+Add your Anthropic API key to `backend/BudgetApp.Api/appsettings.json`:
+```json
+"Anthropic": {
+  "ApiKey": "sk-ant-..."
+}
+```
+
+Or set it as an environment variable / user secret — never commit the key to git.
 
 ## Type-Safe API Client with OpenAPI
 

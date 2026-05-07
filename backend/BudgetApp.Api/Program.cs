@@ -1,5 +1,6 @@
 using BudgetApp.Api.Configuration;
 using BudgetApp.Api.Middleware;
+using BudgetApp.Api.Modules.Dashboard.Services;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.Extensions.Options;
@@ -32,6 +33,10 @@ if (!string.IsNullOrEmpty(serviceAccountPath) && File.Exists(serviceAccountPath)
 
 // HTTP client (for AI advisor)
 builder.Services.AddHttpClient();
+
+// AI advisor providers
+builder.Services.AddKeyedSingleton<IAiAdvisor, ClaudeAdvisor>("claude");
+builder.Services.AddKeyedSingleton<IAiAdvisor, OllamaAdvisor>("ollama");
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

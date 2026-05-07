@@ -5,68 +5,98 @@
       "label": "Start Backend",
       "type": "shell",
       "command": "dotnet run",
-      "options": {
-        "cwd": "${workspaceFolder}/backend/BudgetApp.Api"
-      },
+      "options": { "cwd": "${workspaceFolder}/backend/BudgetApp.Api" },
       "isBackground": true,
       "problemMatcher": {
-        "pattern": {
-          "regexp": "^.*$",
-          "file": 1,
-          "location": 2,
-          "message": 3
-        },
+        "pattern": { "regexp": "^.*$", "file": 1, "location": 2, "message": 3 },
         "background": {
           "activeOnStart": true,
           "beginsPattern": "^.*Building.*$",
           "endsPattern": "^.*Application started.*$"
         }
       },
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "dedicated",
-        "showReuseMessage": false,
-        "clear": false,
-        "group": "servers"
-      }
+      "presentation": { "reveal": "always", "panel": "dedicated", "showReuseMessage": false, "clear": true, "group": "servers" }
     },
     {
       "label": "Start Frontend",
       "type": "shell",
       "command": "npm run dev",
-      "options": {
-        "cwd": "${workspaceFolder}/frontend"
-      },
+      "options": { "cwd": "${workspaceFolder}/frontend" },
       "isBackground": true,
       "problemMatcher": {
-        "pattern": {
-          "regexp": "^.*$",
-          "file": 1,
-          "location": 2,
-          "message": 3
-        },
+        "pattern": { "regexp": "^.*$", "file": 1, "location": 2, "message": 3 },
         "background": {
           "activeOnStart": true,
           "beginsPattern": "^.*VITE.*$",
           "endsPattern": "^.*Local:.*$"
         }
       },
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "dedicated",
-        "showReuseMessage": false,
-        "clear": false,
-        "group": "servers"
-      }
+      "presentation": { "reveal": "always", "panel": "dedicated", "showReuseMessage": false, "clear": true, "group": "servers" }
     },
     {
-      "label": "Start All Services",
+      "label": "Start All",
       "dependsOn": ["Start Backend", "Start Frontend"],
       "problemMatcher": []
+    },
+    {
+      "label": "Restart Backend",
+      "type": "shell",
+      "command": "kill $(lsof -ti:5000) 2>/dev/null; sleep 1; dotnet run",
+      "options": { "cwd": "${workspaceFolder}/backend/BudgetApp.Api" },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": { "regexp": "^.*$", "file": 1, "location": 2, "message": 3 },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*Building.*$",
+          "endsPattern": "^.*Application started.*$"
+        }
+      },
+      "presentation": { "reveal": "always", "panel": "dedicated", "showReuseMessage": false, "clear": true, "group": "servers" }
+    },
+    {
+      "label": "Restart Frontend",
+      "type": "shell",
+      "command": "kill $(lsof -ti:5173) 2>/dev/null; sleep 1; npm run dev",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": { "regexp": "^.*$", "file": 1, "location": 2, "message": 3 },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*VITE.*$",
+          "endsPattern": "^.*Local:.*$"
+        }
+      },
+      "presentation": { "reveal": "always", "panel": "dedicated", "showReuseMessage": false, "clear": true, "group": "servers" }
+    },
+    {
+      "label": "Seed Data",
+      "type": "shell",
+      "command": "curl -s -X POST http://localhost:5000/api/dev/seed | python3 -m json.tool",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "showReuseMessage": false, "clear": true }
+    },
+    {
+      "label": "Ollama Pull Log",
+      "type": "shell",
+      "command": "tail -f /tmp/ollama-pull.log",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "showReuseMessage": false, "clear": true }
+    },
+    {
+      "label": "Backend Logs",
+      "type": "shell",
+      "command": "tail -f /tmp/backend.log",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "showReuseMessage": false, "clear": true }
+    },
+    {
+      "label": "Frontend Logs",
+      "type": "shell",
+      "command": "tail -f /tmp/frontend.log",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "showReuseMessage": false, "clear": true }
     }
   ]
 }

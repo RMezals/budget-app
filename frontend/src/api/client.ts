@@ -1,8 +1,9 @@
-import { auth } from '../firebase'
+import { auth, firebaseConfigured } from '../firebase'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5000'
 
-async function getToken(): Promise<string> {
+async function getToken(): Promise<string | null> {
+  if (!firebaseConfigured) return null
   const user = auth.currentUser
   if (!user) throw new Error('Not authenticated')
   return user.getIdToken()
@@ -14,7 +15,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     ...init,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...init?.headers,
     },
   })
