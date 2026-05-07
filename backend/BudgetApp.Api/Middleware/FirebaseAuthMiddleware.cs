@@ -1,11 +1,23 @@
+using FirebaseAdmin;
 using FirebaseAdmin.Auth;
 
 namespace BudgetApp.Api.Middleware;
 
-public class FirebaseAuthMiddleware(RequestDelegate next)
+public class FirebaseAuthMiddleware(RequestDelegate next, IWebHostEnvironment env)
 {
+    // Used when Firebase is not configured in Development
+    private const string DevUserId = "dev-user";
+
     public async Task InvokeAsync(HttpContext context)
     {
+        // Firebase not configured + Development = bypass auth with a fixed dev user
+        if (env.IsDevelopment() && FirebaseApp.DefaultInstance == null)
+        {
+            context.Items["UserId"] = DevUserId;
+            await next(context);
+            return;
+        }
+
         var authHeader = context.Request.Headers.Authorization.FirstOrDefault();
         if (authHeader?.StartsWith("Bearer ") == true)
         {

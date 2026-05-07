@@ -1,7 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
 
-// Copy your Firebase project config here from the Firebase console
 const firebaseConfig = {
   apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -11,5 +10,9 @@ const firebaseConfig = {
   appId:             import.meta.env.VITE_FIREBASE_APP_ID,
 }
 
-const app  = initializeApp(firebaseConfig)
-export const auth = getAuth(app)
+export const firebaseConfigured = !!import.meta.env.VITE_FIREBASE_API_KEY
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const auth: ReturnType<typeof getAuth> = firebaseConfigured
+  ? getAuth(initializeApp(firebaseConfig))
+  : null as any
