@@ -1,6 +1,14 @@
 using BudgetApp.Api.Configuration;
 using BudgetApp.Api.Middleware;
+using BudgetApp.Api.Modules.Auth;
 using BudgetApp.Api.Modules.Dashboard.Services;
+using BudgetApp.Api.Modules.Dev;
+using BudgetApp.Api.Modules.Portfolio.Repositories;
+using BudgetApp.Api.Modules.Portfolio.Services;
+using BudgetApp.Api.Modules.Savings.Repositories;
+using BudgetApp.Api.Modules.Savings.Services;
+using BudgetApp.Api.Modules.Transactions.Repositories;
+using BudgetApp.Api.Modules.Transactions.Services;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.Extensions.Options;
@@ -31,8 +39,27 @@ if (!string.IsNullOrEmpty(serviceAccountPath) && File.Exists(serviceAccountPath)
     });
 }
 
-// HTTP client (for AI advisor)
+// HTTP client (for AI advisors)
 builder.Services.AddHttpClient();
+
+// Auth
+builder.Services.AddScoped<IAuthService, FirebaseAuthService>();
+
+// Repositories
+builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
+builder.Services.AddScoped<IBudgetRepository, BudgetRepository>();
+builder.Services.AddScoped<IAssetRepository, AssetRepository>();
+builder.Services.AddScoped<ILiabilityRepository, LiabilityRepository>();
+builder.Services.AddScoped<ISavingsGoalRepository, SavingsGoalRepository>();
+builder.Services.AddScoped<IGoalContributionRepository, GoalContributionRepository>();
+
+// Services
+builder.Services.AddScoped<IBudgetService, BudgetService>();
+builder.Services.AddScoped<IPortfolioService, PortfolioService>();
+builder.Services.AddScoped<ISavingsService, SavingsService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IAdvisorService, AdvisorService>();
+builder.Services.AddScoped<ISeedService, SeedService>();
 
 // AI advisor providers
 builder.Services.AddKeyedSingleton<IAiAdvisor, ClaudeAdvisor>("claude");

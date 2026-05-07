@@ -1,35 +1,25 @@
 using BudgetApp.Api.Controllers;
 using BudgetApp.Api.Modules.Transactions.Models;
+using BudgetApp.Api.Modules.Transactions.Repositories;
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Driver;
 
 namespace BudgetApp.Api.Modules.Transactions;
 
 [ApiController]
 [Route("api/transactions")]
-public class TransactionsController(IMongoDatabase db) : ApiControllerBase
+public class TransactionsController(ITransactionRepository repo) : ApiControllerBase
 {
-    private readonly IMongoCollection<Transaction> _col =
-        db.GetCollection<Transaction>("transactions");
-
     [HttpGet]
     public async Task<IActionResult> GetAll(
         [FromQuery] DateTime? from,
         [FromQuery] DateTime? to,
-        [FromQuery] string? category,
-        [FromQuery] decimal? minAmount,
-        [FromQuery] decimal? maxAmount,
-        [FromQuery] string? keyword)
+        [FromQuery] string?   category,
+        [FromQuery] decimal?  minAmount,
+        [FromQuery] decimal?  maxAmount,
+        [FromQuery] string?   keyword)
     {
-        var filter = Builders<Transaction>.Filter.Eq(t => t.UserId, UserId);
-        if (from.HasValue)        filter &= Builders<Transaction>.Filter.Gte(t => t.Date, from.Value);
-        if (to.HasValue)          filter &= Builders<Transaction>.Filter.Lte(t => t.Date, to.Value);
-        if (category is not null) filter &= Builders<Transaction>.Filter.Eq(t => t.Category, category);
-        if (minAmount.HasValue)   filter &= Builders<Transaction>.Filter.Gte(t => t.Amount, minAmount.Value);
-        if (maxAmount.HasValue)   filter &= Builders<Transaction>.Filter.Lte(t => t.Amount, maxAmount.Value);
-        if (keyword is not null)  filter &= Builders<Transaction>.Filter.Regex(t => t.Description, keyword);
-
-        var results = await _col.Find(filter).SortByDescending(t => t.Date).ToListAsync();
+        var filter  = new TransactionFilter(from, to, category, minAmount, maxAmount, keyword);
+        var results = await repo.GetAllAsync(UserId, filter);
         return Ok(results);
     }
 
@@ -47,7 +37,7 @@ public class TransactionsController(IMongoDatabase db) : ApiControllerBase
             Category    = request.Category,
             Description = request.Description
         };
-        await _col.InsertOneAsync(tx);
+        await repo.InsertAsync(tx);
         return CreatedAtAction(nameof(GetAll), new { }, tx);
     }
 
@@ -57,21 +47,15 @@ public class TransactionsController(IMongoDatabase db) : ApiControllerBase
         if (!Categories.IsValid(request.Category))
             return BadRequest(new { error = "Invalid category." });
 
-        var update = Builders<Transaction>.Update
-            .Set(t => t.Amount,      request.Amount)
-            .Set(t => t.Date,        request.Date)
-            .Set(t => t.Category,    request.Category)
-            .Set(t => t.Description, request.Description);
-
-        var result = await _col.UpdateOneAsync(t => t.Id == id && t.UserId == UserId, update);
-        return result.MatchedCount == 0 ? NotFound() : NoContent();
+        var updated = await repo.UpdateAsync(id, UserId, request.Amount, request.Date, request.Category, request.Description);
+        return updated ? NoContent() : NotFound();
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
-        var result = await _col.DeleteOneAsync(t => t.Id == id && t.UserId == UserId);
-        return result.DeletedCount == 0 ? NotFound() : NoContent();
+        var deleted = await repo.DeleteAsync(id, UserId);
+        return deleted ? NoContent() : NotFound();
     }
 
     [HttpGet("categories")]
