@@ -1,6 +1,6 @@
 # .NET
-backend/BudgetApp.Api/bin/
-backend/BudgetApp.Api/obj/
+backend/**/bin/
+backend/**/obj/
 backend/.vs/
 backend/**/*.user
 backend/**/appsettings.*.local.json
@@ -9,11 +9,27 @@ backend/**/firebase-service-account.json
 # Node / frontend
 frontend/node_modules/
 frontend/dist/
+frontend/dist-ssr/
+frontend/src/api/generated/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment
 frontend/.env
-frontend/.env.local
+frontend/.env.*
 
 # Editor
 .idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
 *.suo
 *.swp
-.DS_Store
+*.ntvs*
+*.njsproj
