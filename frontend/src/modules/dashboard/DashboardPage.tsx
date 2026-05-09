@@ -1,32 +1,7 @@
 import { useEffect, useState } from 'react';
 import { apiFetch } from '../../api/client';
-
-interface DashboardSummary {
-  netWorth: number;
-  totalInvested: number;
-  totalSaved: number;
-  monthlyIncome: number;
-  monthlyExpenses: number;
-  budgetUsage: {
-    category: string;
-    limit: number;
-    spent: number;
-    remaining: number;
-    usagePercent: number;
-  }[];
-  activeGoals: {
-    goalId: string;
-    name: string;
-    currentAmount: number;
-    targetAmount: number;
-    percentReached: number;
-  }[];
-}
-
-interface AdvisorResult {
-  provider: string;
-  tips: string;
-}
+import type { AdvisorResult, DashboardSummary } from '../../api/types';
+import FormattedTips from './components/FormattedTips';
 
 function fmt(n: number) {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'EUR' });
@@ -247,14 +222,7 @@ export default function DashboardPage() {
               </p>
             </div>
           )}
-          {advisor && (
-            <div className="alert alert-light border mb-0">
-              <p className="text-muted small mb-2">via {advisor.provider}</p>
-              <p className="mb-0" style={{ whiteSpace: 'pre-wrap' }}>
-                {advisor.tips}
-              </p>
-            </div>
-          )}
+          {advisor && <FormattedTips rawTips={advisor.tips} provider={advisor.provider} />}
         </div>
       </div>
     </div>

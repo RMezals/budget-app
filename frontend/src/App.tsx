@@ -54,7 +54,7 @@ function App() {
           <button
             type="button"
             className="btn btn-outline-light btn-sm"
-            onClick={() => signOut(auth)}
+            onClick={() => auth && signOut(auth)}
           >
             Sign out
           </button>

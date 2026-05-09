@@ -118,8 +118,8 @@ public class AdvisorControllerTests
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var value = ok.Value!;
-        Assert.Equal("ollama", value.GetType().GetProperty("provider")?.GetValue(value)?.ToString());
-        Assert.Equal("3 great tips", value.GetType().GetProperty("tips")?.GetValue(value)?.ToString());
+        Assert.Equal("ollama", value.GetType().GetProperty("Provider")?.GetValue(value)?.ToString());
+        Assert.Equal("3 great tips", value.GetType().GetProperty("Tips")?.GetValue(value)?.ToString());
     }
 
     [Fact]
