@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import type { AdvisorResult } from '../../../api/types';
-import { parseTips } from './utils/tipParser';
-import TipNumberedList from './TipNumberedList';
 import TipBulletList from './TipBulletList';
+import TipNumberedList from './TipNumberedList';
 import TipParagraph from './TipParagraph';
+import { parseTips } from './utils/tipParser';
 
 interface FormattedTipsProps {
   rawTips: AdvisorResult['tips'];

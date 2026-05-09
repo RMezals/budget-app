@@ -10,6 +10,7 @@ export default function TipNumberedList({ items }: TipNumberedListProps) {
   return (
     <ol className="list-group list-group-numbered mb-3">
       {items.map((item, index) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: items are stable within section
         <li key={index} className="list-group-item border-0 ps-0 py-2">
           {item}
         </li>

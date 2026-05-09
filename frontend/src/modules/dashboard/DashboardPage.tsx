@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { apiFetch } from '../../api/client';
-import type { DashboardSummary, AdvisorResult } from '../../api/types';
+import type { AdvisorResult, DashboardSummary } from '../../api/types';
 import FormattedTips from './components/FormattedTips';
 
 function fmt(n: number) {

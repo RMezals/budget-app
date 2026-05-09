@@ -22,6 +22,6 @@
     }
   },
   "files": {
-    "ignore": ["dist", "node_modules", "tsconfig*.json"]
+    "ignore": ["dist", "node_modules", "tsconfig*.json", "src/api/generated"]
   }
 }

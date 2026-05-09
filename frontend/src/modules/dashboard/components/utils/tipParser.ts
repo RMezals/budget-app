@@ -33,13 +33,14 @@ export function parseTips(rawTips: string): TipSection[] {
   }
 
   // Security: Prevent DoS with extremely large inputs
+  let processedTips = rawTips;
   if (rawTips.length > MAX_TIP_LENGTH) {
     console.warn(`Tips truncated from ${rawTips.length} to ${MAX_TIP_LENGTH} characters`);
-    rawTips = rawTips.substring(0, MAX_TIP_LENGTH);
+    processedTips = rawTips.substring(0, MAX_TIP_LENGTH);
   }
 
   const sections: TipSection[] = [];
-  const lines = rawTips
+  const lines = processedTips
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean);
