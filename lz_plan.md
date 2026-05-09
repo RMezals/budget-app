@@ -27,9 +27,9 @@ Backend endpoints:
 - [x] `SeedController.cs` — `POST /api/dev/seed` populates all 6 collections with 3 months of realistic data for the logged-in user
 - [x] `DashboardSummary.cs` — response models: `DashboardSummary`, `BudgetUsage`, `GoalProgress` (computed `UsagePercent`, `PercentReached`, `Remaining`)
 - [x] `FirebaseAuthMiddleware.cs` — dev bypass: if Firebase Admin SDK not initialised, assigns fixed `dev-user` (no Firebase project needed in dev)
+- [x] Error handling — `AdvisorController` now uses proper `ErrorResult` DTO with typed error responses for 503/500 status codes
 - [ ] Add portfolio data (total invested, net worth breakdown) to the advisor prompt — currently only transactions, budgets, and goals are sent
 - [ ] Return `ProjectedCompletion` date on `GoalProgress` — field exists in model, not yet populated by `DashboardController`
-- [ ] `ClaudeAdvisor` error handling — `EnsureSuccessStatusCode()` throws on API errors; wrap in try/catch and return a user-friendly message instead
 
 ### Frontend
 
@@ -39,7 +39,8 @@ Backend endpoints:
 - [x] AI Advisor section — goal selection toggle buttons (save more, reduce expenses, invest, emergency fund, pay debt, budget better), Ollama and Claude buttons, loading spinner, displays tips with provider label
 - [x] `firebase.ts` — `firebaseConfigured` flag; skips auth flow when env vars missing
 - [x] `api/client.ts` — omits `Authorization` header when Firebase not configured
-- [ ] AI advisor tip display — response is a raw string from the AI; render as a formatted list (split on numbered items or newlines)
+- [x] AI advisor tip display — implemented `FormattedTips` component with smart parsing (numbered lists, bullet points, paragraphs), performance optimized with memoization, error handling with graceful fallback
+- [x] TypeScript types — created `frontend/src/api/types.ts` matching backend models with documentation and sync strategy
 - [ ] Currency from Firebase token claim — monetary values hardcoded to EUR; should read `currency` claim from the Firebase token set by Roberts' auth module
 - [ ] Empty / zero states — show a helpful prompt when user has no transactions, no budgets set, or no active goals
 
@@ -76,3 +77,33 @@ All data is read-only from this module's perspective — no writes to other coll
 - Ollama model is pulled automatically on container start via `.devcontainer/pull-ollama-model.sh` — called by `postStartCommand` in `devcontainer.json`, runs in background, idempotent.
 - Backend and frontend also auto-start via `postStartCommand` on every container start. Logs at `/tmp/backend.log` and `/tmp/frontend.log`.
 - Monetary values from the API come as `decimal` (Decimal128 in Mongo) — keep as numbers in the frontend, only format for display.
+
+---
+
+## Recent Updates (2026-05-09)
+
+### Feature: AI Advisor Tip Formatting (`feature/advisor-tip-formatting_lz`)
+
+**Completed:**
+- ✅ Smart tip parsing with support for numbered lists, bullet points, and paragraphs
+- ✅ Small, reusable component architecture (`FormattedTips`, `TipNumberedList`, `TipBulletList`, `TipParagraph`)
+- ✅ TypeScript type definitions matching backend models (`frontend/src/api/types.ts`)
+- ✅ Performance optimizations (memoization, regex constants)
+- ✅ Comprehensive error handling with graceful fallbacks
+- ✅ Input validation and DoS protection (50k char limit, 100 section limit)
+- ✅ Backend error response improvements with typed `ErrorResult` DTO
+- ✅ Full code review and critical fixes applied
+
+**Files Added:**
+- `frontend/src/modules/dashboard/components/FormattedTips.tsx`
+- `frontend/src/modules/dashboard/components/TipNumberedList.tsx`
+- `frontend/src/modules/dashboard/components/TipBulletList.tsx`
+- `frontend/src/modules/dashboard/components/TipParagraph.tsx`
+- `frontend/src/modules/dashboard/components/utils/tipParser.ts`
+- `frontend/src/api/types.ts`
+
+**Next Steps:**
+- Add portfolio data to advisor prompt
+- Implement `ProjectedCompletion` date calculation
+- Add currency support from Firebase token
+- Implement empty/zero states
