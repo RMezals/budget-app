@@ -28,13 +28,13 @@ public class AssetsController(IAssetRepository repo) : ApiControllerBase
     {
         var asset = new Asset
         {
-            UserId        = UserId,
-            Name          = request.Name,
-            Type          = request.Type,
-            Quantity      = request.Quantity,
+            UserId = UserId,
+            Name = request.Name,
+            Type = request.Type,
+            Quantity = request.Quantity,
             PurchasePrice = request.PurchasePrice,
-            PurchaseDate  = request.PurchaseDate,
-            Price         = [new PriceEntry { Value = request.PurchasePrice, Date = request.PurchaseDate }]
+            PurchaseDate = request.PurchaseDate,
+            Price = [new PriceEntry { Value = request.PurchasePrice, Date = request.PurchaseDate }]
         };
         await repo.InsertAsync(asset);
         return CreatedAtAction(nameof(GetById), new { id = asset.Id }, asset);
@@ -51,7 +51,7 @@ public class AssetsController(IAssetRepository repo) : ApiControllerBase
     [HttpPost("{id}/prices")]
     public async Task<IActionResult> AddPrice(string id, [FromBody] AddPriceRequest request)
     {
-        var entry   = new PriceEntry { Value = request.Value, Date = request.Date };
+        var entry = new PriceEntry { Value = request.Value, Date = request.Date };
         var updated = await repo.AddPriceAsync(id, UserId, entry);
         return updated ? NoContent() : NotFound();
     }

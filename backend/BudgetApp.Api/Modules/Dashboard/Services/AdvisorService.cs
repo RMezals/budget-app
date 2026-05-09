@@ -10,15 +10,15 @@ public class AdvisorService(
 {
     public async Task<string> BuildFinancialSummaryAsync(string userId)
     {
-        var now        = DateTime.UtcNow;
+        var now = DateTime.UtcNow;
         var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-        var monthEnd   = monthStart.AddMonths(1);
+        var monthEnd = monthStart.AddMonths(1);
 
-        var monthTxs    = await txRepo.GetByMonthAsync(userId, monthStart, monthEnd);
-        var budgets     = await budgetRepo.GetByMonthAsync(userId, monthStart);
+        var monthTxs = await txRepo.GetByMonthAsync(userId, monthStart, monthEnd);
+        var budgets = await budgetRepo.GetByMonthAsync(userId, monthStart);
         var activeGoals = await goalRepo.GetActiveByUserAsync(userId);
 
-        var income   = monthTxs.Where(t => t.Amount > 0).Sum(t => t.Amount);
+        var income = monthTxs.Where(t => t.Amount > 0).Sum(t => t.Amount);
         var expenses = Math.Abs(monthTxs.Where(t => t.Amount < 0).Sum(t => t.Amount));
         var spendByCategory = monthTxs
             .Where(t => t.Amount < 0)

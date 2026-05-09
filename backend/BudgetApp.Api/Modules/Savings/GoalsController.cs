@@ -29,11 +29,11 @@ public class GoalsController(ISavingsGoalRepository goalRepo, ISavingsService sa
     {
         var goal = new SavingsGoal
         {
-            UserId       = UserId,
-            Name         = request.Name,
+            UserId = UserId,
+            Name = request.Name,
             TargetAmount = request.TargetAmount,
-            Deadline     = request.Deadline,
-            Description  = request.Description
+            Deadline = request.Deadline,
+            Description = request.Description
         };
         await goalRepo.InsertAsync(goal);
         return CreatedAtAction(nameof(GetById), new { id = goal.Id }, goal);

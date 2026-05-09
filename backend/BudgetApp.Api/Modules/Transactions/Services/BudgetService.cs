@@ -7,9 +7,9 @@ public class BudgetService(IBudgetRepository budgetRepo, ITransactionRepository 
     public async Task<List<BudgetSpending>> GetUsageAsync(string userId, int year, int month)
     {
         var monthStart = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
-        var monthEnd   = monthStart.AddMonths(1);
+        var monthEnd = monthStart.AddMonths(1);
 
-        var budgets  = await budgetRepo.GetByMonthAsync(userId, monthStart);
+        var budgets = await budgetRepo.GetByMonthAsync(userId, monthStart);
         var expenses = await txRepo.GetByMonthAsync(userId, monthStart, monthEnd);
 
         return budgets.Select(b =>

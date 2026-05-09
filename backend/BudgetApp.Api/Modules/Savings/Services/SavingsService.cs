@@ -13,14 +13,14 @@ public class SavingsService(ISavingsGoalRepository goalRepo, IGoalContributionRe
         if (amount < 0 && Math.Abs(amount) > goal.CurrentAmount)
             throw new InvalidOperationException("Withdrawal exceeds current saved amount.");
 
-        var newBalance   = goal.CurrentAmount + amount;
+        var newBalance = goal.CurrentAmount + amount;
         var contribution = new GoalContribution
         {
-            GoalId       = goalId,
-            UserId       = userId,
-            Amount       = amount,
-            Date         = date,
-            Description  = description,
+            GoalId = goalId,
+            UserId = userId,
+            Amount = amount,
+            Date = date,
+            Description = description,
             BalanceAfter = newBalance
         };
 
@@ -35,7 +35,7 @@ public class SavingsService(ISavingsGoalRepository goalRepo, IGoalContributionRe
     public async Task RecalculateBalanceAsync(string goalId, string userId)
     {
         var contributions = await contributionRepo.GetByGoalAsync(goalId, userId);
-        var newBalance    = contributions.Sum(c => c.Amount);
+        var newBalance = contributions.Sum(c => c.Amount);
         await goalRepo.UpdateBalanceAsync(goalId, userId, newBalance);
     }
 
@@ -44,7 +44,7 @@ public class SavingsService(ISavingsGoalRepository goalRepo, IGoalContributionRe
         var goal = await goalRepo.GetByIdAsync(goalId, userId)
             ?? throw new KeyNotFoundException($"Goal {goalId} not found.");
 
-        var since  = DateTime.UtcNow.AddDays(-30);
+        var since = DateTime.UtcNow.AddDays(-30);
         var recent = await contributionRepo.GetRecentByGoalAsync(goalId, userId, since);
 
         var dailyRate = recent.Sum(c => c.Amount) / 30m;

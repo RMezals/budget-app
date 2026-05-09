@@ -6,7 +6,7 @@ namespace BudgetApp.Api.Modules.Dashboard.Services;
 public class OllamaAdvisor(IHttpClientFactory httpClientFactory, IConfiguration config) : IAiAdvisor
 {
     private readonly string _baseUrl = config["Ollama:BaseUrl"] ?? "http://localhost:11434";
-    private readonly string _model   = config["Ollama:Model"]   ?? "llama3.2";
+    private readonly string _model = config["Ollama:Model"] ?? "llama3.2";
 
     public async Task<string> AnalyseAsync(string financialSummary, string userGoals)
     {
@@ -14,8 +14,8 @@ public class OllamaAdvisor(IHttpClientFactory httpClientFactory, IConfiguration 
 
         var payload = new
         {
-            model    = _model,
-            stream   = false,
+            model = _model,
+            stream = false,
             messages = new[] { new { role = "user", content = BuildPrompt(financialSummary, userGoals) } }
         };
 
@@ -33,7 +33,7 @@ public class OllamaAdvisor(IHttpClientFactory httpClientFactory, IConfiguration 
 
         response.EnsureSuccessStatusCode();
 
-        var body   = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync();
         var parsed = JsonDocument.Parse(body);
         return parsed.RootElement.GetProperty("message").GetProperty("content").GetString() ?? string.Empty;
     }

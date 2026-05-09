@@ -29,8 +29,8 @@ public class LiabilitiesController(ILiabilityRepository repo) : ApiControllerBas
         var liability = new Liability
         {
             UserId = UserId,
-            Name   = request.Name,
-            Type   = request.Type,
+            Name = request.Name,
+            Type = request.Type,
             Amount = [new AmountEntry { Value = request.InitialAmount, Date = request.Date }]
         };
         await repo.InsertAsync(liability);
@@ -41,7 +41,7 @@ public class LiabilitiesController(ILiabilityRepository repo) : ApiControllerBas
     [HttpPost("{id}/amounts")]
     public async Task<IActionResult> AddAmount(string id, [FromBody] AddAmountRequest request)
     {
-        var entry   = new AmountEntry { Value = request.Value, Date = request.Date };
+        var entry = new AmountEntry { Value = request.Value, Date = request.Date };
         var updated = await repo.AddAmountAsync(id, UserId, entry);
         return updated ? NoContent() : NotFound();
     }

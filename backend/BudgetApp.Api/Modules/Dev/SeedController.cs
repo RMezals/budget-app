@@ -20,14 +20,14 @@ public class SeedController(ISeedService seedService, IWebHostEnvironment env) :
         var result = await seedService.SeedAsync(UserId);
         return Ok(new
         {
-            message       = "Seed complete",
-            userId        = UserId,
-            transactions  = result.Transactions,
-            budgets       = result.Budgets,
-            goals         = result.Goals,
+            message = "Seed complete",
+            userId = UserId,
+            transactions = result.Transactions,
+            budgets = result.Budgets,
+            goals = result.Goals,
             contributions = result.Contributions,
-            assets        = result.Assets,
-            liabilities   = result.Liabilities,
+            assets = result.Assets,
+            liabilities = result.Liabilities,
         });
     }
 }
