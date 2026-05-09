@@ -14,7 +14,7 @@ public class BudgetsController(IBudgetRepository budgetRepo, IBudgetService budg
     public async Task<IActionResult> GetByMonth([FromQuery] int year, [FromQuery] int month)
     {
         var monthStart = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
-        var budgets    = await budgetRepo.GetByMonthAsync(UserId, monthStart);
+        var budgets = await budgetRepo.GetByMonthAsync(UserId, monthStart);
         return Ok(budgets);
     }
 
@@ -38,9 +38,9 @@ public class BudgetsController(IBudgetRepository budgetRepo, IBudgetService budg
         var usage = spending.Select(b => new
         {
             b.Category,
-            Limit        = b.Limit,
-            Spent        = b.Spent,
-            Remaining    = b.Limit - b.Spent,
+            Limit = b.Limit,
+            Spent = b.Spent,
+            Remaining = b.Limit - b.Spent,
             UsagePercent = b.Limit > 0 ? Math.Round(b.Spent / b.Limit * 100, 1) : 0m
         });
         return Ok(usage);

@@ -13,15 +13,15 @@ public class DashboardService(
 {
     public async Task<DashboardSummary> GetSummaryAsync(string userId)
     {
-        var now        = DateTime.UtcNow;
+        var now = DateTime.UtcNow;
         var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-        var monthEnd   = monthStart.AddMonths(1);
+        var monthEnd = monthStart.AddMonths(1);
 
         var (assets, liabilities) = await portfolioService.GetAllAsync(userId);
-        var netWorth   = portfolioService.ComputeNetWorth(assets, liabilities, now);
+        var netWorth = portfolioService.ComputeNetWorth(assets, liabilities, now);
 
-        var monthTxs    = await txRepo.GetByMonthAsync(userId, monthStart, monthEnd);
-        var budgets     = await budgetRepo.GetByMonthAsync(userId, monthStart);
+        var monthTxs = await txRepo.GetByMonthAsync(userId, monthStart, monthEnd);
+        var budgets = await budgetRepo.GetByMonthAsync(userId, monthStart);
         var activeGoals = await goalRepo.GetActiveByUserAsync(userId);
 
         var budgetUsage = budgets.Select(b =>
@@ -34,21 +34,21 @@ public class DashboardService(
 
         var goalProgress = activeGoals.Select(g => new GoalProgress
         {
-            GoalId        = g.Id,
-            Name          = g.Name,
+            GoalId = g.Id,
+            Name = g.Name,
             CurrentAmount = g.CurrentAmount,
-            TargetAmount  = g.TargetAmount
+            TargetAmount = g.TargetAmount
         }).ToList();
 
         return new DashboardSummary
         {
-            NetWorth        = netWorth.NetWorth,
-            TotalInvested   = netWorth.TotalAssets,
-            TotalSaved      = activeGoals.Sum(g => g.CurrentAmount),
-            MonthlyIncome   = monthTxs.Where(t => t.Amount > 0).Sum(t => t.Amount),
+            NetWorth = netWorth.NetWorth,
+            TotalInvested = netWorth.TotalAssets,
+            TotalSaved = activeGoals.Sum(g => g.CurrentAmount),
+            MonthlyIncome = monthTxs.Where(t => t.Amount > 0).Sum(t => t.Amount),
             MonthlyExpenses = Math.Abs(monthTxs.Where(t => t.Amount < 0).Sum(t => t.Amount)),
-            BudgetUsage     = budgetUsage,
-            ActiveGoals     = goalProgress
+            BudgetUsage = budgetUsage,
+            ActiveGoals = goalProgress
         };
     }
 }

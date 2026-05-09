@@ -13,12 +13,12 @@ public class TransactionsController(ITransactionRepository repo) : ApiController
     public async Task<IActionResult> GetAll(
         [FromQuery] DateTime? from,
         [FromQuery] DateTime? to,
-        [FromQuery] string?   category,
-        [FromQuery] decimal?  minAmount,
-        [FromQuery] decimal?  maxAmount,
-        [FromQuery] string?   keyword)
+        [FromQuery] string? category,
+        [FromQuery] decimal? minAmount,
+        [FromQuery] decimal? maxAmount,
+        [FromQuery] string? keyword)
     {
-        var filter  = new TransactionFilter(from, to, category, minAmount, maxAmount, keyword);
+        var filter = new TransactionFilter(from, to, category, minAmount, maxAmount, keyword);
         var results = await repo.GetAllAsync(UserId, filter);
         return Ok(results);
     }
@@ -31,10 +31,10 @@ public class TransactionsController(ITransactionRepository repo) : ApiController
 
         var tx = new Transaction
         {
-            UserId      = UserId,
-            Amount      = request.Amount,
-            Date        = request.Date,
-            Category    = request.Category,
+            UserId = UserId,
+            Amount = request.Amount,
+            Date = request.Date,
+            Category = request.Category,
             Description = request.Description
         };
         await repo.InsertAsync(tx);

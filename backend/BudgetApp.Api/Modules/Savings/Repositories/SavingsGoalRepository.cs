@@ -24,10 +24,10 @@ public class SavingsGoalRepository(IMongoDatabase db) : ISavingsGoalRepository
     public async Task<bool> UpdateAsync(string id, string userId, string name, decimal targetAmount, DateTime deadline, string? description)
     {
         var update = Builders<SavingsGoal>.Update
-            .Set(g => g.Name,         name)
+            .Set(g => g.Name, name)
             .Set(g => g.TargetAmount, targetAmount)
-            .Set(g => g.Deadline,     deadline)
-            .Set(g => g.Description,  description);
+            .Set(g => g.Deadline, deadline)
+            .Set(g => g.Description, description);
         var result = await _col.UpdateOneAsync(g => g.Id == id && g.UserId == userId, update);
         return result.MatchedCount > 0;
     }

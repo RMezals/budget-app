@@ -14,7 +14,7 @@ public class ClaudeAdvisorTests
         string? maxTokens = null)
     {
         var values = new Dictionary<string, string?> { ["Anthropic:ApiKey"] = apiKey };
-        if (model != null)     values["Anthropic:Model"]     = model;
+        if (model != null) values["Anthropic:Model"] = model;
         if (maxTokens != null) values["Anthropic:MaxTokens"] = maxTokens;
         return new ConfigurationBuilder().AddInMemoryCollection(values).Build();
     }

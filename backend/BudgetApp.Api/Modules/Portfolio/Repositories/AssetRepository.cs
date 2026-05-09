@@ -21,8 +21,8 @@ public class AssetRepository(IMongoDatabase db) : IAssetRepository
     public async Task<bool> UpdateAsync(string id, string userId, string name, string type, decimal quantity)
     {
         var update = Builders<Asset>.Update
-            .Set(a => a.Name,     name)
-            .Set(a => a.Type,     type)
+            .Set(a => a.Name, name)
+            .Set(a => a.Type, type)
             .Set(a => a.Quantity, quantity);
         var result = await _col.UpdateOneAsync(a => a.Id == id && a.UserId == userId, update);
         return result.MatchedCount > 0;

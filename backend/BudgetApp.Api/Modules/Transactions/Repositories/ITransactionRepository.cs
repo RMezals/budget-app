@@ -5,10 +5,10 @@ namespace BudgetApp.Api.Modules.Transactions.Repositories;
 public record TransactionFilter(
     DateTime? From,
     DateTime? To,
-    string?   Category,
-    decimal?  MinAmount,
-    decimal?  MaxAmount,
-    string?   Keyword);
+    string? Category,
+    decimal? MinAmount,
+    decimal? MaxAmount,
+    string? Keyword);
 
 public interface ITransactionRepository
 {

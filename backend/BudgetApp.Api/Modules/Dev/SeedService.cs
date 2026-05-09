@@ -9,27 +9,27 @@ namespace BudgetApp.Api.Modules.Dev;
 
 public class SeedService(IMongoDatabase db) : ISeedService
 {
-    private readonly IMongoCollection<Transaction>      _txCol      = db.GetCollection<Transaction>(CollectionNames.Transactions);
-    private readonly IMongoCollection<Budget>           _budgetCol  = db.GetCollection<Budget>(CollectionNames.Budgets);
-    private readonly IMongoCollection<SavingsGoal>      _goalCol    = db.GetCollection<SavingsGoal>(CollectionNames.SavingsGoals);
+    private readonly IMongoCollection<Transaction> _txCol = db.GetCollection<Transaction>(CollectionNames.Transactions);
+    private readonly IMongoCollection<Budget> _budgetCol = db.GetCollection<Budget>(CollectionNames.Budgets);
+    private readonly IMongoCollection<SavingsGoal> _goalCol = db.GetCollection<SavingsGoal>(CollectionNames.SavingsGoals);
     private readonly IMongoCollection<GoalContribution> _contribCol = db.GetCollection<GoalContribution>(CollectionNames.GoalContributions);
-    private readonly IMongoCollection<Asset>            _assetCol   = db.GetCollection<Asset>(CollectionNames.Assets);
-    private readonly IMongoCollection<Liability>        _liabCol    = db.GetCollection<Liability>(CollectionNames.Liabilities);
+    private readonly IMongoCollection<Asset> _assetCol = db.GetCollection<Asset>(CollectionNames.Assets);
+    private readonly IMongoCollection<Liability> _liabCol = db.GetCollection<Liability>(CollectionNames.Liabilities);
 
     public async Task<SeedResult> SeedAsync(string userId)
     {
         await ClearUserDataAsync(userId);
 
-        var now       = DateTime.UtcNow;
+        var now = DateTime.UtcNow;
         var thisMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var lastMonth = thisMonth.AddMonths(-1);
         var twoMonths = thisMonth.AddMonths(-2);
 
-        var transactions              = BuildTransactions(userId, thisMonth, lastMonth, twoMonths);
-        var budgets                   = BuildBudgets(userId, thisMonth);
-        var (goals, contributions)    = BuildGoalsAndContributions(userId, thisMonth, lastMonth, twoMonths);
-        var assets                    = BuildAssets(userId);
-        var liabilities               = BuildLiabilities(userId);
+        var transactions = BuildTransactions(userId, thisMonth, lastMonth, twoMonths);
+        var budgets = BuildBudgets(userId, thisMonth);
+        var (goals, contributions) = BuildGoalsAndContributions(userId, thisMonth, lastMonth, twoMonths);
+        var assets = BuildAssets(userId);
+        var liabilities = BuildLiabilities(userId);
 
         await _txCol.InsertManyAsync(transactions);
         await _budgetCol.InsertManyAsync(budgets);
@@ -107,8 +107,8 @@ public class SeedService(IMongoDatabase db) : ISeedService
         string userId, DateTime thisMonth, DateTime lastMonth, DateTime twoMonths)
     {
         var emergencyId = ObjectId.GenerateNewId().ToString();
-        var laptopId    = ObjectId.GenerateNewId().ToString();
-        var vacationId  = ObjectId.GenerateNewId().ToString();
+        var laptopId = ObjectId.GenerateNewId().ToString();
+        var vacationId = ObjectId.GenerateNewId().ToString();
 
         var goals = new List<SavingsGoal>
         {
@@ -206,19 +206,31 @@ public class SeedService(IMongoDatabase db) : ISeedService
 
     private static Transaction Tx(string userId, DateTime date, decimal amount, string category, string? description = null) => new()
     {
-        Id = ObjectId.GenerateNewId().ToString(), UserId = userId,
-        Amount = amount, Date = date, Category = category, Description = description,
+        Id = ObjectId.GenerateNewId().ToString(),
+        UserId = userId,
+        Amount = amount,
+        Date = date,
+        Category = category,
+        Description = description,
     };
 
     private static Budget Budget(string userId, string category, DateTime monthStart, decimal limit) => new()
     {
-        Id = ObjectId.GenerateNewId().ToString(), UserId = userId,
-        Category = category, Date = monthStart, LimitAmount = limit,
+        Id = ObjectId.GenerateNewId().ToString(),
+        UserId = userId,
+        Category = category,
+        Date = monthStart,
+        LimitAmount = limit,
     };
 
     private static GoalContribution Contrib(string userId, string goalId, DateTime date, decimal amount, decimal balanceAfter, string? description = null) => new()
     {
-        Id = ObjectId.GenerateNewId().ToString(), GoalId = goalId, UserId = userId,
-        Amount = amount, Date = date, BalanceAfter = balanceAfter, Description = description,
+        Id = ObjectId.GenerateNewId().ToString(),
+        GoalId = goalId,
+        UserId = userId,
+        Amount = amount,
+        Date = date,
+        BalanceAfter = balanceAfter,
+        Description = description,
     };
 }
