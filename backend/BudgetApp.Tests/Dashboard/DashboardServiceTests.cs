@@ -6,6 +6,7 @@ using BudgetApp.Api.Modules.Savings.Models;
 using BudgetApp.Api.Modules.Savings.Repositories;
 using BudgetApp.Api.Modules.Transactions.Models;
 using BudgetApp.Api.Modules.Transactions.Repositories;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace BudgetApp.Tests.Dashboard;
@@ -16,9 +17,20 @@ public class DashboardServiceTests
     private readonly Mock<ITransactionRepository> _txMock = new();
     private readonly Mock<IBudgetRepository> _budgetMock = new();
     private readonly Mock<ISavingsGoalRepository> _goalMock = new();
+    private readonly Mock<IGoalContributionRepository> _contributionMock = new();
+    private readonly Mock<ILogger<DashboardService>> _loggerMock = new();
+
+    public DashboardServiceTests()
+    {
+        // Setup default: no contributions
+        _contributionMock.Setup(c => c.GetByGoalAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(new List<GoalContribution>());
+        _contributionMock.Setup(c => c.GetByGoalsAsync(It.IsAny<List<string>>(), It.IsAny<string>()))
+            .ReturnsAsync(new List<GoalContribution>());
+    }
 
     private DashboardService CreateSut() =>
-        new(_portfolioMock.Object, _txMock.Object, _budgetMock.Object, _goalMock.Object);
+        new(_portfolioMock.Object, _txMock.Object, _budgetMock.Object, _goalMock.Object, _contributionMock.Object, _loggerMock.Object);
 
     private void SetupEmptyPortfolio(NetWorthSnapshot? snapshot = null)
     {

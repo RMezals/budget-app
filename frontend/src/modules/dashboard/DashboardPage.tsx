@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react';
 import { apiFetch } from '../../api/client';
+import { AdvisorResultSchema, DashboardSummarySchema } from '../../api/schemas';
 import type { AdvisorResult, DashboardSummary } from '../../api/types';
+import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
+import EmptyState from './components/EmptyState';
 import FormattedTips from './components/FormattedTips';
-
-function fmt(n: number) {
-  return n.toLocaleString('en-US', { style: 'currency', currency: 'EUR' });
-}
+import { ADVISOR_GOAL_OPTIONS } from './constants/advisorGoals';
+import { EMPTY_STATE_MESSAGES } from './constants/emptyStateMessages';
+import { getBudgetProgressColor } from './utils/budgetUtils';
+import { hasBudgetData, hasSavingsGoals } from './utils/dataChecks';
 
 export default function DashboardPage() {
+  const fmt = useCurrencyFormatter();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [advisor, setAdvisor] = useState<AdvisorResult | null>(null);
   const [advisorLoading, setAdvisorLoading] = useState(false);
@@ -15,15 +19,28 @@ export default function DashboardPage() {
   const [selectedGoals, setSelectedGoals] = useState<string[]>(['save_more']);
 
   useEffect(() => {
-    apiFetch<DashboardSummary>('/api/dashboard').then(setSummary).catch(console.error);
+    let cancelled = false;
+    apiFetch('/api/dashboard', DashboardSummarySchema)
+      .then((data) => {
+        if (!cancelled) setSummary(data);
+      })
+      .catch(console.error);
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const runAdvisor = async (provider: 'claude' | 'ollama') => {
+    if (selectedGoals.length === 0) {
+      setAdvisorError('Please select at least one goal');
+      return;
+    }
+
     setAdvisorLoading(true);
     setAdvisor(null);
     setAdvisorError(null);
     try {
-      const result = await apiFetch<AdvisorResult>('/api/advisor/analyse', {
+      const result = await apiFetch('/api/advisor/analyse', AdvisorResultSchema, {
         method: 'POST',
         body: JSON.stringify({ provider, goals: selectedGoals }),
       });
@@ -104,12 +121,12 @@ export default function DashboardPage() {
 
       <div className="row g-4">
         {/* Budget usage */}
-        {summary.budgetUsage.length > 0 && (
-          <div className="col-lg-6">
-            <div className="card border-0 shadow-sm h-100">
-              <div className="card-body">
-                <h6 className="card-title mb-3">Budget Usage</h6>
-                {summary.budgetUsage.map((b) => (
+        <div className="col-lg-6">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-body">
+              <h6 className="card-title mb-3">Budget Usage</h6>
+              {hasBudgetData(summary) ? (
+                summary.budgetUsage.map((b) => (
                   <div key={b.category} className="mb-3">
                     <div className="d-flex justify-content-between mb-1">
                       <span className="small">{b.category}</span>
@@ -119,24 +136,26 @@ export default function DashboardPage() {
                     </div>
                     <div className="progress" style={{ height: 8 }}>
                       <div
-                        className={`progress-bar ${b.usagePercent >= 90 ? 'bg-danger' : b.usagePercent >= 70 ? 'bg-warning' : 'bg-success'}`}
+                        className={`progress-bar ${getBudgetProgressColor(b.usagePercent)}`}
                         style={{ width: `${Math.min(b.usagePercent, 100)}%` }}
                       />
                     </div>
                   </div>
-                ))}
-              </div>
+                ))
+              ) : (
+                <EmptyState {...EMPTY_STATE_MESSAGES.BUDGET_USAGE} />
+              )}
             </div>
           </div>
-        )}
+        </div>
 
         {/* Savings goals */}
-        {summary.activeGoals.length > 0 && (
-          <div className="col-lg-6">
-            <div className="card border-0 shadow-sm h-100">
-              <div className="card-body">
-                <h6 className="card-title mb-3">Savings Goals</h6>
-                {summary.activeGoals.map((g) => (
+        <div className="col-lg-6">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-body">
+              <h6 className="card-title mb-3">Savings Goals</h6>
+              {hasSavingsGoals(summary) ? (
+                summary.activeGoals.map((g) => (
                   <div key={g.goalId} className="mb-3">
                     <div className="d-flex justify-content-between mb-1">
                       <span className="small">{g.name}</span>
@@ -152,11 +171,13 @@ export default function DashboardPage() {
                     </div>
                     <p className="text-muted small mb-0 mt-1">{g.percentReached}% reached</p>
                   </div>
-                ))}
-              </div>
+                ))
+              ) : (
+                <EmptyState {...EMPTY_STATE_MESSAGES.SAVINGS_GOALS} />
+              )}
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* AI Advisor */}
@@ -171,14 +192,7 @@ export default function DashboardPage() {
           <div className="mb-3">
             <p className="small fw-semibold mb-2">What would you like advice on?</p>
             <div className="d-flex flex-wrap gap-2">
-              {[
-                { id: 'save_more', label: 'Save More Money' },
-                { id: 'reduce_expenses', label: 'Reduce Expenses' },
-                { id: 'invest', label: 'Start Investing' },
-                { id: 'emergency_fund', label: 'Build Emergency Fund' },
-                { id: 'pay_debt', label: 'Pay Off Debt' },
-                { id: 'budget_better', label: 'Budget Better' },
-              ].map((goal) => (
+              {ADVISOR_GOAL_OPTIONS.map((goal) => (
                 <button
                   key={goal.id}
                   type="button"
