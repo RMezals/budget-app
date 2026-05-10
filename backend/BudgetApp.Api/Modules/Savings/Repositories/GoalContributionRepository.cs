@@ -14,6 +14,11 @@ public class GoalContributionRepository(IMongoDatabase db) : IGoalContributionRe
             .SortByDescending(c => c.Date)
             .ToListAsync();
 
+    public async Task<List<GoalContribution>> GetByGoalsAsync(List<string> goalIds, string userId) =>
+        await _col.Find(c => goalIds.Contains(c.GoalId) && c.UserId == userId)
+            .SortByDescending(c => c.Date)
+            .ToListAsync();
+
     public async Task<List<GoalContribution>> GetRecentByGoalAsync(string goalId, string userId, DateTime since) =>
         await _col.Find(c => c.GoalId == goalId && c.UserId == userId && c.Date >= since).ToListAsync();
 
