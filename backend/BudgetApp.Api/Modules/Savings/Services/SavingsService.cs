@@ -5,7 +5,7 @@ namespace BudgetApp.Api.Modules.Savings.Services;
 
 public class SavingsService(ISavingsGoalRepository goalRepo, IGoalContributionRepository contributionRepo) : ISavingsService
 {
-    public async Task<GoalContribution> AddContributionAsync(string goalId, string userId, decimal amount, DateTime date, string? description)
+    public async Task<GoalContribution> AddContributionAsync(string goalId, string userId, decimal amount, DateTime date, string? note, string? reason, string? description = null)
     {
         var goal = await goalRepo.GetByIdAsync(goalId, userId)
             ?? throw new KeyNotFoundException($"Goal {goalId} not found.");
@@ -14,13 +14,16 @@ public class SavingsService(ISavingsGoalRepository goalRepo, IGoalContributionRe
             throw new InvalidOperationException("Withdrawal exceeds current saved amount.");
 
         var newBalance = goal.CurrentAmount + amount;
+        note ??= description;
         var contribution = new GoalContribution
         {
             GoalId = goalId,
             UserId = userId,
             Amount = amount,
             Date = date,
-            Description = description,
+            Note = note,
+            Reason = reason,
+            Description = description ?? note,
             BalanceAfter = newBalance
         };
 
