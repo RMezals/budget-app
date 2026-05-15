@@ -13,14 +13,14 @@ public class GoalsController(ISavingsGoalRepository goalRepo, ISavingsService sa
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var goals = await goalRepo.GetByUserAsync(UserId);
+        var goals = await savingsService.GetGoalProgressListAsync(UserId);
         return Ok(goals);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id)
     {
-        var goal = await goalRepo.GetByIdAsync(id, UserId);
+        var goal = await savingsService.GetGoalProgressAsync(id, UserId);
         return goal is null ? NotFound() : Ok(goal);
     }
 
