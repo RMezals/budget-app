@@ -42,9 +42,15 @@ const initialForm: ContributionForm = {
   reason: '',
 };
 
+type DateInputWithPicker = HTMLInputElement & {
+  showPicker?: () => void;
+};
+
 export default function SavingsPage() {
   const fmt = useCurrencyFormatter();
   const amountInputRef = useRef<HTMLInputElement>(null);
+  const goalDeadlineInputRef = useRef<HTMLInputElement>(null);
+  const contributionDateInputRef = useRef<HTMLInputElement>(null);
   const [goals, setGoals] = useState<SavingsGoalProgress[]>([]);
   const [goalForm, setGoalForm] = useState<GoalForm>(initialGoalForm);
   const [form, setForm] = useState<ContributionForm>(initialForm);
@@ -108,6 +114,17 @@ export default function SavingsPage() {
   const selectContributionMode = (mode: ContributionMode) => {
     setContributionMode(mode);
     setSuccess(null);
+  };
+
+  const openDatePicker = (input: HTMLInputElement | null) => {
+    if (!input || input.disabled) return;
+
+    input.focus();
+    try {
+      (input as DateInputWithPicker).showPicker?.();
+    } catch {
+      // Some browsers only allow the native picker from specific user gestures.
+    }
   };
 
   const prepareWithdrawal = (goalId: string) => {
@@ -274,8 +291,8 @@ export default function SavingsPage() {
                       id="goal-target"
                       className="form-control"
                       type="number"
-                      min="0.01"
-                      step="0.01"
+                      min="10"
+                      step="1"
                       value={goalForm.targetAmount}
                       onChange={(event) => updateGoalForm('targetAmount', event.target.value)}
                       placeholder="5000.00"
@@ -287,15 +304,44 @@ export default function SavingsPage() {
                     <label className="form-label" htmlFor="goal-deadline">
                       Deadline
                     </label>
-                    <input
-                      id="goal-deadline"
-                      className="form-control"
-                      type="date"
-                      value={goalForm.deadline}
-                      onChange={(event) => updateGoalForm('deadline', event.target.value)}
-                      disabled={creatingGoal}
-                      required
-                    />
+                    <div className="input-group">
+                      <input
+                        id="goal-deadline"
+                        ref={goalDeadlineInputRef}
+                        className="form-control"
+                        type="date"
+                        value={goalForm.deadline}
+                        onClick={() => openDatePicker(goalDeadlineInputRef.current)}
+                        onChange={(event) => updateGoalForm('deadline', event.target.value)}
+                        disabled={creatingGoal}
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary"
+                        onClick={() => openDatePicker(goalDeadlineInputRef.current)}
+                        disabled={creatingGoal}
+                        aria-label="Open deadline calendar"
+                        title="Open calendar"
+                      >
+                        <svg
+                          aria-hidden="true"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M8 2v4" />
+                          <path d="M16 2v4" />
+                          <rect width="18" height="18" x="3" y="4" rx="2" />
+                          <path d="M3 10h18" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -395,15 +441,44 @@ export default function SavingsPage() {
                       <label className="form-label" htmlFor="contribution-date">
                         Date
                       </label>
-                      <input
-                        id="contribution-date"
-                        className="form-control"
-                        type="date"
-                        value={form.date}
-                        onChange={(event) => updateForm('date', event.target.value)}
-                        disabled={submitting}
-                        required
-                      />
+                      <div className="input-group">
+                        <input
+                          id="contribution-date"
+                          ref={contributionDateInputRef}
+                          className="form-control"
+                          type="date"
+                          value={form.date}
+                          onClick={() => openDatePicker(contributionDateInputRef.current)}
+                          onChange={(event) => updateForm('date', event.target.value)}
+                          disabled={submitting}
+                          required
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={() => openDatePicker(contributionDateInputRef.current)}
+                          disabled={submitting}
+                          aria-label="Open contribution date calendar"
+                          title="Open calendar"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M8 2v4" />
+                            <path d="M16 2v4" />
+                            <rect width="18" height="18" x="3" y="4" rx="2" />
+                            <path d="M3 10h18" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
 

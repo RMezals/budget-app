@@ -24,7 +24,6 @@ public class SavingsService(ISavingsGoalRepository goalRepo, IGoalContributionRe
             UserId = userId,
             Amount = amount,
             Date = date,
-            Note = note,
             Reason = reason,
             Description = canonicalDescription,
             BalanceAfter = newBalance
