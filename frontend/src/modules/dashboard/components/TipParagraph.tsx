@@ -1,3 +1,5 @@
+import { formatMarkdown } from '@/modules/dashboard/components/utils/markdownFormatter';
+
 interface TipParagraphProps {
   items: string[];
 }
@@ -11,8 +13,8 @@ export default function TipParagraph({ items }: TipParagraphProps) {
     <div className="mb-3">
       {items.map((item, index) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: items are stable within section
-        <p key={index} className="mb-2">
-          {item}
+        <p key={index} className="mb-3" style={{ lineHeight: '1.6', fontSize: '0.95rem' }}>
+          {formatMarkdown(item)}
         </p>
       ))}
     </div>

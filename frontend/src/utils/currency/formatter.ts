@@ -1,4 +1,4 @@
-import type { CurrencyCode } from './constants';
+import type { CurrencyCode } from '@/utils/currency/constants';
 
 const formatters = new Map<CurrencyCode, Intl.NumberFormat>();
 

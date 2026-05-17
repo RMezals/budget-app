@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace BudgetApp.Api.Modules.Dashboard.Services;
 
-public class ClaudeAdvisor(IHttpClientFactory httpClientFactory, IConfiguration config) : IAiAdvisor
+public class ClaudeAdvisor(IHttpClientFactory httpClientFactory, IConfiguration config, ILogger<ClaudeAdvisor> logger) : IAiAdvisor
 {
     private const string ApiUrl = "https://api.anthropic.com/v1/messages";
     private const string ApiKeyHeader = "x-api-key";
@@ -12,16 +12,19 @@ public class ClaudeAdvisor(IHttpClientFactory httpClientFactory, IConfiguration 
     private const string DefaultModel = "claude-haiku-4-5-20251001";
     private const int DefaultMaxTokens = 1024;
 
-    public async Task<string> AnalyseAsync(string financialSummary, string userGoals)
+    public async Task<string> AnalyseAsync(string financialSummary, string userGoals, string? apiKey = null)
     {
-        var apiKey = config["Anthropic:ApiKey"]
-            ?? throw new InvalidOperationException("Claude is not configured. Add Anthropic:ApiKey to appsettings.");
+        var key = apiKey ?? config["Anthropic:ApiKey"];
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            throw new InvalidOperationException("Claude API key is required. Please provide your API key.");
+        }
 
         var model = config["Anthropic:Model"] ?? DefaultModel;
         var maxTokens = int.TryParse(config["Anthropic:MaxTokens"], out var t) ? t : DefaultMaxTokens;
 
         using var client = httpClientFactory.CreateClient();
-        client.DefaultRequestHeaders.Add(ApiKeyHeader, apiKey);
+        client.DefaultRequestHeaders.Add(ApiKeyHeader, key);
         client.DefaultRequestHeaders.Add(VersionHeader, ApiVersion);
 
         var payload = new
@@ -35,7 +38,12 @@ public class ClaudeAdvisor(IHttpClientFactory httpClientFactory, IConfiguration 
             ApiUrl,
             new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json"));
 
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync();
+            logger.LogError("Claude API error. StatusCode: {StatusCode}, Response: {ErrorBody}", response.StatusCode, errorBody);
+            throw new InvalidOperationException($"Claude API error ({response.StatusCode}): {errorBody}");
+        }
 
         var body = await response.Content.ReadAsStringAsync();
         var parsed = JsonDocument.Parse(body);
@@ -44,5 +52,11 @@ public class ClaudeAdvisor(IHttpClientFactory httpClientFactory, IConfiguration 
 
     private static string BuildPrompt(string financialSummary, string userGoals) =>
         $"You are a personal finance advisor. The user wants to {userGoals}. " +
-        $"Based on this financial summary, provide 3 concise, actionable tips specifically focused on helping them achieve their goals:\n\n{financialSummary}";
+        $"Based on this financial summary, provide exactly 3 concise, actionable tips.\n\n" +
+        $"Format your response as a simple numbered list:\n" +
+        $"1. First tip\n" +
+        $"2. Second tip\n" +
+        $"3. Third tip\n\n" +
+        $"Do NOT use headers (##) or special formatting. Just use plain numbered points.\n\n" +
+        $"Financial summary:\n{financialSummary}";
 }

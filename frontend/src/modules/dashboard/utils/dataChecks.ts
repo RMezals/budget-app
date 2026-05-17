@@ -1,4 +1,4 @@
-import type { DashboardSummary } from '../../../api/types';
+import type { DashboardSummary } from '@/api/types';
 
 /**
  * Checks if the user has any budget data

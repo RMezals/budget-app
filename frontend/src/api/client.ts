@@ -15,7 +15,6 @@ export async function apiFetch<T>(
   schemaOrInit?: z.ZodType<T> | RequestInit,
   init?: RequestInit,
 ): Promise<T> {
-  // Determine if second parameter is schema or init
   const isSchema = schemaOrInit && 'parse' in schemaOrInit;
   const schema = isSchema ? (schemaOrInit as z.ZodType<T>) : undefined;
   const options = isSchema ? init : (schemaOrInit as RequestInit | undefined);

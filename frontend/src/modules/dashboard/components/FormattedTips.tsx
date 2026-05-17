@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import type { AdvisorResult } from '../../../api/types';
-import TipBulletList from './TipBulletList';
-import TipNumberedList from './TipNumberedList';
-import TipParagraph from './TipParagraph';
-import { parseTips } from './utils/tipParser';
+import type { AdvisorResult } from '@/api/types';
+import TipBulletList from '@/modules/dashboard/components/TipBulletList';
+import TipNumberedList from '@/modules/dashboard/components/TipNumberedList';
+import TipParagraph from '@/modules/dashboard/components/TipParagraph';
+import { parseTips } from '@/modules/dashboard/components/utils/tipParser';
 
 interface FormattedTipsProps {
   rawTips: AdvisorResult['tips'];
@@ -33,22 +33,27 @@ export default function FormattedTips({ rawTips, provider }: FormattedTipsProps)
   }, [rawTips]);
 
   return (
-    <div className="alert alert-light border mb-0">
-      <p className="text-muted small mb-3">via {provider}</p>
-      <div>
-        {sections.map((section) => {
-          // Use section.id for stable, unique keys
-          switch (section.type) {
-            case 'numbered':
-              return <TipNumberedList key={section.id} items={section.items} />;
-            case 'bullet':
-              return <TipBulletList key={section.id} items={section.items} />;
-            case 'paragraph':
-              return <TipParagraph key={section.id} items={section.items} />;
-            default:
-              return null;
-          }
-        })}
+    <div className="card border-0 shadow-sm mt-3">
+      <div className="card-body">
+        <div className="d-flex align-items-center mb-3">
+          <span className="badge bg-primary me-2">AI Tips</span>
+          <span className="text-muted small">via {provider}</span>
+        </div>
+        <div className="tips-content">
+          {sections.map((section) => {
+            // Use section.id for stable, unique keys
+            switch (section.type) {
+              case 'numbered':
+                return <TipNumberedList key={section.id} items={section.items} />;
+              case 'bullet':
+                return <TipBulletList key={section.id} items={section.items} />;
+              case 'paragraph':
+                return <TipParagraph key={section.id} items={section.items} />;
+              default:
+                return null;
+            }
+          })}
+        </div>
       </div>
     </div>
   );

@@ -55,6 +55,11 @@ export function parseTips(rawTips: string): TipSection[] {
       break;
     }
 
+    // Skip markdown headers (##, ###, etc.)
+    if (line.startsWith('#')) {
+      continue;
+    }
+
     // Detect numbered list items (1. 2. 3. or 1) 2) 3))
     const numberedMatch = line.match(NUMBERED_PATTERN);
     if (numberedMatch) {

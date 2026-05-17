@@ -1,9 +1,9 @@
 import { onAuthStateChanged } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState } from 'react';
-import { auth, firebaseConfigured } from '../firebase';
-import { DEFAULT_CURRENCY } from '../utils/currency/constants';
-import type { CurrencyCode } from '../utils/currency/constants';
-import { getCurrencyFromToken } from '../utils/currency/tokenExtractor';
+import { auth, firebaseConfigured } from '@/firebase';
+import { DEFAULT_CURRENCY } from '@/utils/currency/constants';
+import type { CurrencyCode } from '@/utils/currency/constants';
+import { getCurrencyFromToken } from '@/utils/currency/tokenExtractor';
 
 interface CurrencyContextValue {
   currency: CurrencyCode;
@@ -12,10 +12,6 @@ interface CurrencyContextValue {
 
 const CurrencyContext = createContext<CurrencyContextValue | undefined>(undefined);
 
-/**
- * Provides currency context based on Firebase token claims
- * Falls back to default currency when Firebase is not configured
- */
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [currency, setCurrency] = useState<CurrencyCode>(DEFAULT_CURRENCY);
   const [isLoading, setIsLoading] = useState(firebaseConfigured);

@@ -3,7 +3,7 @@ using FirebaseAdmin.Auth;
 
 namespace BudgetApp.Api.Middleware;
 
-public class FirebaseAuthMiddleware(RequestDelegate next, IWebHostEnvironment env)
+public class FirebaseAuthMiddleware(RequestDelegate next, IWebHostEnvironment env, ILogger<FirebaseAuthMiddleware> logger)
 {
     // Used when Firebase is not configured in Development
     private const string DevUserId = "dev-user";
@@ -28,8 +28,9 @@ public class FirebaseAuthMiddleware(RequestDelegate next, IWebHostEnvironment en
                 context.Items["UserId"] = decoded.Uid;
                 context.Items["Claims"] = decoded.Claims;
             }
-            catch
+            catch (Exception ex)
             {
+                logger.LogWarning(ex, "Failed to verify Firebase token. Path: {Path}", context.Request.Path);
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 return;
             }
