@@ -1,6 +1,10 @@
-import type { User } from 'firebase/auth';
-import { CURRENCY_CLAIM_KEY, DEFAULT_CURRENCY, SUPPORTED_CURRENCIES } from '@/utils/currency/constants';
+import {
+  CURRENCY_CLAIM_KEY,
+  DEFAULT_CURRENCY,
+  SUPPORTED_CURRENCIES,
+} from '@/utils/currency/constants';
 import type { CurrencyCode } from '@/utils/currency/constants';
+import type { User } from 'firebase/auth';
 
 /**
  * Extracts currency code from Firebase user token claims

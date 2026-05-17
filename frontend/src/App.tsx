@@ -1,6 +1,3 @@
-import { type User, onAuthStateChanged, signOut } from 'firebase/auth';
-import { useEffect, useState } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import AppNavLink from '@/components/AppNavLink';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { CurrencyProvider } from '@/contexts/CurrencyContext';
@@ -10,6 +7,9 @@ import DashboardPage from '@/modules/dashboard/DashboardPage';
 import PortfolioPage from '@/modules/portfolio/PortfolioPage';
 import SavingsPage from '@/modules/savings/SavingsPage';
 import TransactionsPage from '@/modules/transactions/TransactionsPage';
+import { type User, onAuthStateChanged, signOut } from 'firebase/auth';
+import { useEffect, useState } from 'react';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 type AuthState =
   | { status: 'loading' }

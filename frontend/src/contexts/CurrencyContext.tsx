@@ -1,9 +1,9 @@
-import { onAuthStateChanged } from 'firebase/auth';
-import { createContext, useContext, useEffect, useState } from 'react';
 import { auth, firebaseConfigured } from '@/firebase';
 import { DEFAULT_CURRENCY } from '@/utils/currency/constants';
 import type { CurrencyCode } from '@/utils/currency/constants';
 import { getCurrencyFromToken } from '@/utils/currency/tokenExtractor';
+import { onAuthStateChanged } from 'firebase/auth';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 interface CurrencyContextValue {
   currency: CurrencyCode;

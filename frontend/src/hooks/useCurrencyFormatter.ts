@@ -1,6 +1,6 @@
-import { useCallback } from 'react';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { formatCurrency } from '@/utils/currency/formatter';
+import { useCallback } from 'react';
 
 /**
  * Hook that provides a currency formatter function using the current user's currency

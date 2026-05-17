@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { apiFetch } from '@/api/client';
 import { DashboardSummarySchema } from '@/api/schemas';
 import type { DashboardSummary } from '@/api/types';
@@ -11,6 +10,7 @@ import { useAdvisor } from '@/modules/dashboard/hooks/useAdvisor';
 import { useClaudeApiKey } from '@/modules/dashboard/hooks/useClaudeApiKey';
 import { getBudgetProgressColor } from '@/modules/dashboard/utils/budgetUtils';
 import { hasBudgetData, hasSavingsGoals } from '@/modules/dashboard/utils/dataChecks';
+import { useEffect, useState } from 'react';
 
 export default function DashboardPage() {
   const fmt = useCurrencyFormatter();
