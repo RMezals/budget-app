@@ -30,6 +30,45 @@ export const DashboardSummarySchema = z.object({
   activeGoals: z.array(GoalProgressSchema),
 });
 
+export const SavingsGoalProgressSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  name: z.string(),
+  targetAmount: z.number(),
+  currentBalance: z.number(),
+  percentReached: z.number(),
+  amountRemaining: z.number(),
+  projectedCompletion: z.string().nullable().optional(),
+  status: z.union([z.enum(['Active', 'Completed', 'Paused', 'Abandoned']), z.number()]),
+  deadline: z.string(),
+  description: z.string().nullable().optional(),
+});
+
+export const SavingsGoalProgressListSchema = z.array(SavingsGoalProgressSchema);
+
+export const SavingsGoalSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  name: z.string(),
+  targetAmount: z.number(),
+  currentAmount: z.number(),
+  deadline: z.string(),
+  description: z.string().nullable().optional(),
+  status: z.union([z.enum(['Active', 'Completed', 'Paused', 'Abandoned']), z.number()]),
+});
+
+export const GoalContributionSchema = z.object({
+  id: z.string(),
+  goalId: z.string(),
+  userId: z.string(),
+  amount: z.number(),
+  date: z.string(),
+  note: z.string().nullable().optional(),
+  reason: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  balanceAfter: z.number(),
+});
+
 // Advisor Result Schema
 export const AdvisorResultSchema = z.object({
   provider: z.string(),
