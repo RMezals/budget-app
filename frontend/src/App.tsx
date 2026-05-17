@@ -1,15 +1,15 @@
+import AppNavLink from '@/components/AppNavLink';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import { CurrencyProvider } from '@/contexts/CurrencyContext';
+import { auth, firebaseConfigured } from '@/firebase';
+import LoginPage from '@/modules/auth/LoginPage';
+import DashboardPage from '@/modules/dashboard/DashboardPage';
+import PortfolioPage from '@/modules/portfolio/PortfolioPage';
+import SavingsPage from '@/modules/savings/SavingsPage';
+import TransactionsPage from '@/modules/transactions/TransactionsPage';
 import { type User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import AppNavLink from './components/AppNavLink';
-import ErrorBoundary from './components/ErrorBoundary';
-import { CurrencyProvider } from './contexts/CurrencyContext';
-import { auth, firebaseConfigured } from './firebase';
-import LoginPage from './modules/auth/LoginPage';
-import DashboardPage from './modules/dashboard/DashboardPage';
-import PortfolioPage from './modules/portfolio/PortfolioPage';
-import SavingsPage from './modules/savings/SavingsPage';
-import TransactionsPage from './modules/transactions/TransactionsPage';
 
 type AuthState =
   | { status: 'loading' }
