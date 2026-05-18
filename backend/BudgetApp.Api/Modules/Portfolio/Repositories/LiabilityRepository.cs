@@ -18,6 +18,15 @@ public class LiabilityRepository(IMongoDatabase db) : ILiabilityRepository
     public async Task InsertAsync(Liability liability) =>
         await _col.InsertOneAsync(liability);
 
+    public async Task<bool> UpdateAsync(string id, string userId, string name, string type)
+    {
+        var update = Builders<Liability>.Update
+            .Set(l => l.Name, name)
+            .Set(l => l.Type, type);
+        var result = await _col.UpdateOneAsync(l => l.Id == id && l.UserId == userId, update);
+        return result.MatchedCount > 0;
+    }
+
     public async Task<bool> AddAmountAsync(string id, string userId, AmountEntry entry)
     {
         var update = Builders<Liability>.Update.Push(l => l.Amount, entry);

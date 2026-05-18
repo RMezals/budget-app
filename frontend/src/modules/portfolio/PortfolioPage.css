@@ -1,0 +1,417 @@
+/* ── Portfolio Page ─────────────────────────────────────────────────────── */
+
+/* Summary cards */
+.pf-metric {
+  border: none !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+  border-left: 4px solid transparent !important;
+  transition: box-shadow 0.15s ease;
+}
+
+.pf-metric:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.07) !important;
+}
+
+.pf-metric-networth {
+  border-left-color: #2563eb !important;
+}
+.pf-metric-assets {
+  border-left-color: #0891b2 !important;
+}
+.pf-metric-liabilities {
+  border-left-color: #dc2626 !important;
+}
+.pf-metric-gain {
+  border-left-color: #16a34a !important;
+}
+.pf-metric-loss {
+  border-left-color: #dc2626 !important;
+}
+.pf-metric-invested {
+  border-left-color: #6b7280 !important;
+}
+
+.pf-metric-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin-bottom: 0.35rem;
+}
+
+.pf-metric-value {
+  font-size: 1.55rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.pf-metric-value.featured {
+  font-size: 2rem;
+}
+
+.pf-metric-sub {
+  font-size: 0.75rem;
+  margin-top: 0.2rem;
+  color: #9ca3af;
+}
+
+/* Allocation */
+.pf-alloc-card {
+  border: none !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+}
+
+.pf-alloc-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 55px 90px;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.8rem;
+}
+
+.pf-alloc-type {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.pf-alloc-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pf-alloc-bar-wrap {
+  height: 7px;
+  background: #f1f5f9;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.pf-alloc-bar {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pf-alloc-pct {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.pf-alloc-val {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.pf-section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin-bottom: 0.85rem;
+}
+
+/* Tabs */
+.pf-tabs {
+  border-bottom: 2px solid #e5e7eb;
+  gap: 0;
+}
+
+.pf-tabs .nav-link {
+  border: none !important;
+  border-radius: 0 !important;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  padding: 0.65rem 1.1rem;
+  position: relative;
+  bottom: -2px;
+  transition: color 0.12s;
+}
+
+.pf-tabs .nav-link::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: transparent;
+  transition: background 0.12s;
+}
+
+.pf-tabs .nav-link:hover {
+  color: #111827;
+  background: transparent;
+}
+.pf-tabs .nav-link:hover::after {
+  background: #d1d5db;
+}
+
+.pf-tabs .nav-link.active {
+  color: #2563eb !important;
+  background: transparent !important;
+  font-weight: 600;
+}
+
+.pf-tabs .nav-link.active::after {
+  background: #2563eb !important;
+}
+
+/* Tab content card */
+.pf-tab-card {
+  border: none !important;
+  border-radius: 0 12px 12px 12px !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Table */
+.pf-table {
+  font-size: 0.875rem;
+}
+
+.pf-table th {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  border-bottom: 1px solid #f1f5f9 !important;
+  padding-bottom: 0.6rem;
+  white-space: nowrap;
+}
+
+.pf-table td {
+  border-color: #f8fafc !important;
+  padding: 0.75rem 0.75rem;
+  vertical-align: middle;
+}
+
+.pf-table tbody tr {
+  transition: background 0.08s;
+}
+.pf-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+/* Type badge */
+.pf-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 99px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* Gain / Loss badges — always opaque */
+.pf-gain {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 9px;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pf-gain.positive {
+  background: #dcfce7;
+  color: #15803d;
+}
+.pf-gain.negative {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* Action buttons */
+.pf-btn-group {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.pf-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.82rem;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+  color: #9ca3af;
+  line-height: 1;
+  padding: 0;
+}
+
+.pf-btn-icon:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  color: #374151;
+}
+.pf-btn-icon.edit:hover {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #2563eb;
+}
+.pf-btn-icon.price:hover {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #16a34a;
+}
+.pf-btn-icon.danger:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+/* Empty state */
+.pf-empty {
+  padding: 2.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  text-align: center;
+}
+
+.pf-empty-icon {
+  font-size: 2rem;
+  opacity: 0.25;
+  margin-bottom: 0.25rem;
+}
+.pf-empty-title {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+}
+.pf-empty-sub {
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+/* Modal */
+.pf-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.pf-modal {
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18), 0 4px 16px rgba(0, 0, 0, 0.08);
+  width: 100%;
+  max-width: 440px;
+  overflow: hidden;
+  animation: pf-modal-in 0.16s ease;
+  color: #111827;
+}
+
+.pf-modal-sm {
+  max-width: 360px;
+}
+
+@keyframes pf-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.pf-modal-header {
+  padding: 1.2rem 1.5rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.pf-modal-title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #111827;
+  margin: 0;
+}
+
+.pf-modal-danger .pf-modal-title {
+  color: #dc2626;
+}
+
+.pf-modal-body {
+  padding: 1.2rem 1.5rem;
+}
+
+.pf-modal-footer {
+  padding: 0.9rem 1.5rem;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.pf-modal-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* Context hint */
+.pf-current-hint {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.82rem;
+  color: #0369a1;
+  margin-bottom: 1rem;
+}
+
+.pf-current-hint strong {
+  color: #0c4a6e;
+}
+
+/* Performance controls */
+.pf-perf-controls {
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 10px;
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
