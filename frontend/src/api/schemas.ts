@@ -63,7 +63,7 @@ export const GoalContributionSchema = z.object({
   userId: z.string(),
   amount: z.number(),
   date: z.string(),
-  note: z.string().nullable().optional(),
+  // note: z.string().nullable().optional(),
   reason: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
   balanceAfter: z.number(),

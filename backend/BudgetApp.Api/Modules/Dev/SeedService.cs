@@ -231,7 +231,6 @@ public class SeedService(IMongoDatabase db) : ISeedService
         Amount = amount,
         Date = date,
         BalanceAfter = balanceAfter,
-        Note = description,
         Reason = amount >= 0 ? "Deposit" : "Withdrawal",
         Description = description,
     };

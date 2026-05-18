@@ -46,6 +46,30 @@ type DateInputWithPicker = HTMLInputElement & {
   showPicker?: () => void;
 };
 
+const goalStatusLabels = ['Active', 'Completed', 'Paused', 'Abandoned'] as const;
+
+const formatGoalStatus = (status: SavingsGoalProgress['status']) => {
+  if (typeof status === 'number') {
+    return goalStatusLabels[status] ?? String(status);
+  }
+
+  return status;
+};
+
+const isCompletedGoal = (goal: SavingsGoalProgress) => formatGoalStatus(goal.status) === 'Completed';
+
+const getSelectableGoalId = (
+  goals: SavingsGoalProgress[],
+  currentGoalId: string,
+  preferredGoalId?: string,
+) => {
+  const selectableGoals = goals.filter((goal) => !isCompletedGoal(goal));
+  const preferredGoal = selectableGoals.find((goal) => goal.id === preferredGoalId);
+  const currentGoal = selectableGoals.find((goal) => goal.id === currentGoalId);
+
+  return preferredGoal?.id ?? currentGoal?.id ?? selectableGoals[0]?.id ?? '';
+};
+
 export default function SavingsPage() {
   const fmt = useCurrencyFormatter();
   const amountInputRef = useRef<HTMLInputElement>(null);
@@ -65,13 +89,14 @@ export default function SavingsPage() {
     () => goals.find((goal) => goal.id === form.goalId) ?? null,
     [form.goalId, goals],
   );
+  const selectableGoals = useMemo(() => goals.filter((goal) => !isCompletedGoal(goal)), [goals]);
 
   const loadGoals = async (preferredGoalId?: string) => {
     const data = await apiFetch('/api/goals', SavingsGoalProgressListSchema);
     setGoals(data);
     setForm((current) => ({
       ...current,
-      goalId: preferredGoalId || current.goalId || data[0]?.id || '',
+      goalId: getSelectableGoalId(data, current.goalId, preferredGoalId),
     }));
   };
 
@@ -85,7 +110,7 @@ export default function SavingsPage() {
         setGoals(data);
         setForm((current) => ({
           ...current,
-          goalId: current.goalId || data[0]?.id || '',
+          goalId: getSelectableGoalId(data, current.goalId),
         }));
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Unable to load savings goals');
@@ -209,7 +234,7 @@ export default function SavingsPage() {
         body: JSON.stringify({
           amount: signedAmount,
           date: new Date(`${form.date}T00:00:00`).toISOString(),
-          note: form.note.trim() || null,
+          // note: form.note.trim() || null,
           reason: form.reason.trim() || null,
         }),
       });
@@ -371,9 +396,11 @@ export default function SavingsPage() {
             <div className="card-body">
               <h6 className="card-title mb-3">New Contribution</h6>
 
-              {goals.length === 0 ? (
+              {selectableGoals.length === 0 ? (
                 <p className="text-muted small mb-0">
-                  Create a savings goal before adding contributions.
+                  {goals.length === 0
+                    ? 'Create a savings goal before adding contributions.'
+                    : 'All savings goals are completed. Create a new goal before adding contributions.'}
                 </p>
               ) : (
                 <form onSubmit={handleSubmit}>
@@ -410,7 +437,7 @@ export default function SavingsPage() {
                       onChange={(event) => updateForm('goalId', event.target.value)}
                       disabled={submitting}
                     >
-                      {goals.map((goal) => (
+                      {selectableGoals.map((goal) => (
                         <option key={goal.id} value={goal.id}>
                           {goal.name}
                         </option>
@@ -428,8 +455,8 @@ export default function SavingsPage() {
                         ref={amountInputRef}
                         className="form-control"
                         type="number"
-                        min="0.01"
-                        step="0.01"
+                        min="10"
+                        step="1"
                         value={form.amount}
                         onChange={(event) => updateForm('amount', event.target.value)}
                         placeholder="100.00"
@@ -497,7 +524,7 @@ export default function SavingsPage() {
                     />
                   </div>
 
-                  <div className="mb-3">
+                  {/* <div className="mb-3">
                     <label className="form-label" htmlFor="contribution-note">
                       Note
                     </label>
@@ -510,7 +537,7 @@ export default function SavingsPage() {
                       placeholder="Optional details"
                       disabled={submitting}
                     />
-                  </div>
+                  </div> */}
 
                   <button
                     type="submit"
@@ -553,17 +580,21 @@ export default function SavingsPage() {
                           style={{ width: `${Math.min(goal.percentReached, 100)}%` }}
                         />
                       </div>
+                      
                       <div className="d-flex justify-content-between gap-3 mt-1">
                         <span className="text-muted small">{goal.percentReached}% reached</span>
                         <span className="text-muted small">
                           {fmt(goal.amountRemaining)} remaining
                         </span>
                       </div>
+                      <div className="px-2" style={{ height: 8 }}>
+                        {formatGoalStatus(goal.status)}
+                      </div>
                       <button
                         type="button"
                         className="btn btn-outline-danger btn-sm mt-2"
                         onClick={() => prepareWithdrawal(goal.id)}
-                        disabled={goal.currentBalance <= 0}
+                        disabled={goal.currentBalance <= 0 || isCompletedGoal(goal)}
                       >
                         Withdraw
                       </button>

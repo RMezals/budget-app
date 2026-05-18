@@ -1,8 +1,10 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using System.Text.Json.Serialization;
 
 namespace BudgetApp.Api.Modules.Savings.Models;
 
+[BsonIgnoreExtraElements]
 public class GoalContribution
 {
     [BsonId]
@@ -22,6 +24,11 @@ public class GoalContribution
 
     public string? Reason { get; set; }
     public string? Description { get; set; }
+
+    [BsonElement("Note")]
+    [BsonIgnoreIfNull]
+    [JsonIgnore]
+    public string? Note { get; set; }
 
     // Goal balance immediately after this contribution (for timeline display)
     [BsonRepresentation(BsonType.Decimal128)]

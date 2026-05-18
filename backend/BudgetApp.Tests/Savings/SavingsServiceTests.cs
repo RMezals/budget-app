@@ -37,13 +37,11 @@ public class SavingsServiceTests
             "user1",
             -50m,
             new DateTime(2026, 5, 14),
-            "ATM",
             "Withdrawal",
             "Emergency cash");
 
         Assert.Equal(-50m, contribution.Amount);
         Assert.Equal(25m, contribution.BalanceAfter);
-        Assert.Equal("ATM", contribution.Note);
         Assert.Equal("Withdrawal", contribution.Reason);
         Assert.Equal("Emergency cash", contribution.Description);
         _goalMock.Verify(g => g.UpdateBalanceAsync("g1", "user1", 25m, null), Times.Once);
