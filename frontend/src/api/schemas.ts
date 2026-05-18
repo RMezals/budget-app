@@ -69,6 +69,8 @@ export const GoalContributionSchema = z.object({
   balanceAfter: z.number(),
 });
 
+export const GoalContributionListSchema = z.array(GoalContributionSchema);
+
 // Advisor Result Schema
 export const AdvisorResultSchema = z.object({
   provider: z.string(),

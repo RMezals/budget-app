@@ -8,6 +8,7 @@ import { auth, firebaseConfigured } from './firebase';
 import LoginPage from './modules/auth/LoginPage';
 import DashboardPage from './modules/dashboard/DashboardPage';
 import PortfolioPage from './modules/portfolio/PortfolioPage';
+import GoalPage from './modules/savings/GoalPage';
 import SavingsPage from './modules/savings/SavingsPage';
 import TransactionsPage from './modules/transactions/TransactionsPage';
 
@@ -62,6 +63,7 @@ function App() {
               <Route path="/" element={<DashboardPage />} />
               <Route path="/transactions" element={<TransactionsPage />} />
               <Route path="/savings" element={<SavingsPage />} />
+              <Route path="/savings/:goalId" element={<GoalPage />} />
               <Route path="/portfolio" element={<PortfolioPage />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>

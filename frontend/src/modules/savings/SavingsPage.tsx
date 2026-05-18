@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { apiFetch } from '../../api/client';
 import {
   GoalContributionSchema,
@@ -56,7 +57,8 @@ const formatGoalStatus = (status: SavingsGoalProgress['status']) => {
   return status;
 };
 
-const isCompletedGoal = (goal: SavingsGoalProgress) => formatGoalStatus(goal.status) === 'Completed';
+const isCompletedGoal = (goal: SavingsGoalProgress) =>
+  formatGoalStatus(goal.status) === 'Completed';
 
 const getSelectableGoalId = (
   goals: SavingsGoalProgress[],
@@ -519,7 +521,9 @@ export default function SavingsPage() {
                       type="text"
                       value={form.reason}
                       onChange={(event) => updateForm('reason', event.target.value)}
-                      placeholder={contributionMode === 'withdraw' ? 'Transfer out' : 'Payday transfer'}
+                      placeholder={
+                        contributionMode === 'withdraw' ? 'Transfer out' : 'Payday transfer'
+                      }
                       disabled={submitting}
                     />
                   </div>
@@ -569,7 +573,12 @@ export default function SavingsPage() {
                   {goals.map((goal) => (
                     <div key={goal.id}>
                       <div className="d-flex justify-content-between gap-3 mb-1">
-                        <span className="fw-semibold">{goal.name}</span>
+                        <Link
+                          className="fw-semibold link-body-emphasis text-decoration-none"
+                          to={`/savings/${goal.id}`}
+                        >
+                          {goal.name}
+                        </Link>
                         <span className="text-muted small text-nowrap">
                           {fmt(goal.currentBalance)} / {fmt(goal.targetAmount)}
                         </span>
@@ -580,24 +589,32 @@ export default function SavingsPage() {
                           style={{ width: `${Math.min(goal.percentReached, 100)}%` }}
                         />
                       </div>
-                      
+
                       <div className="d-flex justify-content-between gap-3 mt-1">
                         <span className="text-muted small">{goal.percentReached}% reached</span>
                         <span className="text-muted small">
                           {fmt(goal.amountRemaining)} remaining
                         </span>
                       </div>
-                      <div className="px-2" style={{ height: 8 }}>
+                      <div className="mt-2 mb-2 small text-muted">
                         {formatGoalStatus(goal.status)}
                       </div>
-                      <button
-                        type="button"
-                        className="btn btn-outline-danger btn-sm mt-2"
-                        onClick={() => prepareWithdrawal(goal.id)}
-                        disabled={goal.currentBalance <= 0 || isCompletedGoal(goal)}
-                      >
-                        Withdraw
-                      </button>
+                      <div className="d-flex flex-wrap gap-2 mt-2">
+                        <Link
+                          className="btn btn-outline-primary btn-sm"
+                          to={`/savings/${goal.id}`}
+                        >
+                          View Goal
+                        </Link>
+                        <button
+                          type="button"
+                          className="btn btn-outline-danger btn-sm"
+                          onClick={() => prepareWithdrawal(goal.id)}
+                          disabled={goal.currentBalance <= 0 || isCompletedGoal(goal)}
+                        >
+                          Withdraw
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

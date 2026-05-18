@@ -13,8 +13,6 @@ public class SavingsService(ISavingsGoalRepository goalRepo, IGoalContributionRe
         var contributions = await contributionRepo.GetByGoalAsync(goalId, userId);
         var currentBalance = CalculateCurrentBalance(contributions);
 
-        // if (goal.Status == GoalStatus.Completed)
-        //     return;
 
         if (amount < 0 && Math.Abs(amount) > currentBalance)
             throw new InvalidOperationException("Withdrawal exceeds current saved amount.");
