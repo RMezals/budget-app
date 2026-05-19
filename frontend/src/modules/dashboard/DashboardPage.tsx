@@ -1,62 +1,71 @@
+import { apiFetch } from '@/api/client';
+import { DashboardSummarySchema } from '@/api/schemas';
+import type { DashboardSummary } from '@/api/types';
+import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
+import EmptyState from '@/modules/dashboard/components/EmptyState';
+import FormattedTips from '@/modules/dashboard/components/FormattedTips';
+import { ADVISOR_GOAL_OPTIONS } from '@/modules/dashboard/constants/advisorGoals';
+import { EMPTY_STATE_MESSAGES } from '@/modules/dashboard/constants/emptyStateMessages';
+import { useAdvisor } from '@/modules/dashboard/hooks/useAdvisor';
+import { useClaudeApiKey } from '@/modules/dashboard/hooks/useClaudeApiKey';
+import { getBudgetProgressColor } from '@/modules/dashboard/utils/budgetUtils';
+import { hasBudgetData, hasSavingsGoals } from '@/modules/dashboard/utils/dataChecks';
 import { useEffect, useState } from 'react';
-import { apiFetch } from '../../api/client';
-import { AdvisorResultSchema, DashboardSummarySchema } from '../../api/schemas';
-import type { AdvisorResult, DashboardSummary } from '../../api/types';
-import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
-import EmptyState from './components/EmptyState';
-import FormattedTips from './components/FormattedTips';
-import { ADVISOR_GOAL_OPTIONS } from './constants/advisorGoals';
-import { EMPTY_STATE_MESSAGES } from './constants/emptyStateMessages';
-import { getBudgetProgressColor } from './utils/budgetUtils';
-import { hasBudgetData, hasSavingsGoals } from './utils/dataChecks';
 
 export default function DashboardPage() {
   const fmt = useCurrencyFormatter();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [advisor, setAdvisor] = useState<AdvisorResult | null>(null);
-  const [advisorLoading, setAdvisorLoading] = useState(false);
-  const [advisorError, setAdvisorError] = useState<string | null>(null);
   const [selectedGoals, setSelectedGoals] = useState<string[]>(['save_more']);
+  const [customQuestion, setCustomQuestion] = useState('');
 
+  // Custom hooks for advisor and API key management
+  const apiKeyManager = useClaudeApiKey();
+  const {
+    advisor,
+    loading: advisorLoading,
+    error: advisorError,
+    runAdvisor,
+  } = useAdvisor({
+    claudeApiKey: apiKeyManager.apiKey,
+    onClaudeKeyRequired: apiKeyManager.openModal,
+  });
+
+  // Load dashboard summary on mount
   useEffect(() => {
     let cancelled = false;
     apiFetch('/api/dashboard', DashboardSummarySchema)
       .then((data) => {
         if (!cancelled) setSummary(data);
       })
-      .catch(console.error);
+      .catch((error) => {
+        if (!cancelled) console.error(error);
+      });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const runAdvisor = async (provider: 'claude' | 'ollama') => {
-    if (selectedGoals.length === 0) {
-      setAdvisorError('Please select at least one goal');
-      return;
-    }
+  const handleRunAdvisor = async (provider: 'claude' | 'ollama') => {
+    const goals = customQuestion.trim() ? [...selectedGoals, customQuestion.trim()] : selectedGoals;
 
-    setAdvisorLoading(true);
-    setAdvisor(null);
-    setAdvisorError(null);
-    try {
-      const result = await apiFetch('/api/advisor/analyse', AdvisorResultSchema, {
-        method: 'POST',
-        body: JSON.stringify({ provider, goals: selectedGoals }),
-      });
-      setAdvisor(result);
-    } catch (e) {
-      console.error(e);
-      setAdvisorError(e instanceof Error ? e.message : 'An error occurred');
-    } finally {
-      setAdvisorLoading(false);
-    }
+    await runAdvisor(provider, goals);
   };
 
   const toggleGoal = (goal: string) => {
     setSelectedGoals((prev) =>
       prev.includes(goal) ? prev.filter((g) => g !== goal) : [...prev, goal],
     );
+  };
+
+  const handleSaveApiKey = async () => {
+    await apiKeyManager.saveApiKey();
+    // Auto-run Claude advisor after saving API key
+    if (apiKeyManager.tempKey.trim()) {
+      const goals = customQuestion.trim()
+        ? [...selectedGoals, customQuestion.trim()]
+        : selectedGoals;
+      await runAdvisor('claude', goals);
+    }
   };
 
   if (!summary)
@@ -205,11 +214,26 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="d-flex gap-2 mb-3">
+          {/* Custom Question */}
+          <div className="mb-3">
+            <label htmlFor="customQuestion" className="form-label small fw-semibold">
+              Or ask your own question:
+            </label>
+            <textarea
+              id="customQuestion"
+              className="form-control form-control-sm"
+              rows={2}
+              placeholder="e.g., Should I prioritize paying off my credit card or saving for a house?"
+              value={customQuestion}
+              onChange={(e) => setCustomQuestion(e.target.value)}
+            />
+          </div>
+
+          <div className="d-flex gap-2 mb-3 align-items-center flex-wrap">
             <button
               type="button"
               className="btn btn-outline-secondary btn-sm"
-              onClick={() => runAdvisor('ollama')}
+              onClick={() => handleRunAdvisor('ollama')}
               disabled={advisorLoading}
             >
               Get Tips (Free — Ollama)
@@ -217,11 +241,24 @@ export default function DashboardPage() {
             <button
               type="button"
               className="btn btn-dark btn-sm"
-              onClick={() => runAdvisor('claude')}
+              onClick={() => handleRunAdvisor('claude')}
               disabled={advisorLoading}
             >
               Get Tips (Claude)
             </button>
+            {apiKeyManager.apiKey && (
+              <small className="text-muted ms-2">
+                API key configured ·{' '}
+                <button
+                  type="button"
+                  className="btn btn-link btn-sm p-0 text-decoration-none"
+                  onClick={apiKeyManager.clearApiKey}
+                  style={{ fontSize: 'inherit' }}
+                >
+                  Clear
+                </button>
+              </small>
+            )}
           </div>
           {advisorLoading && (
             <div className="d-flex align-items-center gap-2 text-muted small">
@@ -239,6 +276,90 @@ export default function DashboardPage() {
           {advisor && <FormattedTips rawTips={advisor.tips} provider={advisor.provider} />}
         </div>
       </div>
+
+      {/* Claude API Key Modal */}
+      {apiKeyManager.showModal && (
+        <div
+          className="modal show d-block"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          onClick={apiKeyManager.closeModal}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              apiKeyManager.closeModal();
+            }
+          }}
+        >
+          <div
+            className="modal-dialog modal-dialog-centered"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Claude API Key Required</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={apiKeyManager.closeModal}
+                  aria-label="Close"
+                />
+              </div>
+              <div className="modal-body">
+                <p className="text-muted small mb-3">
+                  To use Claude AI, you need an API key from Anthropic. Get one at{' '}
+                  <a
+                    href="https://console.anthropic.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-decoration-none"
+                  >
+                    console.anthropic.com
+                  </a>
+                </p>
+                <div className="alert alert-warning small">
+                  <strong>Security Note:</strong> Your API key is encrypted and stored locally in
+                  your browser. However, this provides only basic protection. For maximum security,
+                  consider alternative approaches for production use.
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="apiKeyInput" className="form-label small fw-semibold">
+                    Enter your Claude API Key:
+                  </label>
+                  <input
+                    id="apiKeyInput"
+                    type="password"
+                    className="form-control"
+                    placeholder="sk-ant-..."
+                    value={apiKeyManager.tempKey}
+                    onChange={(e) => apiKeyManager.setTempKey(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSaveApiKey()}
+                  />
+                  <small className="text-muted">
+                    Your API key is stored locally in your browser.
+                  </small>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={apiKeyManager.closeModal}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={handleSaveApiKey}
+                  disabled={!apiKeyManager.tempKey.trim()}
+                >
+                  Save & Continue
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,12 +2,15 @@ using Xunit;
 using BudgetApp.Api.Modules.Dashboard.Services;
 using BudgetApp.Tests.Helpers;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace BudgetApp.Tests.Dashboard;
 
 public class ClaudeAdvisorTests
 {
+    private static readonly Mock<ILogger<ClaudeAdvisor>> LoggerMock = new();
+
     private static IConfiguration BuildConfig(
         string? apiKey = "test-key",
         string? model = null,
@@ -32,7 +35,7 @@ public class ClaudeAdvisorTests
     {
         const string json = """{"content":[{"type":"text","text":"Tip 1. Tip 2. Tip 3."}]}""";
 
-        var result = await new ClaudeAdvisor(CreateFactory(json), BuildConfig())
+        var result = await new ClaudeAdvisor(CreateFactory(json), BuildConfig(), LoggerMock.Object)
             .AnalyseAsync("financial summary", "save more money");
 
         Assert.Equal("Tip 1. Tip 2. Tip 3.", result);
@@ -41,7 +44,7 @@ public class ClaudeAdvisorTests
     [Fact]
     public async Task AnalyseAsync_MissingApiKey_ThrowsInvalidOperationException()
     {
-        var advisor = new ClaudeAdvisor(new Mock<IHttpClientFactory>().Object, BuildConfig(apiKey: null));
+        var advisor = new ClaudeAdvisor(new Mock<IHttpClientFactory>().Object, BuildConfig(apiKey: null), LoggerMock.Object);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => advisor.AnalyseAsync("summary", "goals"));
@@ -53,7 +56,7 @@ public class ClaudeAdvisorTests
         const string json = """{"content":[{"type":"text","text":"tips"}]}""";
         HttpRequestMessage? captured = null;
 
-        await new ClaudeAdvisor(CreateFactory(json, req => captured = req), BuildConfig("my-key"))
+        await new ClaudeAdvisor(CreateFactory(json, req => captured = req), BuildConfig("my-key"), LoggerMock.Object)
             .AnalyseAsync("summary", "invest");
 
         Assert.NotNull(captured);
@@ -70,7 +73,8 @@ public class ClaudeAdvisorTests
 
         await new ClaudeAdvisor(
                 CreateFactory(json, req => capturedBody = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult()),
-                BuildConfig("key", model: "claude-opus-4-7", maxTokens: "512"))
+                BuildConfig("key", model: "claude-opus-4-7", maxTokens: "512"),
+                LoggerMock.Object)
             .AnalyseAsync("summary", "goals");
 
         Assert.Contains("claude-opus-4-7", capturedBody);
@@ -85,9 +89,69 @@ public class ClaudeAdvisorTests
 
         await new ClaudeAdvisor(
                 CreateFactory(json, req => capturedBody = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult()),
-                BuildConfig())   // no model override
+                BuildConfig(),   // no model override
+                LoggerMock.Object)
             .AnalyseAsync("summary", "goals");
 
         Assert.Contains("claude-haiku-4-5", capturedBody);
+    }
+
+    [Fact]
+    public async Task AnalyseAsync_UserProvidedApiKey_UsesUserKey()
+    {
+        const string json = """{"content":[{"type":"text","text":"tips"}]}""";
+        HttpRequestMessage? captured = null;
+
+        await new ClaudeAdvisor(CreateFactory(json, req => captured = req), BuildConfig("config-key"), LoggerMock.Object)
+            .AnalyseAsync("summary", "goals", "user-provided-key");
+
+        Assert.NotNull(captured);
+        Assert.Contains("user-provided-key", captured!.Headers.GetValues("x-api-key"));
+        Assert.DoesNotContain("config-key", captured.Headers.GetValues("x-api-key"));
+    }
+
+    [Fact]
+    public async Task AnalyseAsync_UserProvidedApiKey_OverridesConfigKey()
+    {
+        const string json = """{"content":[{"type":"text","text":"tips"}]}""";
+        HttpRequestMessage? captured = null;
+
+        await new ClaudeAdvisor(CreateFactory(json, req => captured = req), BuildConfig("config-key"), LoggerMock.Object)
+            .AnalyseAsync("summary", "goals", "override-key");
+
+        Assert.NotNull(captured);
+        var apiKey = captured!.Headers.GetValues("x-api-key").First();
+        Assert.Equal("override-key", apiKey);
+    }
+
+    [Fact]
+    public async Task AnalyseAsync_NullUserApiKey_UsesConfigKey()
+    {
+        const string json = """{"content":[{"type":"text","text":"tips"}]}""";
+        HttpRequestMessage? captured = null;
+
+        await new ClaudeAdvisor(CreateFactory(json, req => captured = req), BuildConfig("config-key"), LoggerMock.Object)
+            .AnalyseAsync("summary", "goals", null);
+
+        Assert.NotNull(captured);
+        Assert.Contains("config-key", captured!.Headers.GetValues("x-api-key"));
+    }
+
+    [Fact]
+    public async Task AnalyseAsync_EmptyUserApiKey_ThrowsInvalidOperationException()
+    {
+        var advisor = new ClaudeAdvisor(new Mock<IHttpClientFactory>().Object, BuildConfig(apiKey: null), LoggerMock.Object);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => advisor.AnalyseAsync("summary", "goals", ""));
+    }
+
+    [Fact]
+    public async Task AnalyseAsync_NoConfigKeyNoUserKey_ThrowsInvalidOperationException()
+    {
+        var advisor = new ClaudeAdvisor(new Mock<IHttpClientFactory>().Object, BuildConfig(apiKey: null), LoggerMock.Object);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => advisor.AnalyseAsync("summary", "goals", null));
     }
 }

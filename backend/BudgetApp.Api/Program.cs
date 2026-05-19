@@ -10,14 +10,20 @@ using BudgetApp.Api.Modules.Savings.Services;
 using BudgetApp.Api.Modules.Transactions.Repositories;
 using BudgetApp.Api.Modules.Transactions.Services;
 using FirebaseAdmin;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// MongoDB
-builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDB"));
+// MongoDB configuration with validation
+builder.Services.AddOptions<MongoDbSettings>()
+    .Bind(builder.Configuration.GetSection("MongoDB"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
 builder.Services.AddSingleton<IMongoClient>(sp =>
 {
     var settings = sp.GetRequiredService<IOptions<MongoDbSettings>>().Value;
@@ -62,8 +68,13 @@ builder.Services.AddScoped<IAdvisorService, AdvisorService>();
 builder.Services.AddScoped<ISeedService, SeedService>();
 
 // AI advisor providers
-builder.Services.AddKeyedSingleton<IAiAdvisor, ClaudeAdvisor>("claude");
-builder.Services.AddKeyedSingleton<IAiAdvisor, OllamaAdvisor>("ollama");
+builder.Services.AddKeyedSingleton<IAiAdvisor, ClaudeAdvisor>(BudgetApp.Api.Modules.Dashboard.AiProviders.Claude);
+builder.Services.AddKeyedSingleton<IAiAdvisor, OllamaAdvisor>(BudgetApp.Api.Modules.Dashboard.AiProviders.Ollama);
+builder.Services.AddScoped<IAiAdvisorFactory, AiAdvisorFactory>();
+
+// Validation
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+builder.Services.AddFluentValidationAutoValidation();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -72,7 +83,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Dev", policy => policy
-        .WithOrigins("http://localhost:5173")
+        .WithOrigins("http://localhost:5173", "http://localhost:5174")
         .AllowAnyHeader()
         .AllowAnyMethod());
 });
@@ -85,7 +96,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
     app.UseCors("Dev");
 }
+else
+{
+    // Enable HTTPS redirection in production
+    app.UseHttpsRedirection();
+}
 
+// Global exception handler should be first in the pipeline
+app.UseMiddleware<GlobalExceptionHandler>();
 app.UseMiddleware<FirebaseAuthMiddleware>();
 app.MapControllers();
 app.Run();

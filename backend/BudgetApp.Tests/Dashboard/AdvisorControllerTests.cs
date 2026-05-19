@@ -3,6 +3,7 @@ using BudgetApp.Api.Modules.Dashboard;
 using BudgetApp.Api.Modules.Dashboard.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace BudgetApp.Tests.Dashboard;
@@ -12,6 +13,8 @@ public class AdvisorControllerTests
     private readonly Mock<IAdvisorService> _advisorServiceMock = new();
     private readonly Mock<IAiAdvisor> _claudeMock = new();
     private readonly Mock<IAiAdvisor> _ollamaMock = new();
+    private readonly Mock<IAiAdvisorFactory> _factoryMock = new();
+    private readonly Mock<ILogger<AdvisorController>> _loggerMock = new();
 
     private AdvisorController CreateController(string userId = "user1")
     {
@@ -19,8 +22,12 @@ public class AdvisorControllerTests
             .Setup(s => s.BuildFinancialSummaryAsync(It.IsAny<string>()))
             .ReturnsAsync("financial summary");
 
+        // Setup factory to return the appropriate mock
+        _factoryMock.Setup(f => f.GetAdvisor(AiProviders.Claude)).Returns(_claudeMock.Object);
+        _factoryMock.Setup(f => f.GetAdvisor(AiProviders.Ollama)).Returns(_ollamaMock.Object);
+
         var controller = new AdvisorController(
-            _advisorServiceMock.Object, _claudeMock.Object, _ollamaMock.Object);
+            _advisorServiceMock.Object, _factoryMock.Object, _loggerMock.Object);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()
@@ -32,33 +39,33 @@ public class AdvisorControllerTests
     [Fact]
     public async Task Analyse_DefaultProvider_RoutesToOllama()
     {
-        _ollamaMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>()))
+        _ollamaMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
             .ReturnsAsync("tips");
 
         await CreateController().Analyse(new AdvisorController.AnalyseRequest());
 
-        _ollamaMock.Verify(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Once);
-        _claudeMock.Verify(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _ollamaMock.Verify(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()), Times.Once);
+        _claudeMock.Verify(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()), Times.Never);
     }
 
     [Fact]
     public async Task Analyse_ProviderClaude_RoutesToClaudeAdvisor()
     {
-        _claudeMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>()))
+        _claudeMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
             .ReturnsAsync("tips");
 
         await CreateController().Analyse(new AdvisorController.AnalyseRequest("claude"));
 
-        _claudeMock.Verify(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Once);
-        _ollamaMock.Verify(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _claudeMock.Verify(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()), Times.Once);
+        _ollamaMock.Verify(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()), Times.Never);
     }
 
     [Fact]
     public async Task Analyse_KnownGoals_TranslatesToHumanReadableDescriptions()
     {
         string? capturedGoals = null;
-        _ollamaMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>()))
-            .Callback<string, string>((_, goals) => capturedGoals = goals)
+        _ollamaMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
+            .Callback<string, string, string?>((_, goals, _) => capturedGoals = goals)
             .ReturnsAsync("tips");
 
         await CreateController().Analyse(
@@ -72,8 +79,8 @@ public class AdvisorControllerTests
     public async Task Analyse_NoGoals_UsesDefaultHealthGoal()
     {
         string? capturedGoals = null;
-        _ollamaMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>()))
-            .Callback<string, string>((_, goals) => capturedGoals = goals)
+        _ollamaMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
+            .Callback<string, string, string?>((_, goals, _) => capturedGoals = goals)
             .ReturnsAsync("tips");
 
         await CreateController().Analyse(new AdvisorController.AnalyseRequest("ollama", null));
@@ -85,8 +92,8 @@ public class AdvisorControllerTests
     public async Task Analyse_EmptyGoalsList_UsesDefaultHealthGoal()
     {
         string? capturedGoals = null;
-        _ollamaMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>()))
-            .Callback<string, string>((_, goals) => capturedGoals = goals)
+        _ollamaMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
+            .Callback<string, string, string?>((_, goals, _) => capturedGoals = goals)
             .ReturnsAsync("tips");
 
         await CreateController().Analyse(new AdvisorController.AnalyseRequest("ollama", []));
@@ -98,8 +105,8 @@ public class AdvisorControllerTests
     public async Task Analyse_UnknownGoalKey_PassedThroughAsIs()
     {
         string? capturedGoals = null;
-        _ollamaMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>()))
-            .Callback<string, string>((_, goals) => capturedGoals = goals)
+        _ollamaMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
+            .Callback<string, string, string?>((_, goals, _) => capturedGoals = goals)
             .ReturnsAsync("tips");
 
         await CreateController().Analyse(
@@ -111,7 +118,7 @@ public class AdvisorControllerTests
     [Fact]
     public async Task Analyse_SuccessfulAnalysis_ReturnsOkWithProviderAndTips()
     {
-        _ollamaMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>()))
+        _ollamaMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
             .ReturnsAsync("3 great tips");
 
         var result = await CreateController().Analyse(new AdvisorController.AnalyseRequest("ollama"));
@@ -125,7 +132,7 @@ public class AdvisorControllerTests
     [Fact]
     public async Task Analyse_AdvisorThrowsInvalidOperation_Returns503WithErrorMessage()
     {
-        _ollamaMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>()))
+        _ollamaMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
             .ThrowsAsync(new InvalidOperationException("Service not configured."));
 
         var result = await CreateController().Analyse(new AdvisorController.AnalyseRequest());
@@ -145,12 +152,53 @@ public class AdvisorControllerTests
             .ReturnsAsync("my personal summary");
 
         string? capturedSummary = null;
-        _ollamaMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>()))
-            .Callback<string, string>((summary, _) => capturedSummary = summary)
+        _ollamaMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
+            .Callback<string, string, string?>((summary, _, _) => capturedSummary = summary)
             .ReturnsAsync("tips");
 
         await controller.Analyse(new AdvisorController.AnalyseRequest());
 
         Assert.Equal("my personal summary", capturedSummary);
+    }
+
+    [Fact]
+    public async Task Analyse_WithUserApiKey_PassesKeyToAdvisor()
+    {
+        string? capturedApiKey = null;
+        _claudeMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
+            .Callback<string, string, string?>((_, _, apiKey) => capturedApiKey = apiKey)
+            .ReturnsAsync("tips");
+
+        await CreateController().Analyse(new AdvisorController.AnalyseRequest("claude", null, "user-key-123"));
+
+        Assert.Equal("user-key-123", capturedApiKey);
+    }
+
+    [Fact]
+    public async Task Analyse_WithoutApiKey_PassesNullToAdvisor()
+    {
+        string? capturedApiKey = "not-null";
+        _ollamaMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
+            .Callback<string, string, string?>((_, _, apiKey) => capturedApiKey = apiKey)
+            .ReturnsAsync("tips");
+
+        await CreateController().Analyse(new AdvisorController.AnalyseRequest("ollama", null, null));
+
+        Assert.Null(capturedApiKey);
+    }
+
+    [Fact]
+    public async Task Analyse_ClaudeWithUserKey_UsesProvidedKey()
+    {
+        string? capturedApiKey = null;
+        _claudeMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
+            .Callback<string, string, string?>((_, _, apiKey) => capturedApiKey = apiKey)
+            .ReturnsAsync("tips");
+
+        await CreateController().Analyse(
+            new AdvisorController.AnalyseRequest("claude", ["save_more"], "sk-ant-test-key"));
+
+        Assert.Equal("sk-ant-test-key", capturedApiKey);
+        _claudeMock.Verify(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), "sk-ant-test-key"), Times.Once);
     }
 }
