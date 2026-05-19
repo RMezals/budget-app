@@ -10,6 +10,7 @@ import TransactionsPage from '@/modules/transactions/TransactionsPage';
 import { type User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import GoalPage from './modules/savings/GoalPage';
 
 type AuthState =
   | { status: 'loading' }
@@ -62,6 +63,7 @@ function App() {
               <Route path="/" element={<DashboardPage />} />
               <Route path="/transactions" element={<TransactionsPage />} />
               <Route path="/savings" element={<SavingsPage />} />
+              <Route path="/savings/:goalId" element={<GoalPage />} />
               <Route path="/portfolio" element={<PortfolioPage />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
