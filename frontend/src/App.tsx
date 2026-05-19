@@ -13,13 +13,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import AppNavLink from './components/AppNavLink';
 import ErrorBoundary from './components/ErrorBoundary';
 import { CurrencyProvider } from './contexts/CurrencyContext';
-import { auth, firebaseConfigured } from './firebase';
-import LoginPage from './modules/auth/LoginPage';
-import DashboardPage from './modules/dashboard/DashboardPage';
-import PortfolioPage from './modules/portfolio/PortfolioPage';
 import GoalPage from './modules/savings/GoalPage';
-import SavingsPage from './modules/savings/SavingsPage';
-import TransactionsPage from './modules/transactions/TransactionsPage';
 
 type AuthState =
   | { status: 'loading' }
