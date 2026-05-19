@@ -60,6 +60,25 @@ const formatGoalStatus = (status: SavingsGoalProgress['status']) => {
 const isCompletedGoal = (goal: SavingsGoalProgress) =>
   formatGoalStatus(goal.status) === 'Completed';
 
+const getContributionLimit = (goal: SavingsGoalProgress, mode: ContributionMode) =>
+  Math.max(mode === 'withdraw' ? goal.currentBalance : goal.amountRemaining, 0);
+
+const clampContributionAmount = (
+  value: string,
+  goal: SavingsGoalProgress | null | undefined,
+  mode: ContributionMode,
+) => {
+  if (!goal || value === '') return value;
+
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return value;
+
+  const limit = getContributionLimit(goal, mode);
+  if (amount <= limit) return value;
+
+  return limit > 0 ? String(limit) : '';
+};
+
 const getSelectableGoalId = (
   goals: SavingsGoalProgress[],
   currentGoalId: string,
@@ -92,6 +111,9 @@ export default function SavingsPage() {
     [form.goalId, goals],
   );
   const selectableGoals = useMemo(() => goals.filter((goal) => !isCompletedGoal(goal)), [goals]);
+  const contributionLimit = selectedGoal
+    ? getContributionLimit(selectedGoal, contributionMode)
+    : null;
 
   const loadGoals = async (preferredGoalId?: string) => {
     const data = await apiFetch('/api/goals', SavingsGoalProgressListSchema);
@@ -138,7 +160,29 @@ export default function SavingsPage() {
     setSuccess(null);
   };
 
+  const updateContributionGoal = (goalId: string) => {
+    const nextGoal = goals.find((goal) => goal.id === goalId) ?? null;
+    setForm((current) => ({
+      ...current,
+      goalId,
+      amount: clampContributionAmount(current.amount, nextGoal, contributionMode),
+    }));
+    setSuccess(null);
+  };
+
+  const updateContributionAmount = (value: string) => {
+    setForm((current) => ({
+      ...current,
+      amount: clampContributionAmount(value, selectedGoal, contributionMode),
+    }));
+    setSuccess(null);
+  };
+
   const selectContributionMode = (mode: ContributionMode) => {
+    setForm((current) => ({
+      ...current,
+      amount: clampContributionAmount(current.amount, selectedGoal, mode),
+    }));
     setContributionMode(mode);
     setSuccess(null);
   };
@@ -219,8 +263,21 @@ export default function SavingsPage() {
       setError('Choose a savings goal first.');
       return;
     }
+    if (!selectedGoal) {
+      setError('Choose a valid savings goal.');
+      return;
+    }
     if (!Number.isFinite(amount) || amount <= 0) {
       setError('Enter an amount greater than zero.');
+      return;
+    }
+    const limit = getContributionLimit(selectedGoal, contributionMode);
+    if (amount > limit) {
+      setError(
+        contributionMode === 'withdraw'
+          ? `Withdrawal cannot exceed ${fmt(limit)} available in ${selectedGoal.name}.`
+          : `Deposit cannot exceed ${fmt(limit)} remaining for ${selectedGoal.name}.`,
+      );
       return;
     }
     if (!form.date) {
@@ -436,7 +493,7 @@ export default function SavingsPage() {
                       id="contribution-goal"
                       className="form-select"
                       value={form.goalId}
-                      onChange={(event) => updateForm('goalId', event.target.value)}
+                      onChange={(event) => updateContributionGoal(event.target.value)}
                       disabled={submitting}
                     >
                       {selectableGoals.map((goal) => (
@@ -457,14 +514,22 @@ export default function SavingsPage() {
                         ref={amountInputRef}
                         className="form-control"
                         type="number"
-                        min="10"
-                        step="1"
+                        min="0.01"
+                        max={contributionLimit ?? undefined}
+                        step="0.01"
                         value={form.amount}
-                        onChange={(event) => updateForm('amount', event.target.value)}
+                        onChange={(event) => updateContributionAmount(event.target.value)}
                         placeholder="100.00"
                         disabled={submitting}
                         required
                       />
+                      {selectedGoal && (
+                        <p className="form-text mb-0">
+                          {contributionMode === 'withdraw'
+                            ? `${fmt(selectedGoal.currentBalance)} available to withdraw.`
+                            : `${fmt(selectedGoal.amountRemaining)} remaining for this goal.`}
+                        </p>
+                      )}
                     </div>
                     <div className="col-sm-6">
                       <label className="form-label" htmlFor="contribution-date">

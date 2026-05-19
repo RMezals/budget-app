@@ -33,6 +33,11 @@ export async function apiFetch<T>(
     const body = await res.text().catch(() => '');
     throw new Error(`${res.status} ${res.statusText}: ${body}`);
   }
-  const data = await res.json();
+  if (res.status === 204) return undefined as T;
+
+  const body = await res.text();
+  if (!body) return undefined as T;
+
+  const data = JSON.parse(body);
   return schema ? schema.parse(data) : data;
 }

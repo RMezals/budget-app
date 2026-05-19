@@ -1,11 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { apiFetch } from '../../api/client';
 import { GoalContributionListSchema, SavingsGoalProgressSchema } from '../../api/schemas';
 import type { GoalContribution, SavingsGoalProgress } from '../../api/types';
 import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 
 const goalStatusLabels = ['Active', 'Completed', 'Paused', 'Abandoned'] as const;
+type GoalStatusLabel = (typeof goalStatusLabels)[number];
+
+const goalStatusValues: Record<GoalStatusLabel, number> = {
+  Active: 0,
+  Completed: 1,
+  Paused: 2,
+  Abandoned: 3,
+};
 
 const formatGoalStatus = (status: SavingsGoalProgress['status']) => {
   if (typeof status === 'number') {
@@ -42,12 +50,38 @@ const formatDate = (value?: string | null) => {
   }).format(new Date(year, month - 1, day));
 };
 
+const getDateKey = (value?: string | null) => {
+  if (!value) return null;
+
+  const [datePart] = value.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  if (!year || !month || !day) return null;
+
+  return [
+    year.toString().padStart(4, '0'),
+    month.toString().padStart(2, '0'),
+    day.toString().padStart(2, '0'),
+  ].join('-');
+};
+
+const getProjectionTiming = (goal: SavingsGoalProgress) => {
+  const deadline = getDateKey(goal.deadline);
+  const projectedCompletion = getDateKey(goal.projectedCompletion);
+
+  if (!deadline || !projectedCompletion) return null;
+
+  return projectedCompletion > deadline ? 'late' : 'onTrack';
+};
+
 export default function GoalPage() {
   const { goalId } = useParams<{ goalId: string }>();
+  const navigate = useNavigate();
   const fmt = useCurrencyFormatter();
   const [goal, setGoal] = useState<SavingsGoalProgress | null>(null);
   const [contributions, setContributions] = useState<GoalContribution[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState<GoalStatusLabel | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -96,6 +130,43 @@ export default function GoalPage() {
     [contributions],
   );
 
+  const handleDelete = async () => {
+    if (!goalId || !goal) return;
+
+    const confirmed = window.confirm(
+      `Delete "${goal.name}"? This will remove the goal from your savings list.`,
+    );
+    if (!confirmed) return;
+
+    setDeleting(true);
+    setError(null);
+    try {
+      await apiFetch(`/api/goals/${goalId}`, { method: 'DELETE' });
+      navigate('/savings');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unable to delete goal');
+      setDeleting(false);
+    }
+  };
+
+  const handleStatusChange = async (status: GoalStatusLabel) => {
+    if (!goalId || !goal) return;
+
+    setUpdatingStatus(status);
+    setError(null);
+    try {
+      await apiFetch(`/api/goals/${goalId}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: goalStatusValues[status] }),
+      });
+      setGoal((current) => (current ? { ...current, status } : current));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : `Unable to mark goal as ${status.toLowerCase()}`);
+    } finally {
+      setUpdatingStatus(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="d-flex justify-content-center py-5">
@@ -107,7 +178,7 @@ export default function GoalPage() {
     );
   }
 
-  if (error || !goal) {
+  if (!goal) {
     return (
       <div className="text-start">
         <Link className="btn btn-outline-secondary btn-sm mb-3" to="/savings">
@@ -119,6 +190,15 @@ export default function GoalPage() {
       </div>
     );
   }
+
+  const projectionTiming = getProjectionTiming(goal);
+  const projectionIsLate = projectionTiming === 'late';
+  const projectionBadgeClass = projectionIsLate ? 'text-bg-danger' : 'text-bg-success';
+  const projectionTextClass = projectionIsLate ? 'text-danger' : 'text-success';
+  const goalStatus = formatGoalStatus(goal.status);
+  const isGoalCompleted = goalStatus === 'Completed';
+  const progressBarClass =
+    projectionTiming === null ? 'bg-primary' : projectionIsLate ? 'bg-danger' : 'bg-success';
 
   return (
     <div className="text-start">
@@ -135,7 +215,43 @@ export default function GoalPage() {
           </div>
           {goal.description && <p className="text-muted small mt-2 mb-0">{goal.description}</p>}
         </div>
+        <div className="d-flex flex-wrap gap-2 align-self-md-start justify-content-md-end">
+          {!isGoalCompleted && (
+            <>
+              <button
+                type="button"
+                className="btn btn-outline-warning btn-sm"
+                onClick={() => handleStatusChange('Paused')}
+                disabled={deleting || updatingStatus !== null || goalStatus === 'Paused'}
+              >
+                {updatingStatus === 'Paused' ? 'Pausing...' : 'Mark Paused'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                onClick={() => handleStatusChange('Abandoned')}
+                disabled={deleting || updatingStatus !== null || goalStatus === 'Abandoned'}
+              >
+                {updatingStatus === 'Abandoned' ? 'Abandoning...' : 'Mark Abandoned'}
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            className="btn btn-outline-danger btn-sm"
+            onClick={handleDelete}
+            disabled={deleting || updatingStatus !== null}
+          >
+            {deleting ? 'Deleting...' : 'Delete Goal'}
+          </button>
+        </div>
       </div>
+
+      {error && (
+        <div className="alert alert-danger" role="alert">
+          {error}
+        </div>
+      )}
 
       <div className="row g-3 mb-4">
         <div className="col-sm-6 col-lg-3">
@@ -180,14 +296,23 @@ export default function GoalPage() {
           </div>
           <div className="progress" style={{ height: 10 }}>
             <div
-              className="progress-bar bg-primary"
+              className={`progress-bar ${progressBarClass}`}
               style={{ width: `${Math.min(goal.percentReached, 100)}%` }}
             />
           </div>
-          <div className="d-flex flex-wrap gap-3 mt-3 small text-muted">
-            <span>Deposits: {fmt(totals.deposits)}</span>
-            <span>Withdrawals: {fmt(totals.withdrawals)}</span>
-            <span>Projected: {formatDate(goal.projectedCompletion)}</span>
+          <div className="d-flex flex-wrap align-items-center gap-3 mt-3 small">
+            <span className="text-muted">Deposits: {fmt(totals.deposits)}</span>
+            <span className="text-muted">Withdrawals: {fmt(totals.withdrawals)}</span>
+            {!isGoalCompleted && (
+              <span className={projectionTiming ? projectionTextClass : 'text-muted'}>
+                Projected: {formatDate(goal.projectedCompletion)}
+              </span>
+            )}
+            {projectionTiming && (
+              <span className={`badge ${projectionBadgeClass}`}>
+                {projectionIsLate ? 'After deadline' : 'On track'}
+              </span>
+            )}
           </div>
         </div>
       </div>
