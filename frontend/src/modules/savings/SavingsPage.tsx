@@ -60,6 +60,11 @@ const formatGoalStatus = (status: SavingsGoalProgress['status']) => {
 const isCompletedGoal = (goal: SavingsGoalProgress) =>
   formatGoalStatus(goal.status) === 'Completed';
 
+const isPausedGoal = (goal: SavingsGoalProgress) => formatGoalStatus(goal.status) === 'Paused';
+
+const canContributeToGoal = (goal: SavingsGoalProgress) =>
+  !isCompletedGoal(goal) && !isPausedGoal(goal);
+
 const getContributionLimit = (goal: SavingsGoalProgress, mode: ContributionMode) =>
   Math.max(mode === 'withdraw' ? goal.currentBalance : goal.amountRemaining, 0);
 
@@ -84,7 +89,7 @@ const getSelectableGoalId = (
   currentGoalId: string,
   preferredGoalId?: string,
 ) => {
-  const selectableGoals = goals.filter((goal) => !isCompletedGoal(goal));
+  const selectableGoals = goals.filter(canContributeToGoal);
   const preferredGoal = selectableGoals.find((goal) => goal.id === preferredGoalId);
   const currentGoal = selectableGoals.find((goal) => goal.id === currentGoalId);
 
@@ -110,7 +115,7 @@ export default function SavingsPage() {
     () => goals.find((goal) => goal.id === form.goalId) ?? null,
     [form.goalId, goals],
   );
-  const selectableGoals = useMemo(() => goals.filter((goal) => !isCompletedGoal(goal)), [goals]);
+  const selectableGoals = useMemo(() => goals.filter(canContributeToGoal), [goals]);
   const contributionLimit = selectedGoal
     ? getContributionLimit(selectedGoal, contributionMode)
     : null;
@@ -265,6 +270,10 @@ export default function SavingsPage() {
     }
     if (!selectedGoal) {
       setError('Choose a valid savings goal.');
+      return;
+    }
+    if (!canContributeToGoal(selectedGoal)) {
+      setError('Resume this goal before adding contributions or withdrawals.');
       return;
     }
     if (!Number.isFinite(amount) || amount <= 0) {
@@ -459,7 +468,7 @@ export default function SavingsPage() {
                 <p className="text-muted small mb-0">
                   {goals.length === 0
                     ? 'Create a savings goal before adding contributions.'
-                    : 'All savings goals are completed. Create a new goal before adding contributions.'}
+                    : 'All savings goals are completed or paused. Resume a goal before adding contributions.'}
                 </p>
               ) : (
                 <form onSubmit={handleSubmit}>
@@ -636,7 +645,7 @@ export default function SavingsPage() {
               ) : (
                 <div className="d-flex flex-column gap-3">
                   {goals.map((goal) => (
-                    <div key={goal.id}>
+                    <div key={goal.id} className={isPausedGoal(goal) ? 'opacity-50' : undefined}>
                       <div className="d-flex justify-content-between gap-3 mb-1">
                         <Link
                           className="fw-semibold link-body-emphasis text-decoration-none"
@@ -675,7 +684,7 @@ export default function SavingsPage() {
                           type="button"
                           className="btn btn-outline-danger btn-sm"
                           onClick={() => prepareWithdrawal(goal.id)}
-                          disabled={goal.currentBalance <= 0 || isCompletedGoal(goal)}
+                          disabled={goal.currentBalance <= 0 || !canContributeToGoal(goal)}
                         >
                           Withdraw
                         </button>

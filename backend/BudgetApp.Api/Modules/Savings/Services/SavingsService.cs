@@ -10,6 +10,9 @@ public class SavingsService(ISavingsGoalRepository goalRepo, IGoalContributionRe
         var goal = await goalRepo.GetByIdAsync(goalId, userId)
             ?? throw new KeyNotFoundException($"Goal {goalId} not found.");
 
+        if (goal.Status == GoalStatus.Paused)
+            throw new InvalidOperationException("Resume the goal before adding contributions or withdrawals.");
+
         var contributions = await contributionRepo.GetByGoalAsync(goalId, userId);
         var currentBalance = CalculateCurrentBalance(contributions);
 

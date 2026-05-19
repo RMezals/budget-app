@@ -191,12 +191,14 @@ export default function GoalPage() {
     );
   }
 
-  const projectionTiming = getProjectionTiming(goal);
+  const goalStatus = formatGoalStatus(goal.status);
+  const isGoalCompleted = goalStatus === 'Completed';
+  const isGoalPaused = goalStatus === 'Paused';
+  const pausedGoalContentClass = isGoalPaused ? 'opacity-50' : undefined;
+  const projectionTiming = isGoalPaused ? null : getProjectionTiming(goal);
   const projectionIsLate = projectionTiming === 'late';
   const projectionBadgeClass = projectionIsLate ? 'text-bg-danger' : 'text-bg-success';
   const projectionTextClass = projectionIsLate ? 'text-danger' : 'text-success';
-  const goalStatus = formatGoalStatus(goal.status);
-  const isGoalCompleted = goalStatus === 'Completed';
   const progressBarClass =
     projectionTiming === null ? 'bg-primary' : projectionIsLate ? 'bg-danger' : 'bg-success';
 
@@ -207,25 +209,38 @@ export default function GoalPage() {
           <Link className="btn btn-outline-secondary btn-sm mb-3" to="/savings">
             Back to Savings
           </Link>
-          <div className="d-flex align-items-center gap-2 flex-wrap">
-            <h4 className="mb-0">{goal.name}</h4>
-            <span className={`badge ${getStatusBadgeClass(goal.status)}`}>
-              {formatGoalStatus(goal.status)}
-            </span>
+          <div className={pausedGoalContentClass}>
+            <div className="d-flex align-items-center gap-2 flex-wrap">
+              <h4 className="mb-0">{goal.name}</h4>
+              <span className={`badge ${getStatusBadgeClass(goal.status)}`}>
+                {formatGoalStatus(goal.status)}
+              </span>
+            </div>
+            {goal.description && <p className="text-muted small mt-2 mb-0">{goal.description}</p>}
           </div>
-          {goal.description && <p className="text-muted small mt-2 mb-0">{goal.description}</p>}
         </div>
         <div className="d-flex flex-wrap gap-2 align-self-md-start justify-content-md-end">
           {!isGoalCompleted && (
             <>
-              <button
-                type="button"
-                className="btn btn-outline-warning btn-sm"
-                onClick={() => handleStatusChange('Paused')}
-                disabled={deleting || updatingStatus !== null || goalStatus === 'Paused'}
-              >
-                {updatingStatus === 'Paused' ? 'Pausing...' : 'Mark Paused'}
-              </button>
+              {isGoalPaused ? (
+                <button
+                  type="button"
+                  className="btn btn-outline-primary btn-sm"
+                  onClick={() => handleStatusChange('Active')}
+                  disabled={deleting || updatingStatus !== null}
+                >
+                  {updatingStatus === 'Active' ? 'Resuming...' : 'Resume Goal'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-outline-warning btn-sm"
+                  onClick={() => handleStatusChange('Paused')}
+                  disabled={deleting || updatingStatus !== null}
+                >
+                  {updatingStatus === 'Paused' ? 'Pausing...' : 'Mark Paused'}
+                </button>
+              )}
               <button
                 type="button"
                 className="btn btn-outline-secondary btn-sm"
@@ -253,7 +268,7 @@ export default function GoalPage() {
         </div>
       )}
 
-      <div className="row g-3 mb-4">
+      <div className={`row g-3 mb-4 ${pausedGoalContentClass ?? ''}`}>
         <div className="col-sm-6 col-lg-3">
           <div className="card border-0 shadow-sm h-100">
             <div className="card-body">
@@ -288,7 +303,7 @@ export default function GoalPage() {
         </div>
       </div>
 
-      <div className="card border-0 shadow-sm mb-4">
+      <div className={`card border-0 shadow-sm mb-4 ${pausedGoalContentClass ?? ''}`}>
         <div className="card-body">
           <div className="d-flex justify-content-between gap-3 mb-2">
             <span className="fw-semibold">Progress</span>
@@ -303,7 +318,7 @@ export default function GoalPage() {
           <div className="d-flex flex-wrap align-items-center gap-3 mt-3 small">
             <span className="text-muted">Deposits: {fmt(totals.deposits)}</span>
             <span className="text-muted">Withdrawals: {fmt(totals.withdrawals)}</span>
-            {!isGoalCompleted && (
+            {!isGoalCompleted && !isGoalPaused && (
               <span className={projectionTiming ? projectionTextClass : 'text-muted'}>
                 Projected: {formatDate(goal.projectedCompletion)}
               </span>
@@ -317,7 +332,7 @@ export default function GoalPage() {
         </div>
       </div>
 
-      <div className="card border-0 shadow-sm">
+      <div className={`card border-0 shadow-sm ${pausedGoalContentClass ?? ''}`}>
         <div className="card-body">
           <div className="d-flex justify-content-between align-items-center gap-3 mb-3">
             <h6 className="card-title mb-0">Contributions</h6>

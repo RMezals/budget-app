@@ -83,6 +83,38 @@ public class SavingsServiceTests
     }
 
     [Fact]
+    public async Task AddContributionAsync_RejectsPausedGoal()
+    {
+        _goalMock.Setup(g => g.GetByIdAsync("g1", "user1"))
+            .ReturnsAsync(new SavingsGoal
+            {
+                Id = "g1",
+                UserId = "user1",
+                Name = "Trip",
+                TargetAmount = 500m,
+                Status = GoalStatus.Paused
+            });
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            CreateSut().AddContributionAsync(
+                "g1",
+                "user1",
+                50m,
+                new DateTime(2026, 5, 14),
+                "Deposit",
+                null));
+
+        Assert.Equal("Resume the goal before adding contributions or withdrawals.", ex.Message);
+        _contributionMock.Verify(c => c.GetByGoalAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _contributionMock.Verify(c => c.InsertAsync(It.IsAny<GoalContribution>()), Times.Never);
+        _goalMock.Verify(g => g.UpdateBalanceAsync(
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<decimal>(),
+            It.IsAny<GoalStatus?>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GetGoalProgressAsync_ReturnsComputedProgressFromContributions()
     {
         _goalMock.Setup(g => g.GetByIdAsync("g1", "user1"))
