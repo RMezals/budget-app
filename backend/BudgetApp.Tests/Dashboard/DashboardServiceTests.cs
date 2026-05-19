@@ -139,7 +139,7 @@ public class DashboardServiceTests
                 new SavingsGoal { Id = "g1", Name = "Vacation", CurrentAmount = 300m, TargetAmount = 1000m },
                 new SavingsGoal { Id = "g2", Name = "Car", CurrentAmount = 700m, TargetAmount = 5000m }
             ]);
-        
+
         // Setup contributions for each goal
         _contributionMock.Setup(c => c.GetByGoalsAsync(It.IsAny<List<string>>(), "user1"))
             .ReturnsAsync([

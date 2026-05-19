@@ -674,10 +674,7 @@ export default function SavingsPage() {
                         {formatGoalStatus(goal.status)}
                       </div>
                       <div className="d-flex flex-wrap gap-2 mt-2">
-                        <Link
-                          className="btn btn-outline-primary btn-sm"
-                          to={`/savings/${goal.id}`}
-                        >
+                        <Link className="btn btn-outline-primary btn-sm" to={`/savings/${goal.id}`}>
                           View Goal
                         </Link>
                         <button
