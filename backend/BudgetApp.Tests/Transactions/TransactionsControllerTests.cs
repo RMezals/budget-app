@@ -34,12 +34,7 @@ public class TransactionsControllerTests
         var result = await CreateController("user1").Create(request);
 
         Assert.IsType<CreatedAtActionResult>(result);
-        
-        _repoMock.Verify(r => r.InsertAsync(It.Is<Transaction>(t => 
-            t.Amount == -15.50m && 
-            t.Category == validCategory && 
-            t.UserId == "user1"
-        )), Times.Once);
+        _repoMock.Verify(r => r.InsertAsync(It.Is<Transaction>(t => t.Amount == -15.50m && t.Category == validCategory && t.UserId == "user1")), Times.Once);
     }
 
     [Fact]
@@ -50,7 +45,7 @@ public class TransactionsControllerTests
         var result = await CreateController("user1").Create(request);
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        
+
         _repoMock.Verify(r => r.InsertAsync(It.IsAny<Transaction>()), Times.Never);
     }
 

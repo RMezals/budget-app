@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
 import { apiFetch } from '@/api/client';
 import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
+import { useEffect, useState } from 'react';
 
 interface Transaction {
   id: string;
@@ -51,7 +51,7 @@ export default function TransactionsPage() {
       try {
         const [transactionsData, categoriesData] = await Promise.all([
           apiFetch<Transaction[]>('/api/transactions'),
-          apiFetch<CategoriesData>('/api/transactions/categories')
+          apiFetch<CategoriesData>('/api/transactions/categories'),
         ]);
 
         if (cancelled) return;
@@ -78,7 +78,7 @@ export default function TransactionsPage() {
     };
   }, []);
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
@@ -86,22 +86,22 @@ export default function TransactionsPage() {
     const selectedDateISO = new Date(date).toISOString();
 
     const requestBody = {
-      amount: parseFloat(amount),
+      amount: Number.parseFloat(amount),
       date: selectedDateISO,
       category: category,
-      description: description.trim() || undefined
+      description: description.trim() || undefined,
     };
 
     try {
       if (editingId) {
         await apiFetch(`/api/transactions/${editingId}`, {
           method: 'PUT',
-          body: JSON.stringify(requestBody)
+          body: JSON.stringify(requestBody),
         });
       } else {
         await apiFetch('/api/transactions', {
           method: 'POST',
-          body: JSON.stringify(requestBody)
+          body: JSON.stringify(requestBody),
         });
       }
 
@@ -189,10 +189,10 @@ export default function TransactionsPage() {
       return false;
     }
 
-    if (filterMinAmount !== '' && tx.amount < parseFloat(filterMinAmount)) {
+    if (filterMinAmount !== '' && tx.amount < Number.parseFloat(filterMinAmount)) {
       return false;
     }
-    if (filterMaxAmount !== '' && tx.amount > parseFloat(filterMaxAmount)) {
+    if (filterMaxAmount !== '' && tx.amount > Number.parseFloat(filterMaxAmount)) {
       return false;
     }
 
@@ -202,9 +202,9 @@ export default function TransactionsPage() {
   if (loading) {
     return (
       <div className="d-flex justify-content-center py-5">
-        <div className="spinner-border text-primary" role="status">
+        <output className="spinner-border text-primary">
           <span className="visually-hidden">Loading...</span>
-        </div>
+        </output>
       </div>
     );
   }
@@ -277,12 +277,16 @@ export default function TransactionsPage() {
                   >
                     <optgroup label="Expenses">
                       {categories.expense.map((c) => (
-                        <option key={c} value={c}>{c}</option>
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
                       ))}
                     </optgroup>
                     <optgroup label="Income">
                       {categories.income.map((c) => (
-                        <option key={c} value={c}>{c}</option>
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
                       ))}
                     </optgroup>
                   </select>
@@ -353,19 +357,28 @@ export default function TransactionsPage() {
                     <option value="">All Categories</option>
                     <optgroup label="Expenses">
                       {categories.expense.map((c) => (
-                        <option key={c} value={c}>{c}</option>
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
                       ))}
                     </optgroup>
                     <optgroup label="Income">
                       {categories.income.map((c) => (
-                        <option key={c} value={c}>{c}</option>
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
                       ))}
                     </optgroup>
                   </select>
                 </div>
 
                 <div className="col-md-4 text-md-end">
-                  {(filterKeyword || filterCategory || filterStartDate || filterEndDate || filterMinAmount || filterMaxAmount) && (
+                  {(filterKeyword ||
+                  filterCategory ||
+                  filterStartDate ||
+                  filterEndDate ||
+                  filterMinAmount ||
+                  filterMaxAmount) && (
                     <button 
                       type="button" 
                       className="btn btn-link btn-sm text-decoration-none p-0 pt-1"
@@ -377,8 +390,9 @@ export default function TransactionsPage() {
                 </div>
 
                 <div className="col-6 col-md-3">
-                  <label className="form-label mb-0 small text-muted">From Date</label>
+                  <label htmlFor="filterStartDate" className="form-label mb-0 small text-muted">From Date</label>
                   <input
+                    id="filterStartDate"
                     type="date"
                     className="form-control form-control-sm"
                     value={filterStartDate}
@@ -387,8 +401,9 @@ export default function TransactionsPage() {
                 </div>
 
                 <div className="col-6 col-md-3">
-                  <label className="form-label mb-0 small text-muted">To Date</label>
+                  <label htmlFor="filterEndDate" className="form-label mb-0 small text-muted">To Date</label>
                   <input
+                    id="filterEndDate"
                     type="date"
                     className="form-control form-control-sm"
                     value={filterEndDate}
@@ -397,8 +412,9 @@ export default function TransactionsPage() {
                 </div>
 
                 <div className="col-6 col-md-3">
-                  <label className="form-label mb-0 small text-muted">Min Amount</label>
+                  <label htmlFor="filterMinAmount" className="form-label mb-0 small text-muted">Min Amount</label>
                   <input
+                    id="filterMinAmount"
                     type="number"
                     step="0.01"
                     className="form-control form-control-sm"
@@ -409,8 +425,9 @@ export default function TransactionsPage() {
                 </div>
 
                 <div className="col-6 col-md-3">
-                  <label className="form-label mb-0 small text-muted">Max Amount</label>
+                  <label htmlFor="filterMaxAmount" className="form-label mb-0 small text-muted">Max Amount</label>
                   <input
+                    id="filterMaxAmount"
                     type="number"
                     step="0.01"
                     className="form-control form-control-sm"
@@ -444,8 +461,12 @@ export default function TransactionsPage() {
                         <th scope="col">Date</th>
                         <th scope="col">Category</th>
                         <th scope="col">Description</th>
-                        <th scope="col" className="text-end">Amount</th>
-                        <th scope="col" className="text-end">Actions</th>
+                        <th scope="col" className="text-end">
+                          Amount
+                        </th>
+                        <th scope="col" className="text-end">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
