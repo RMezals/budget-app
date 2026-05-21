@@ -378,7 +378,7 @@ export default function TransactionsPage() {
                     filterStartDate ||
                     filterEndDate ||
                     filterMinAmount ||
-                  filterMaxAmount) && (
+                    filterMaxAmount) && (
                     <button 
                       type="button" 
                       className="btn btn-link btn-sm text-decoration-none p-0 pt-1"
