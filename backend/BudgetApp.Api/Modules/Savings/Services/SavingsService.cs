@@ -13,6 +13,9 @@ public class SavingsService(ISavingsGoalRepository goalRepo, IGoalContributionRe
         if (goal.Status == GoalStatus.Paused)
             throw new InvalidOperationException("Resume the goal before adding contributions or withdrawals.");
 
+        if (goal.Status == GoalStatus.Abandoned)
+            throw new InvalidOperationException("Abandoned goals cannot accept contributions or withdrawals.");
+
         var contributions = await contributionRepo.GetByGoalAsync(goalId, userId);
         var currentBalance = CalculateCurrentBalance(contributions);
 
@@ -44,6 +47,35 @@ public class SavingsService(ISavingsGoalRepository goalRepo, IGoalContributionRe
         await goalRepo.UpdateBalanceAsync(goalId, userId, newBalance, newStatus);
 
         return contribution;
+    }
+
+    public async Task AbandonGoalAsync(string goalId, string userId, DateTime date, string? reason, string? description = null)
+    {
+        var goal = await goalRepo.GetByIdAsync(goalId, userId)
+            ?? throw new KeyNotFoundException($"Goal {goalId} not found.");
+
+        var contributions = await contributionRepo.GetByGoalAsync(goalId, userId);
+        var currentBalance = CalculateCurrentBalance(contributions);
+
+        if (currentBalance > 0)
+        {
+            var canonicalReason = string.IsNullOrWhiteSpace(reason) ? "Goal abandoned" : reason;
+            var canonicalDescription = description ?? canonicalReason;
+            var contribution = new GoalContribution
+            {
+                GoalId = goalId,
+                UserId = userId,
+                Amount = -currentBalance,
+                Date = date,
+                Reason = canonicalReason,
+                Description = canonicalDescription,
+                BalanceAfter = 0m
+            };
+
+            await contributionRepo.InsertAsync(contribution);
+        }
+
+        await goalRepo.UpdateBalanceAsync(goal.Id, userId, 0m, GoalStatus.Abandoned);
     }
 
     public async Task RecalculateBalanceAsync(string goalId, string userId)

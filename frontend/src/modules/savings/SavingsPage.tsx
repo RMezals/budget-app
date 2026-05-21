@@ -61,8 +61,11 @@ const isCompletedGoal = (goal: SavingsGoalProgress) =>
 
 const isPausedGoal = (goal: SavingsGoalProgress) => formatGoalStatus(goal.status) === 'Paused';
 
+const isAbandonedGoal = (goal: SavingsGoalProgress) =>
+  formatGoalStatus(goal.status) === 'Abandoned';
+
 const canContributeToGoal = (goal: SavingsGoalProgress) =>
-  !isCompletedGoal(goal) && !isPausedGoal(goal);
+  !isCompletedGoal(goal) && !isPausedGoal(goal) && !isAbandonedGoal(goal);
 
 const getContributionLimit = (goal: SavingsGoalProgress, mode: ContributionMode) =>
   Math.max(mode === 'withdraw' ? goal.currentBalance : goal.amountRemaining, 0);

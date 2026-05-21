@@ -57,6 +57,7 @@ export default function GoalProgressSection({
               {goals.map((goal) => {
                 const status = formatGoalStatus(goal.status);
                 const isCompleted = status === 'Completed';
+                const isAbandoned = status === 'Abandoned';
                 const isGoalPaused = status === 'Paused';
                 const itemClassName = [
                   'border rounded-3 p-3',
@@ -118,7 +119,7 @@ export default function GoalProgressSection({
                       <Link className="btn btn-outline-primary btn-sm" to={`/savings/${goal.id}`}>
                         View Goal
                       </Link>
-                      {!isCompleted && (
+                      {!isCompleted && !isAbandoned && (
                         <button
                           type="button"
                           className="btn btn-outline-danger btn-sm"
