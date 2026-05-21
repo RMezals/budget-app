@@ -8,5 +8,5 @@ public interface IGoalContributionRepository
     Task<List<GoalContribution>> GetByGoalsAsync(List<string> goalIds, string userId);
     Task<List<GoalContribution>> GetRecentByGoalAsync(string goalId, string userId, DateTime since);
     Task InsertAsync(GoalContribution contribution);
-    Task<bool> DeleteAsync(string id, string userId);
+    Task<bool> DeleteAsync(string id, string goalId, string userId);
 }

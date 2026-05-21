@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { apiFetch } from '../../api/client';
 import { GoalContributionListSchema, SavingsGoalProgressSchema } from '../../api/schemas';
@@ -81,8 +81,22 @@ export default function GoalPage() {
   const [contributions, setContributions] = useState<GoalContribution[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [deletingContributionId, setDeletingContributionId] = useState<string | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState<GoalStatusLabel | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const fetchGoalDetails = useCallback(async () => {
+    if (!goalId) {
+      throw new Error('Goal id is missing.');
+    }
+
+    const [goalData, contributionData] = await Promise.all([
+      apiFetch(`/api/goals/${goalId}`, SavingsGoalProgressSchema),
+      apiFetch(`/api/goals/${goalId}/contributions`, GoalContributionListSchema),
+    ]);
+
+    return { goalData, contributionData };
+  }, [goalId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -95,10 +109,7 @@ export default function GoalPage() {
       }
 
       try {
-        const [goalData, contributionData] = await Promise.all([
-          apiFetch(`/api/goals/${goalId}`, SavingsGoalProgressSchema),
-          apiFetch(`/api/goals/${goalId}/contributions`, GoalContributionListSchema),
-        ]);
+        const { goalData, contributionData } = await fetchGoalDetails();
 
         if (cancelled) return;
         setGoal(goalData);
@@ -115,7 +126,7 @@ export default function GoalPage() {
     return () => {
       cancelled = true;
     };
-  }, [goalId]);
+  }, [fetchGoalDetails, goalId]);
 
   const totals = useMemo(
     () =>
@@ -129,6 +140,17 @@ export default function GoalPage() {
       ),
     [contributions],
   );
+
+  const contributionRows = useMemo(() => {
+    let runningBalance = goal?.currentBalance ?? 0;
+
+    return contributions.map((contribution) => {
+      const balanceAfter = runningBalance;
+      runningBalance -= contribution.amount;
+
+      return { contribution, balanceAfter };
+    });
+  }, [contributions, goal?.currentBalance]);
 
   const handleDelete = async () => {
     if (!goalId || !goal) return;
@@ -167,6 +189,31 @@ export default function GoalPage() {
     }
   };
 
+  const handleDeleteContribution = async (contribution: GoalContribution) => {
+    if (!goalId) return;
+
+    const contributionType = contribution.amount < 0 ? 'withdrawal' : 'contribution';
+    const confirmed = window.confirm(
+      `Delete this ${contributionType} of ${fmt(Math.abs(contribution.amount))} from ${formatDate(
+        contribution.date,
+      )}?`,
+    );
+    if (!confirmed) return;
+
+    setDeletingContributionId(contribution.id);
+    setError(null);
+    try {
+      await apiFetch(`/api/goals/${goalId}/contributions/${contribution.id}`, { method: 'DELETE' });
+      const { goalData, contributionData } = await fetchGoalDetails();
+      setGoal(goalData);
+      setContributions(contributionData);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unable to delete contribution');
+    } finally {
+      setDeletingContributionId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="d-flex justify-content-center py-5">
@@ -195,12 +242,17 @@ export default function GoalPage() {
   const isGoalCompleted = goalStatus === 'Completed';
   const isGoalPaused = goalStatus === 'Paused';
   const pausedGoalContentClass = isGoalPaused ? 'opacity-50' : undefined;
-  const projectionTiming = isGoalPaused ? null : getProjectionTiming(goal);
+  const projectionTiming = isGoalPaused || isGoalCompleted ? null : getProjectionTiming(goal);
   const projectionIsLate = projectionTiming === 'late';
   const projectionBadgeClass = projectionIsLate ? 'text-bg-danger' : 'text-bg-success';
   const projectionTextClass = projectionIsLate ? 'text-danger' : 'text-success';
-  const progressBarClass =
-    projectionTiming === null ? 'bg-primary' : projectionIsLate ? 'bg-danger' : 'bg-success';
+  const progressBarClass = isGoalCompleted
+    ? 'bg-success'
+    : projectionTiming === null
+      ? 'bg-primary'
+      : projectionIsLate
+        ? 'bg-danger'
+        : 'bg-success';
 
   return (
     <div className="text-start">
@@ -227,7 +279,7 @@ export default function GoalPage() {
                   type="button"
                   className="btn btn-outline-primary btn-sm"
                   onClick={() => handleStatusChange('Active')}
-                  disabled={deleting || updatingStatus !== null}
+                  disabled={deleting || deletingContributionId !== null || updatingStatus !== null}
                 >
                   {updatingStatus === 'Active' ? 'Resuming...' : 'Resume Goal'}
                 </button>
@@ -236,7 +288,7 @@ export default function GoalPage() {
                   type="button"
                   className="btn btn-outline-warning btn-sm"
                   onClick={() => handleStatusChange('Paused')}
-                  disabled={deleting || updatingStatus !== null}
+                  disabled={deleting || deletingContributionId !== null || updatingStatus !== null}
                 >
                   {updatingStatus === 'Paused' ? 'Pausing...' : 'Mark Paused'}
                 </button>
@@ -245,7 +297,12 @@ export default function GoalPage() {
                 type="button"
                 className="btn btn-outline-secondary btn-sm"
                 onClick={() => handleStatusChange('Abandoned')}
-                disabled={deleting || updatingStatus !== null || goalStatus === 'Abandoned'}
+                disabled={
+                  deleting ||
+                  deletingContributionId !== null ||
+                  updatingStatus !== null ||
+                  goalStatus === 'Abandoned'
+                }
               >
                 {updatingStatus === 'Abandoned' ? 'Abandoning...' : 'Mark Abandoned'}
               </button>
@@ -255,7 +312,7 @@ export default function GoalPage() {
             type="button"
             className="btn btn-outline-danger btn-sm"
             onClick={handleDelete}
-            disabled={deleting || updatingStatus !== null}
+            disabled={deleting || deletingContributionId !== null || updatingStatus !== null}
           >
             {deleting ? 'Deleting...' : 'Delete Goal'}
           </button>
@@ -307,7 +364,13 @@ export default function GoalPage() {
         <div className="card-body">
           <div className="d-flex justify-content-between gap-3 mb-2">
             <span className="fw-semibold">Progress</span>
-            <span className="text-muted small">{goal.percentReached}% reached</span>
+            <span
+              className={
+                isGoalCompleted ? 'text-success small fw-semibold' : 'text-muted small'
+              }
+            >
+              {isGoalCompleted ? 'Target reached' : `${goal.percentReached}% reached`}
+            </span>
           </div>
           <div className="progress" style={{ height: 10 }}>
             <div
@@ -318,6 +381,7 @@ export default function GoalPage() {
           <div className="d-flex flex-wrap align-items-center gap-3 mt-3 small">
             <span className="text-muted">Deposits: {fmt(totals.deposits)}</span>
             <span className="text-muted">Withdrawals: {fmt(totals.withdrawals)}</span>
+            {isGoalCompleted && <span className="text-success fw-semibold">Completed</span>}
             {!isGoalCompleted && !isGoalPaused && (
               <span className={projectionTiming ? projectionTextClass : 'text-muted'}>
                 Projected: {formatDate(goal.projectedCompletion)}
@@ -354,10 +418,13 @@ export default function GoalPage() {
                     <th scope="col" className="text-end">
                       Balance
                     </th>
+                    <th scope="col" className="text-end">
+                      Action
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {contributions.map((contribution) => (
+                  {contributionRows.map(({ contribution, balanceAfter }) => (
                     <tr key={contribution.id}>
                       <td className="text-nowrap">{formatDate(contribution.date)}</td>
                       <td>
@@ -375,7 +442,19 @@ export default function GoalPage() {
                         {contribution.amount < 0 ? '-' : '+'}
                         {fmt(Math.abs(contribution.amount))}
                       </td>
-                      <td className="text-end text-nowrap">{fmt(contribution.balanceAfter)}</td>
+                      <td className="text-end text-nowrap">{fmt(balanceAfter)}</td>
+                      <td className="text-end">
+                        <button
+                          type="button"
+                          className="btn btn-outline-danger btn-sm"
+                          onClick={() => handleDeleteContribution(contribution)}
+                          disabled={
+                            deletingContributionId !== null || deleting || updatingStatus !== null
+                          }
+                        >
+                          {deletingContributionId === contribution.id ? 'Deleting...' : 'Delete'}
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
