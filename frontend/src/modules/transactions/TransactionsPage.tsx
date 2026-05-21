@@ -374,10 +374,10 @@ export default function TransactionsPage() {
 
                 <div className="col-md-4 text-md-end">
                   {(filterKeyword ||
-                  filterCategory ||
-                  filterStartDate ||
-                  filterEndDate ||
-                  filterMinAmount ||
+                    filterCategory ||
+                    filterStartDate ||
+                    filterEndDate ||
+                    filterMinAmount ||
                   filterMaxAmount) && (
                     <button 
                       type="button" 
@@ -390,7 +390,9 @@ export default function TransactionsPage() {
                 </div>
 
                 <div className="col-6 col-md-3">
-                  <label htmlFor="filterStartDate" className="form-label mb-0 small text-muted">From Date</label>
+                  <label htmlFor="filterStartDate" className="form-label mb-0 small text-muted">
+                    From Date
+                  </label>
                   <input
                     id="filterStartDate"
                     type="date"
@@ -401,7 +403,9 @@ export default function TransactionsPage() {
                 </div>
 
                 <div className="col-6 col-md-3">
-                  <label htmlFor="filterEndDate" className="form-label mb-0 small text-muted">To Date</label>
+                  <label htmlFor="filterEndDate" className="form-label mb-0 small text-muted">
+                    To Date
+                  </label>
                   <input
                     id="filterEndDate"
                     type="date"
@@ -412,7 +416,9 @@ export default function TransactionsPage() {
                 </div>
 
                 <div className="col-6 col-md-3">
-                  <label htmlFor="filterMinAmount" className="form-label mb-0 small text-muted">Min Amount</label>
+                  <label htmlFor="filterMinAmount" className="form-label mb-0 small text-muted">
+                    Min Amount
+                  </label>
                   <input
                     id="filterMinAmount"
                     type="number"
@@ -425,7 +431,9 @@ export default function TransactionsPage() {
                 </div>
 
                 <div className="col-6 col-md-3">
-                  <label htmlFor="filterMaxAmount" className="form-label mb-0 small text-muted">Max Amount</label>
+                  <label htmlFor="filterMaxAmount" className="form-label mb-0 small text-muted">
+                    Max Amount
+                  </label>
                   <input
                     id="filterMaxAmount"
                     type="number"
