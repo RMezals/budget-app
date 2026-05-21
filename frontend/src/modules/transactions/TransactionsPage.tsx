@@ -28,7 +28,7 @@ export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<CategoriesData>({ expense: [], income: [] });
   const [loading, setLoading] = useState(true);
-  
+
   const [amount, setAmount] = useState<string>('');
   const [category, setCategory] = useState<string>('');
   const [description, setDescription] = useState<string>('');
@@ -152,7 +152,7 @@ export default function TransactionsPage() {
     try {
       await apiFetch(`/api/transactions/${id}`, { method: 'DELETE' });
       setTransactions((prev) => prev.filter((t) => t.id !== id));
-      
+
       if (editingId === id) {
         resetForm();
       }
@@ -226,7 +226,7 @@ export default function TransactionsPage() {
               <h6 className="card-title mb-3 text-primary">
                 {editingId ? 'Edit Transaction' : 'Add New Transaction'}
               </h6>
-              
+
               <form onSubmit={handleSubmit}>
                 <div className="mb-3">
                   <label htmlFor="date" className="form-label small fw-semibold">
@@ -257,7 +257,7 @@ export default function TransactionsPage() {
                       onChange={(e) => setAmount(e.target.value)}
                       required
                     />
-                    
+
                   </div>
                   <div className="form-text small text-muted">
                     Negative for expenses, positive for income.
@@ -314,7 +314,7 @@ export default function TransactionsPage() {
                   >
                     {submitting ? 'Saving...' : editingId ? 'Update Changes' : 'Save Transaction'}
                   </button>
-                  
+
                   {editingId && (
                     <button
                       type="button"
@@ -347,7 +347,7 @@ export default function TransactionsPage() {
                     onChange={(e) => setFilterKeyword(e.target.value)}
                   />
                 </div>
-                
+
                 <div className="col-md-4">
                   <select
                     className="form-select form-select-sm"
