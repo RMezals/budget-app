@@ -1,5 +1,5 @@
-import type { FormEvent, RefObject } from 'react';
 import DatePicker from '@/components/DatePicker';
+import type { FormEvent, RefObject } from 'react';
 import type { SavingsGoalProgress } from '../../api/types';
 
 export type GoalForm = {
@@ -70,7 +70,9 @@ export default function SavingsFormsSection({
           <h6 className="card-title mb-3">New Goal</h6>
           <form onSubmit={onCreateGoal}>
             <div className="mb-3">
-              <label className="form-label" htmlFor="goal-name">Name</label>
+              <label className="form-label" htmlFor="goal-name">
+                Name
+              </label>
               <input
                 id="goal-name"
                 className="form-control"
@@ -85,7 +87,9 @@ export default function SavingsFormsSection({
 
             <div className="row g-3">
               <div className="col-sm-6">
-                <label className="form-label" htmlFor="goal-target">Target</label>
+                <label className="form-label" htmlFor="goal-target">
+                  Target
+                </label>
                 <input
                   id="goal-target"
                   className="form-control"
@@ -100,7 +104,9 @@ export default function SavingsFormsSection({
                 />
               </div>
               <div className="col-sm-6">
-                <label className="form-label" htmlFor="goal-deadline">Deadline</label>
+                <label className="form-label" htmlFor="goal-deadline">
+                  Deadline
+                </label>
                 <DatePicker
                   value={goalForm.deadline}
                   onChange={(v) => onUpdateGoalForm('deadline', v)}
@@ -111,7 +117,9 @@ export default function SavingsFormsSection({
             </div>
 
             <div className="mb-3 mt-3">
-              <label className="form-label" htmlFor="goal-description">Description</label>
+              <label className="form-label" htmlFor="goal-description">
+                Description
+              </label>
               <textarea
                 id="goal-description"
                 className="form-control"
@@ -166,7 +174,9 @@ export default function SavingsFormsSection({
               </fieldset>
 
               <div className="mb-3">
-                <label className="form-label" htmlFor="contribution-goal">Goal</label>
+                <label className="form-label" htmlFor="contribution-goal">
+                  Goal
+                </label>
                 <select
                   id="contribution-goal"
                   className="form-select"
@@ -175,7 +185,9 @@ export default function SavingsFormsSection({
                   disabled={submitting}
                 >
                   {selectableGoals.map((goal) => (
-                    <option key={goal.id} value={goal.id}>{goal.name}</option>
+                    <option key={goal.id} value={goal.id}>
+                      {goal.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -207,7 +219,9 @@ export default function SavingsFormsSection({
                   )}
                 </div>
                 <div className="col-sm-6">
-                  <label className="form-label" htmlFor="contribution-date">Date</label>
+                  <label className="form-label" htmlFor="contribution-date">
+                    Date
+                  </label>
                   <DatePicker
                     value={contributionForm.date}
                     onChange={(v) => onUpdateContributionForm('date', v)}
@@ -217,7 +231,9 @@ export default function SavingsFormsSection({
               </div>
 
               <div className="mb-3 mt-3">
-                <label className="form-label" htmlFor="contribution-reason">Reason</label>
+                <label className="form-label" htmlFor="contribution-reason">
+                  Reason
+                </label>
                 <input
                   id="contribution-reason"
                   className="form-control"
@@ -235,8 +251,12 @@ export default function SavingsFormsSection({
                 disabled={submitting}
               >
                 {submitting
-                  ? contributionMode === 'withdraw' ? 'Withdrawing...' : 'Adding...'
-                  : contributionMode === 'withdraw' ? 'Withdraw Money' : 'Add Contribution'}
+                  ? contributionMode === 'withdraw'
+                    ? 'Withdrawing...'
+                    : 'Adding...'
+                  : contributionMode === 'withdraw'
+                    ? 'Withdraw Money'
+                    : 'Add Contribution'}
               </button>
             </form>
           )}

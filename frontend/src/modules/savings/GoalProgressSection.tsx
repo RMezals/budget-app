@@ -110,7 +110,7 @@ export default function GoalProgressSection({
                     </div>
                     <div className="small text-muted mt-1">
                       {!isGoalPaused && (
-                        <span className='text-muted'>
+                        <span className="text-muted">
                           Projected: {formatDate(goal.projectedCompletion)}
                         </span>
                       )}

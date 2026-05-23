@@ -1,7 +1,7 @@
 import { apiFetch } from '@/api/client';
 import type { MonthlyPerformance, NetWorthHistoryPoint, PortfolioGainLoss } from '@/api/types';
-import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
 import DatePicker from '@/components/DatePicker';
+import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
 import MonthPicker from '@/modules/portfolio/MonthPicker';
 import { usePortfolio } from '@/modules/portfolio/hooks/usePortfolio';
 import './PortfolioPage.css';
@@ -440,7 +440,11 @@ export default function PortfolioPage() {
           <p className="page-subtitle">Track assets, liabilities and performance over time.</p>
         </div>
         <span className="text-muted small mt-1">
-          {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+          {new Date().toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })}
         </span>
       </div>
 
@@ -899,8 +903,13 @@ export default function PortfolioPage() {
                 style={{ borderRadius: 8 }}
               >
                 {nwLoading ? (
-                  <><span className="spinner-border spinner-border-sm me-1" />Loading…</>
-                ) : 'Load'}
+                  <>
+                    <span className="spinner-border spinner-border-sm me-1" />
+                    Loading…
+                  </>
+                ) : (
+                  'Load'
+                )}
               </button>
             </div>
 
@@ -959,10 +968,18 @@ export default function PortfolioPage() {
                     <Tooltip
                       formatter={(value, name) => [
                         fmt(Number(value)),
-                        name === 'totalAssets' ? 'Assets' : name === 'totalLiabilities' ? 'Liabilities' : 'Net Worth',
+                        name === 'totalAssets'
+                          ? 'Assets'
+                          : name === 'totalLiabilities'
+                            ? 'Liabilities'
+                            : 'Net Worth',
                       ]}
                       labelFormatter={(label) =>
-                        new Date(String(label)).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+                        new Date(String(label)).toLocaleDateString('en-GB', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                        })
                       }
                       contentStyle={{
                         background: '#fff',
@@ -972,9 +989,30 @@ export default function PortfolioPage() {
                         boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
                       }}
                     />
-                    <Area type="monotone" dataKey="totalAssets" stroke="#2563eb" strokeWidth={1.5} fill="url(#nw-assets)" dot={false} />
-                    <Area type="monotone" dataKey="totalLiabilities" stroke="#dc2626" strokeWidth={1.5} fill="url(#nw-liab)" dot={false} />
-                    <Area type="monotone" dataKey="netWorth" stroke="#16a34a" strokeWidth={2} fill="url(#nw-net)" dot={false} />
+                    <Area
+                      type="monotone"
+                      dataKey="totalAssets"
+                      stroke="#2563eb"
+                      strokeWidth={1.5}
+                      fill="url(#nw-assets)"
+                      dot={false}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="totalLiabilities"
+                      stroke="#dc2626"
+                      strokeWidth={1.5}
+                      fill="url(#nw-liab)"
+                      dot={false}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="netWorth"
+                      stroke="#16a34a"
+                      strokeWidth={2}
+                      fill="url(#nw-net)"
+                      dot={false}
+                    />
                   </AreaChart>
                 </ResponsiveContainer>
 

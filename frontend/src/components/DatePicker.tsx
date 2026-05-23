@@ -3,8 +3,18 @@ import '@/components/DatePicker.css';
 
 const DAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 function pad(n: number) {
@@ -164,7 +174,17 @@ export default function DatePicker({
           {value ? formatDisplay(value) : placeholder}
         </span>
         <span className="dp-input-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
             <rect x="3" y="4" width="18" height="18" rx="2" />
             <line x1="16" y1="2" x2="16" y2="6" />
             <line x1="8" y1="2" x2="8" y2="6" />
@@ -176,14 +196,22 @@ export default function DatePicker({
       {open && (
         <div className={`dp-popup${dropUp ? ' dp-popup-up' : ''}`}>
           <div className="dp-header">
-            <button type="button" className="dp-nav" onClick={prevMonth} disabled={!canGoPrev}>‹</button>
-            <span className="dp-month-label">{MONTHS[view.month]} {view.year}</span>
-            <button type="button" className="dp-nav" onClick={nextMonth} disabled={!canGoNext}>›</button>
+            <button type="button" className="dp-nav" onClick={prevMonth} disabled={!canGoPrev}>
+              ‹
+            </button>
+            <span className="dp-month-label">
+              {MONTHS[view.month]} {view.year}
+            </span>
+            <button type="button" className="dp-nav" onClick={nextMonth} disabled={!canGoNext}>
+              ›
+            </button>
           </div>
 
           <div className="dp-grid">
             {DAYS.map((d) => (
-              <span key={d} className="dp-dow">{d}</span>
+              <span key={d} className="dp-dow">
+                {d}
+              </span>
             ))}
             {cells.map((day, i) =>
               day === null ? (
@@ -204,9 +232,18 @@ export default function DatePicker({
           </div>
 
           <div className="dp-footer">
-            <button type="button" className="dp-today-btn" onClick={selectToday}>Today</button>
+            <button type="button" className="dp-today-btn" onClick={selectToday}>
+              Today
+            </button>
             {value && (
-              <button type="button" className="dp-clear-btn" onClick={() => { onChange(''); setOpen(false); }}>
+              <button
+                type="button"
+                className="dp-clear-btn"
+                onClick={() => {
+                  onChange('');
+                  setOpen(false);
+                }}
+              >
                 Clear
               </button>
             )}

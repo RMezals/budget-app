@@ -91,8 +91,8 @@ public class PortfolioServiceTests
         var result = CreateSut().ComputeAssetSummary(asset, AsOf);
 
         Assert.Equal(1200m, result.CurrentValue);     // 10 * 120
-        Assert.Equal(400m,  result.UnrealisedGainLoss);     // 1200 - 800
-        Assert.Equal(50m,   result.UnrealisedGainLossPercent); // 400/800 * 100
+        Assert.Equal(400m, result.UnrealisedGainLoss);     // 1200 - 800
+        Assert.Equal(50m, result.UnrealisedGainLossPercent); // 400/800 * 100
     }
 
     [Fact]
@@ -102,9 +102,9 @@ public class PortfolioServiceTests
 
         var result = CreateSut().ComputeAssetSummary(asset, AsOf);
 
-        Assert.Equal(750m,   result.CurrentValue);
-        Assert.Equal(-250m,  result.UnrealisedGainLoss);
-        Assert.Equal(-25m,   result.UnrealisedGainLossPercent);
+        Assert.Equal(750m, result.CurrentValue);
+        Assert.Equal(-250m, result.UnrealisedGainLoss);
+        Assert.Equal(-25m, result.UnrealisedGainLossPercent);
     }
 
     [Fact]
@@ -123,19 +123,19 @@ public class PortfolioServiceTests
     public void ComputeAllocation_GroupsByTypeAndCalculatesPercents()
     {
         var assetStock1 = MakeAsset(quantity: 10, purchasePrice: 100m, currentPrice: 100m); assetStock1.Type = "Stock";
-        var assetStock2 = MakeAsset(quantity: 5,  purchasePrice: 200m, currentPrice: 200m); assetStock2.Type = "Stock";
-        var assetBond   = MakeAsset(quantity: 1,  purchasePrice: 500m, currentPrice: 500m); assetBond.Type   = "Bond";
+        var assetStock2 = MakeAsset(quantity: 5, purchasePrice: 200m, currentPrice: 200m); assetStock2.Type = "Stock";
+        var assetBond = MakeAsset(quantity: 1, purchasePrice: 500m, currentPrice: 500m); assetBond.Type = "Bond";
         var assets = new List<Asset> { assetStock1, assetStock2, assetBond };
 
         var result = CreateSut().ComputeAllocation(assets, AsOf);
 
         var stock = result.Single(a => a.Type == "Stock");
-        var bond  = result.Single(a => a.Type == "Bond");
+        var bond = result.Single(a => a.Type == "Bond");
 
         Assert.Equal(2000m, stock.TotalValue);  // 10*100 + 5*200
-        Assert.Equal(500m,  bond.TotalValue);
-        Assert.Equal(80m,   stock.AllocationPercent); // 2000/2500
-        Assert.Equal(20m,   bond.AllocationPercent);
+        Assert.Equal(500m, bond.TotalValue);
+        Assert.Equal(80m, stock.AllocationPercent); // 2000/2500
+        Assert.Equal(20m, bond.AllocationPercent);
     }
 
     [Fact]
@@ -163,13 +163,17 @@ public class PortfolioServiceTests
     public void ComputeMonthlyPerformance_SingleMonth_ReturnsOneEntry()
     {
         var from = new DateTime(2026, 1, 1);
-        var to   = new DateTime(2026, 1, 31);
+        var to = new DateTime(2026, 1, 31);
 
         // Asset with static price — zero gain
         var asset = new Asset
         {
-            Id = "a1", UserId = "u1", Name = "Fund", Type = "ETF",
-            Quantity = 10, PurchasePrice = 100m,
+            Id = "a1",
+            UserId = "u1",
+            Name = "Fund",
+            Type = "ETF",
+            Quantity = 10,
+            PurchasePrice = 100m,
             Price = [new PriceEntry { Value = 100m, Date = new DateTime(2025, 12, 1) }]
         };
 
@@ -184,7 +188,7 @@ public class PortfolioServiceTests
     public void ComputeMonthlyPerformance_MultipleMonths_ReturnsOneEntryPerMonth()
     {
         var from = new DateTime(2026, 1, 1);
-        var to   = new DateTime(2026, 3, 31);
+        var to = new DateTime(2026, 3, 31);
 
         var result = CreateSut().ComputeMonthlyPerformance([], from, to);
 
@@ -207,8 +211,8 @@ public class PortfolioServiceTests
 
         var result = CreateSut().ComputeGlobalGainLoss(assets);
 
-        Assert.Equal(2000m,  result.TotalInvested);   // 10*100 + 5*200
-        Assert.Equal(100m,   result.TotalGainLoss);   // 10*(120-100)=+200, 5*(180-200)=-100 → net 100
+        Assert.Equal(2000m, result.TotalInvested);   // 10*100 + 5*200
+        Assert.Equal(100m, result.TotalGainLoss);   // 10*(120-100)=+200, 5*(180-200)=-100 → net 100
     }
 
     [Fact]

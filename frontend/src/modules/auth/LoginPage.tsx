@@ -91,9 +91,7 @@ export default function LoginPage() {
           <span className="auth-logo-text">BudgetApp</span>
         </div>
 
-        <h2 className="auth-title">
-          {mode === 'login' ? 'Welcome back' : 'Create account'}
-        </h2>
+        <h2 className="auth-title">{mode === 'login' ? 'Welcome back' : 'Create account'}</h2>
         <p className="auth-subtitle">
           {mode === 'login' ? 'Sign in to your account' : 'Start tracking your finances'}
         </p>
@@ -107,7 +105,9 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit}>
           {mode === 'signup' && (
             <div className="mb-3">
-              <label className="auth-label" htmlFor="auth-name">Display name</label>
+              <label className="auth-label" htmlFor="auth-name">
+                Display name
+              </label>
               <input
                 id="auth-name"
                 className="auth-input"
@@ -122,7 +122,9 @@ export default function LoginPage() {
           )}
 
           <div className="mb-3">
-            <label className="auth-label" htmlFor="auth-email">Email</label>
+            <label className="auth-label" htmlFor="auth-email">
+              Email
+            </label>
             <input
               id="auth-email"
               className="auth-input"
@@ -137,7 +139,9 @@ export default function LoginPage() {
           </div>
 
           <div className="mb-3">
-            <label className="auth-label" htmlFor="auth-password">Password</label>
+            <label className="auth-label" htmlFor="auth-password">
+              Password
+            </label>
             <input
               id="auth-password"
               className="auth-input"
@@ -153,7 +157,9 @@ export default function LoginPage() {
 
           {mode === 'signup' && (
             <div className="mb-3">
-              <label className="auth-label" htmlFor="auth-confirm">Confirm password</label>
+              <label className="auth-label" htmlFor="auth-confirm">
+                Confirm password
+              </label>
               <input
                 id="auth-confirm"
                 className="auth-input"
@@ -170,8 +176,12 @@ export default function LoginPage() {
 
           <button type="submit" className="auth-submit" disabled={loading}>
             {loading
-              ? mode === 'login' ? 'Signing in...' : 'Creating account...'
-              : mode === 'login' ? 'Sign in' : 'Create account'}
+              ? mode === 'login'
+                ? 'Signing in...'
+                : 'Creating account...'
+              : mode === 'login'
+                ? 'Sign in'
+                : 'Create account'}
           </button>
         </form>
 
@@ -179,7 +189,11 @@ export default function LoginPage() {
           {mode === 'login' ? (
             <>
               Don&apos;t have an account?{' '}
-              <button type="button" className="auth-switch-btn" onClick={() => switchMode('signup')}>
+              <button
+                type="button"
+                className="auth-switch-btn"
+                onClick={() => switchMode('signup')}
+              >
                 Sign up
               </button>
             </>

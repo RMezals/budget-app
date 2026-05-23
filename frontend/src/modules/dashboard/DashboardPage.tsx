@@ -111,7 +111,8 @@ export default function DashboardPage() {
           <div className={`metric-card ${netForMonth >= 0 ? 'c-success' : 'c-danger'} h-100`}>
             <div className="metric-label">This Month</div>
             <div className={`metric-value ${netForMonth >= 0 ? 'up' : 'down'}`}>
-              {netForMonth >= 0 ? '+' : ''}{fmt(netForMonth)}
+              {netForMonth >= 0 ? '+' : ''}
+              {fmt(netForMonth)}
             </div>
             <div className="metric-sub">
               {fmt(summary.monthlyIncome)} in · {fmt(summary.monthlyExpenses)} out

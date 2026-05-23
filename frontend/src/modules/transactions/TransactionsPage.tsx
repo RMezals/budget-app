@@ -1,5 +1,5 @@
 import DatePicker from '@/components/DatePicker';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiFetch } from '../../api/client';
 import {
   BudgetListSchema,
@@ -103,7 +103,7 @@ export default function TransactionsPage() {
   }, []);
 
   // ── load transactions ────────────────────────────────────────────────────
-  const loadTransactions = async () => {
+  const loadTransactions = useCallback(async () => {
     setTxLoading(true);
     setTxError(null);
     try {
@@ -118,21 +118,23 @@ export default function TransactionsPage() {
     } finally {
       setTxLoading(false);
     }
-  };
+  }, [filterFrom, filterTo, filterCategory, filterKeyword]);
 
   useEffect(() => {
     loadTransactions();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterFrom, filterTo, filterCategory, filterKeyword]);
+  }, [loadTransactions]);
 
   // ── load budgets ─────────────────────────────────────────────────────────
-  const loadBudgets = async () => {
+  const loadBudgets = useCallback(async () => {
     setBudgetLoading(true);
     setBudgetError(null);
     try {
       const [b, u] = await Promise.all([
         apiFetch(`/api/budgets?year=${budgetYear}&month=${budgetMonth}`, BudgetListSchema),
-        apiFetch(`/api/budgets/usage?year=${budgetYear}&month=${budgetMonth}`, TransactionBudgetUsageListSchema),
+        apiFetch(
+          `/api/budgets/usage?year=${budgetYear}&month=${budgetMonth}`,
+          TransactionBudgetUsageListSchema,
+        ),
       ]);
       setBudgets(b);
       setUsage(u);
@@ -147,12 +149,11 @@ export default function TransactionsPage() {
     } finally {
       setBudgetLoading(false);
     }
-  };
+  }, [budgetYear, budgetMonth, categories]);
 
   useEffect(() => {
     if (tab === 'budgets' && categories.expense.length > 0) loadBudgets();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, budgetYear, budgetMonth, categories]);
+  }, [tab, loadBudgets, categories.expense.length]);
 
   // ── form helpers ─────────────────────────────────────────────────────────
   const startEdit = (tx: Transaction) => {
@@ -255,7 +256,12 @@ export default function TransactionsPage() {
     try {
       await apiFetch('/api/budgets', {
         method: 'PUT',
-        body: JSON.stringify({ year: budgetYear, month: budgetMonth, category, limitAmount: limit }),
+        body: JSON.stringify({
+          year: budgetYear,
+          month: budgetMonth,
+          category,
+          limitAmount: limit,
+        }),
       });
       setBudgetSuccess(`Budget saved for ${category}.`);
       await loadBudgets();
@@ -270,7 +276,9 @@ export default function TransactionsPage() {
     usage.find((u) => u.category === category);
 
   const totalIncome = transactions.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-  const totalExpenses = transactions.filter((t) => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+  const totalExpenses = transactions
+    .filter((t) => t.amount < 0)
+    .reduce((s, t) => s + Math.abs(t.amount), 0);
   const allCategories = [...categories.expense, ...categories.income];
 
   return (
@@ -284,12 +292,20 @@ export default function TransactionsPage() {
       {/* Tabs */}
       <ul className="nav nav-tabs mb-4">
         <li className="nav-item">
-          <button type="button" className={`nav-link${tab === 'transactions' ? ' active' : ''}`} onClick={() => setTab('transactions')}>
+          <button
+            type="button"
+            className={`nav-link${tab === 'transactions' ? ' active' : ''}`}
+            onClick={() => setTab('transactions')}
+          >
             Transactions
           </button>
         </li>
         <li className="nav-item">
-          <button type="button" className={`nav-link${tab === 'budgets' ? ' active' : ''}`} onClick={() => setTab('budgets')}>
+          <button
+            type="button"
+            className={`nav-link${tab === 'budgets' ? ' active' : ''}`}
+            onClick={() => setTab('budgets')}
+          >
             Budgets
           </button>
         </li>
@@ -306,7 +322,9 @@ export default function TransactionsPage() {
             <div className="col-lg-4">
               <div className="card">
                 <div className="card-body">
-                  <h6 className="card-title mb-3">{editingId ? 'Edit Transaction' : 'New Transaction'}</h6>
+                  <h6 className="card-title mb-3">
+                    {editingId ? 'Edit Transaction' : 'New Transaction'}
+                  </h6>
                   <form onSubmit={handleTxSubmit}>
                     <div className="mb-3">
                       <div className="btn-group w-100">
@@ -330,7 +348,9 @@ export default function TransactionsPage() {
                     </div>
 
                     <div className="mb-3">
-                      <label className="form-label" htmlFor="tx-amount">Amount</label>
+                      <label className="form-label" htmlFor="tx-amount">
+                        Amount
+                      </label>
                       <input
                         id="tx-amount"
                         ref={amountRef}
@@ -347,15 +367,16 @@ export default function TransactionsPage() {
                     </div>
 
                     <div className="mb-3">
-                      <label className="form-label" htmlFor="tx-date">Date</label>
-                      <DatePicker
-                        value={txForm.date}
-                        onChange={(v) => updateForm('date', v)}
-                      />
+                      <label className="form-label" htmlFor="tx-date">
+                        Date
+                      </label>
+                      <DatePicker value={txForm.date} onChange={(v) => updateForm('date', v)} />
                     </div>
 
                     <div className="mb-3">
-                      <label className="form-label" htmlFor="tx-category">Category</label>
+                      <label className="form-label" htmlFor="tx-category">
+                        Category
+                      </label>
                       <select
                         id="tx-category"
                         className="form-select"
@@ -365,13 +386,17 @@ export default function TransactionsPage() {
                         required
                       >
                         {(txForm.isIncome ? categories.income : categories.expense).map((c) => (
-                          <option key={c} value={c}>{c}</option>
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
                         ))}
                       </select>
                     </div>
 
                     <div className="mb-3">
-                      <label className="form-label" htmlFor="tx-desc">Description</label>
+                      <label className="form-label" htmlFor="tx-desc">
+                        Description
+                      </label>
                       <input
                         id="tx-desc"
                         className="form-control"
@@ -416,14 +441,18 @@ export default function TransactionsPage() {
                     <div className="metric-card c-success">
                       <div className="metric-label">Income</div>
                       <div className="metric-value up">{fmt(totalIncome)}</div>
-                      <div className="metric-sub">{transactions.filter((t) => t.amount > 0).length} transactions</div>
+                      <div className="metric-sub">
+                        {transactions.filter((t) => t.amount > 0).length} transactions
+                      </div>
                     </div>
                   </div>
                   <div className="col-6">
                     <div className="metric-card c-danger">
                       <div className="metric-label">Expenses</div>
                       <div className="metric-value down">{fmt(totalExpenses)}</div>
-                      <div className="metric-sub">{transactions.filter((t) => t.amount < 0).length} transactions</div>
+                      <div className="metric-sub">
+                        {transactions.filter((t) => t.amount < 0).length} transactions
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -434,23 +463,52 @@ export default function TransactionsPage() {
                 <div className="card-body py-2">
                   <div className="row g-2 align-items-end">
                     <div className="col-sm-3">
-                      <label className="form-label" htmlFor="filter-from">From</label>
+                      <label className="form-label" htmlFor="filter-from">
+                        From
+                      </label>
                       <DatePicker value={filterFrom} onChange={setFilterFrom} placeholder="From" />
                     </div>
                     <div className="col-sm-3">
-                      <label className="form-label" htmlFor="filter-to">To</label>
-                      <DatePicker value={filterTo} onChange={setFilterTo} placeholder="To" min={filterFrom} />
+                      <label className="form-label" htmlFor="filter-to">
+                        To
+                      </label>
+                      <DatePicker
+                        value={filterTo}
+                        onChange={setFilterTo}
+                        placeholder="To"
+                        min={filterFrom}
+                      />
                     </div>
                     <div className="col-sm-3">
-                      <label className="form-label" htmlFor="filter-cat">Category</label>
-                      <select id="filter-cat" className="form-select form-select-sm" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+                      <label className="form-label" htmlFor="filter-cat">
+                        Category
+                      </label>
+                      <select
+                        id="filter-cat"
+                        className="form-select form-select-sm"
+                        value={filterCategory}
+                        onChange={(e) => setFilterCategory(e.target.value)}
+                      >
                         <option value="">All</option>
-                        {allCategories.map((c) => <option key={c} value={c}>{c}</option>)}
+                        {allCategories.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div className="col-sm-3">
-                      <label className="form-label" htmlFor="filter-kw">Search</label>
-                      <input id="filter-kw" className="form-control form-control-sm" type="text" value={filterKeyword} onChange={(e) => setFilterKeyword(e.target.value)} placeholder="Keyword…" />
+                      <label className="form-label" htmlFor="filter-kw">
+                        Search
+                      </label>
+                      <input
+                        id="filter-kw"
+                        className="form-control form-control-sm"
+                        type="text"
+                        value={filterKeyword}
+                        onChange={(e) => setFilterKeyword(e.target.value)}
+                        placeholder="Keyword…"
+                      />
                     </div>
                   </div>
                 </div>
@@ -461,6 +519,7 @@ export default function TransactionsPage() {
                 <div className="card-body p-0">
                   {txLoading ? (
                     <div className="loading-center">
+                      {/* biome-ignore lint/a11y/useSemanticElements: Bootstrap spinner requires role=status */}
                       <div className="spinner-border spinner-border-sm text-primary" role="status">
                         <span className="visually-hidden">Loading…</span>
                       </div>
@@ -468,7 +527,10 @@ export default function TransactionsPage() {
                   ) : transactions.length === 0 ? (
                     <p className="text-muted small text-center py-5 mb-0">No transactions found.</p>
                   ) : (
-                    <div className="list-group list-group-flush" style={{ borderRadius: 'inherit' }}>
+                    <div
+                      className="list-group list-group-flush"
+                      style={{ borderRadius: 'inherit' }}
+                    >
                       {[...transactions]
                         .sort((a, b) => b.date.localeCompare(a.date))
                         .map((tx) => {
@@ -478,25 +540,54 @@ export default function TransactionsPage() {
                             <div
                               key={tx.id}
                               className="list-group-item d-flex justify-content-between align-items-center gap-2"
-                              style={{ background: isEditing ? 'var(--color-primary-light)' : undefined }}
+                              style={{
+                                background: isEditing ? 'var(--color-primary-light)' : undefined,
+                              }}
                             >
                               <div className="flex-grow-1 min-w-0">
                                 <div className="d-flex align-items-center gap-2">
                                   <span className="tx-category-badge">{tx.category}</span>
                                   <span className="text-muted" style={{ fontSize: '0.8rem' }}>
-                                    {new Date(tx.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    {new Date(tx.date).toLocaleDateString('en-GB', {
+                                      day: 'numeric',
+                                      month: 'short',
+                                      year: 'numeric',
+                                    })}
                                   </span>
                                 </div>
                                 {tx.description && (
-                                  <div className="text-muted text-truncate mt-1" style={{ fontSize: '0.8rem' }}>{tx.description}</div>
+                                  <div
+                                    className="text-muted text-truncate mt-1"
+                                    style={{ fontSize: '0.8rem' }}
+                                  >
+                                    {tx.description}
+                                  </div>
                                 )}
                               </div>
                               <div className="d-flex align-items-center gap-2 flex-shrink-0">
-                                <span className={`fw-semibold ${isIncome ? 'text-success' : 'text-danger'}`} style={{ fontSize: '0.9rem' }}>
-                                  {isIncome ? '+' : '-'}{fmt(Math.abs(tx.amount))}
+                                <span
+                                  className={`fw-semibold ${isIncome ? 'text-success' : 'text-danger'}`}
+                                  style={{ fontSize: '0.9rem' }}
+                                >
+                                  {isIncome ? '+' : '-'}
+                                  {fmt(Math.abs(tx.amount))}
                                 </span>
-                                <button type="button" className="pf-btn-icon edit" onClick={() => startEdit(tx)} title="Edit">✎</button>
-                                <button type="button" className="pf-btn-icon danger" onClick={() => handleDelete(tx.id)} title="Delete">✕</button>
+                                <button
+                                  type="button"
+                                  className="pf-btn-icon edit"
+                                  onClick={() => startEdit(tx)}
+                                  title="Edit"
+                                >
+                                  ✎
+                                </button>
+                                <button
+                                  type="button"
+                                  className="pf-btn-icon danger"
+                                  onClick={() => handleDelete(tx.id)}
+                                  title="Delete"
+                                >
+                                  ✕
+                                </button>
                               </div>
                             </div>
                           );
@@ -521,18 +612,37 @@ export default function TransactionsPage() {
             <button
               type="button"
               className="btn btn-outline-secondary btn-sm"
-              onClick={() => { if (budgetMonth === 1) { setBudgetMonth(12); setBudgetYear((y) => y - 1); } else { setBudgetMonth((m) => m - 1); } }}
-            >‹</button>
+              onClick={() => {
+                if (budgetMonth === 1) {
+                  setBudgetMonth(12);
+                  setBudgetYear((y) => y - 1);
+                } else {
+                  setBudgetMonth((m) => m - 1);
+                }
+              }}
+            >
+              ‹
+            </button>
             <span className="fw-semibold">{monthLabel(budgetYear, budgetMonth)}</span>
             <button
               type="button"
               className="btn btn-outline-secondary btn-sm"
-              onClick={() => { if (budgetMonth === 12) { setBudgetMonth(1); setBudgetYear((y) => y + 1); } else { setBudgetMonth((m) => m + 1); } }}
-            >›</button>
+              onClick={() => {
+                if (budgetMonth === 12) {
+                  setBudgetMonth(1);
+                  setBudgetYear((y) => y + 1);
+                } else {
+                  setBudgetMonth((m) => m + 1);
+                }
+              }}
+            >
+              ›
+            </button>
           </div>
 
           {budgetLoading ? (
             <div className="loading-center">
+              {/* biome-ignore lint/a11y/useSemanticElements: Bootstrap spinner requires role=status */}
               <div className="spinner-border spinner-border-sm text-primary" role="status">
                 <span className="visually-hidden">Loading…</span>
               </div>
@@ -550,9 +660,13 @@ export default function TransactionsPage() {
                     <div className="card h-100">
                       <div className="card-body">
                         <div className="d-flex justify-content-between align-items-center mb-2">
-                          <span className="fw-semibold" style={{ fontSize: '0.9rem' }}>{cat}</span>
+                          <span className="fw-semibold" style={{ fontSize: '0.9rem' }}>
+                            {cat}
+                          </span>
                           {u && (
-                            <span className={`small ${over ? 'text-danger fw-semibold' : 'text-muted'}`}>
+                            <span
+                              className={`small ${over ? 'text-danger fw-semibold' : 'text-muted'}`}
+                            >
                               {fmt(u.spent)} / {hasLimit ? fmt(u.limit) : '—'}
                             </span>
                           )}
@@ -567,16 +681,25 @@ export default function TransactionsPage() {
                               />
                             </div>
                             <div className="d-flex justify-content-between mt-1">
-                              <span className="text-muted" style={{ fontSize: '0.72rem' }}>{u.usagePercent}% used</span>
-                              <span className={over ? 'text-danger' : 'text-muted'} style={{ fontSize: '0.72rem' }}>
-                                {over ? `${fmt(Math.abs(u.remaining))} over` : `${fmt(u.remaining)} left`}
+                              <span className="text-muted" style={{ fontSize: '0.72rem' }}>
+                                {u.usagePercent}% used
+                              </span>
+                              <span
+                                className={over ? 'text-danger' : 'text-muted'}
+                                style={{ fontSize: '0.72rem' }}
+                              >
+                                {over
+                                  ? `${fmt(Math.abs(u.remaining))} over`
+                                  : `${fmt(u.remaining)} left`}
                               </span>
                             </div>
                           </div>
                         )}
 
                         {!hasLimit && u && u.spent > 0 && (
-                          <p className="small text-muted mb-2">{fmt(u.spent)} spent — no limit set</p>
+                          <p className="small text-muted mb-2">
+                            {fmt(u.spent)} spent — no limit set
+                          </p>
                         )}
 
                         <div className="input-group input-group-sm mt-2">
@@ -588,7 +711,9 @@ export default function TransactionsPage() {
                             step="1"
                             placeholder="e.g. 500"
                             value={limitInputs[cat] ?? ''}
-                            onChange={(e) => setLimitInputs((prev) => ({ ...prev, [cat]: e.target.value }))}
+                            onChange={(e) =>
+                              setLimitInputs((prev) => ({ ...prev, [cat]: e.target.value }))
+                            }
                           />
                           <button
                             type="button"

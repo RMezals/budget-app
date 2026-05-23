@@ -20,7 +20,15 @@ type AuthState =
   | { status: 'disabled' };
 
 const IconDashboard = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
     <rect x="3" y="3" width="7" height="7" rx="1" />
     <rect x="14" y="3" width="7" height="7" rx="1" />
     <rect x="3" y="14" width="7" height="7" rx="1" />
@@ -29,7 +37,15 @@ const IconDashboard = () => (
 );
 
 const IconTransactions = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
     <path d="M16 3l4 4-4 4" />
     <path d="M20 7H4" />
     <path d="M8 21l-4-4 4-4" />
@@ -38,20 +54,44 @@ const IconTransactions = () => (
 );
 
 const IconSavings = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
     <path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10S2 17.52 2 12" />
     <path d="M12 6v6l4 2" />
   </svg>
 );
 
 const IconPortfolio = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
   </svg>
 );
 
 const IconSignOut = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
     <polyline points="16 17 21 12 16 7" />
     <line x1="21" y1="12" x2="9" y2="12" />
@@ -59,7 +99,15 @@ const IconSignOut = () => (
 );
 
 const IconChevronLeft = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
     <polyline points="15 18 9 12 15 6" />
   </svg>
 );
@@ -119,10 +167,18 @@ function App() {
               </div>
 
               <nav className="app-sidebar-nav">
-                <AppNavLink to="/" icon={<IconDashboard />}>Dashboard</AppNavLink>
-                <AppNavLink to="/transactions" icon={<IconTransactions />}>Transactions</AppNavLink>
-                <AppNavLink to="/savings" icon={<IconSavings />}>Savings</AppNavLink>
-                <AppNavLink to="/portfolio" icon={<IconPortfolio />}>Portfolio</AppNavLink>
+                <AppNavLink to="/" icon={<IconDashboard />}>
+                  Dashboard
+                </AppNavLink>
+                <AppNavLink to="/transactions" icon={<IconTransactions />}>
+                  Transactions
+                </AppNavLink>
+                <AppNavLink to="/savings" icon={<IconSavings />}>
+                  Savings
+                </AppNavLink>
+                <AppNavLink to="/portfolio" icon={<IconPortfolio />}>
+                  Portfolio
+                </AppNavLink>
               </nav>
 
               <div className="app-sidebar-footer">

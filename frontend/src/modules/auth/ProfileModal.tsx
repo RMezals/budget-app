@@ -1,7 +1,7 @@
 import { auth } from '@/firebase';
 import {
-  type User,
   EmailAuthProvider,
+  type User,
   reauthenticateWithCredential,
   updatePassword,
   updateProfile,
@@ -50,7 +50,10 @@ export default function ProfileModal({ user, onClose }: Props) {
 
   async function handleNameSave() {
     const trimmed = nameValue.trim();
-    if (!trimmed) { setNameError('Name cannot be empty.'); return; }
+    if (!trimmed) {
+      setNameError('Name cannot be empty.');
+      return;
+    }
     setNameError('');
     setNameSuccess('');
     setNameSaving(true);
@@ -67,9 +70,18 @@ export default function ProfileModal({ user, onClose }: Props) {
   async function handlePasswordSave() {
     setPwError('');
     setPwSuccess('');
-    if (!currentPw) { setPwError('Enter your current password.'); return; }
-    if (newPw.length < 6) { setPwError('New password must be at least 6 characters.'); return; }
-    if (newPw !== confirmPw) { setPwError('Passwords do not match.'); return; }
+    if (!currentPw) {
+      setPwError('Enter your current password.');
+      return;
+    }
+    if (newPw.length < 6) {
+      setPwError('New password must be at least 6 characters.');
+      return;
+    }
+    if (newPw !== confirmPw) {
+      setPwError('Passwords do not match.');
+      return;
+    }
 
     setPwSaving(true);
     try {
@@ -108,12 +120,28 @@ export default function ProfileModal({ user, onClose }: Props) {
         <div style={{ borderBottom: '1px solid var(--color-border)', padding: '0 1.5rem' }}>
           <ul className="nav nav-tabs" style={{ borderBottom: 'none', marginBottom: '-1px' }}>
             <li className="nav-item">
-              <button type="button" className={`nav-link${section === 'name' ? ' active' : ''}`} onClick={() => { setSection('name'); setNameError(''); setNameSuccess(''); }}>
+              <button
+                type="button"
+                className={`nav-link${section === 'name' ? ' active' : ''}`}
+                onClick={() => {
+                  setSection('name');
+                  setNameError('');
+                  setNameSuccess('');
+                }}
+              >
                 Display Name
               </button>
             </li>
             <li className="nav-item">
-              <button type="button" className={`nav-link${section === 'password' ? ' active' : ''}`} onClick={() => { setSection('password'); setPwError(''); setPwSuccess(''); }}>
+              <button
+                type="button"
+                className={`nav-link${section === 'password' ? ' active' : ''}`}
+                onClick={() => {
+                  setSection('password');
+                  setPwError('');
+                  setPwSuccess('');
+                }}
+              >
                 Change Password
               </button>
             </li>
@@ -125,18 +153,27 @@ export default function ProfileModal({ user, onClose }: Props) {
           {section === 'name' && (
             <div>
               <p className="text-muted small mb-3">
-                This name is shown in the sidebar and is stored in Firebase Auth only — not on any backend.
+                This name is shown in the sidebar and is stored in Firebase Auth only — not on any
+                backend.
               </p>
               {nameError && <div className="alert alert-danger py-2 small mb-3">{nameError}</div>}
-              {nameSuccess && <div className="alert alert-success py-2 small mb-3">{nameSuccess}</div>}
+              {nameSuccess && (
+                <div className="alert alert-success py-2 small mb-3">{nameSuccess}</div>
+              )}
               <div className="mb-3">
-                <label className="form-label" htmlFor="profile-name">Display name</label>
+                <label className="form-label" htmlFor="profile-name">
+                  Display name
+                </label>
                 <input
                   id="profile-name"
                   className="form-control"
                   type="text"
                   value={nameValue}
-                  onChange={(e) => { setNameValue(e.target.value); setNameSuccess(''); setNameError(''); }}
+                  onChange={(e) => {
+                    setNameValue(e.target.value);
+                    setNameSuccess('');
+                    setNameError('');
+                  }}
                   placeholder="Your name"
                   disabled={nameSaving}
                   // biome-ignore lint/a11y/noAutofocus: first field in modal
@@ -158,13 +195,19 @@ export default function ProfileModal({ user, onClose }: Props) {
               {pwError && <div className="alert alert-danger py-2 small mb-3">{pwError}</div>}
               {pwSuccess && <div className="alert alert-success py-2 small mb-3">{pwSuccess}</div>}
               <div className="mb-3">
-                <label className="form-label" htmlFor="pw-current">Current password</label>
+                <label className="form-label" htmlFor="pw-current">
+                  Current password
+                </label>
                 <input
                   id="pw-current"
                   className="form-control"
                   type="password"
                   value={currentPw}
-                  onChange={(e) => { setCurrentPw(e.target.value); setPwError(''); setPwSuccess(''); }}
+                  onChange={(e) => {
+                    setCurrentPw(e.target.value);
+                    setPwError('');
+                    setPwSuccess('');
+                  }}
                   disabled={pwSaving}
                   autoComplete="current-password"
                   // biome-ignore lint/a11y/noAutofocus: first field in modal
@@ -172,26 +215,38 @@ export default function ProfileModal({ user, onClose }: Props) {
                 />
               </div>
               <div className="mb-3">
-                <label className="form-label" htmlFor="pw-new">New password</label>
+                <label className="form-label" htmlFor="pw-new">
+                  New password
+                </label>
                 <input
                   id="pw-new"
                   className="form-control"
                   type="password"
                   value={newPw}
-                  onChange={(e) => { setNewPw(e.target.value); setPwError(''); setPwSuccess(''); }}
+                  onChange={(e) => {
+                    setNewPw(e.target.value);
+                    setPwError('');
+                    setPwSuccess('');
+                  }}
                   placeholder="Min. 6 characters"
                   disabled={pwSaving}
                   autoComplete="new-password"
                 />
               </div>
               <div className="mb-0">
-                <label className="form-label" htmlFor="pw-confirm">Confirm new password</label>
+                <label className="form-label" htmlFor="pw-confirm">
+                  Confirm new password
+                </label>
                 <input
                   id="pw-confirm"
                   className="form-control"
                   type="password"
                   value={confirmPw}
-                  onChange={(e) => { setConfirmPw(e.target.value); setPwError(''); setPwSuccess(''); }}
+                  onChange={(e) => {
+                    setConfirmPw(e.target.value);
+                    setPwError('');
+                    setPwSuccess('');
+                  }}
                   placeholder="Repeat password"
                   disabled={pwSaving}
                   autoComplete="new-password"

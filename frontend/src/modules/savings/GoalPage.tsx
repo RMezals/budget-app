@@ -314,7 +314,9 @@ export default function GoalPage() {
                 type="button"
                 className="btn btn-outline-secondary btn-sm"
                 onClick={() => setShowAbandonModal(true)}
-                disabled={deletingContributionId !== null || updatingStatus !== null || abandoningGoal}
+                disabled={
+                  deletingContributionId !== null || updatingStatus !== null || abandoningGoal
+                }
               >
                 {abandoningGoal ? 'Abandoning...' : 'Mark Abandoned'}
               </button>
@@ -355,8 +357,8 @@ export default function GoalPage() {
                 </div>
                 <div className="modal-body">
                   <p className="mb-2">
-                    This will withdraw {fmt(goal.currentBalance)} from {goal.name} and mark the
-                    goal as abandoned.
+                    This will withdraw {fmt(goal.currentBalance)} from {goal.name} and mark the goal
+                    as abandoned.
                   </p>
                   <p className="text-muted small mb-0">
                     The withdrawal will appear in the contribution history.
@@ -377,9 +379,7 @@ export default function GoalPage() {
                     onClick={handleAbandonGoal}
                     disabled={abandoningGoal}
                   >
-                    {abandoningGoal
-                      ? 'Abandoning...'
-                      : 'Withdraw saved amount and abandon goal'}
+                    {abandoningGoal ? 'Abandoning...' : 'Withdraw saved amount and abandon goal'}
                   </button>
                 </div>
               </div>
@@ -435,9 +435,7 @@ export default function GoalPage() {
           <div className="d-flex justify-content-between gap-3 mb-2">
             <span className="fw-semibold">Progress</span>
             <span
-              className={
-                isGoalCompleted ? 'text-success small fw-semibold' : 'text-muted small'
-              }
+              className={isGoalCompleted ? 'text-success small fw-semibold' : 'text-muted small'}
             >
               {isGoalCompleted ? 'Target reached' : `${goal.percentReached}% reached`}
             </span>
@@ -519,7 +517,9 @@ export default function GoalPage() {
                           className="btn btn-outline-danger btn-sm"
                           onClick={() => handleDeleteContribution(contribution)}
                           disabled={
-                            deletingContributionId !== null || updatingStatus !== null || abandoningGoal
+                            deletingContributionId !== null ||
+                            updatingStatus !== null ||
+                            abandoningGoal
                           }
                         >
                           {deletingContributionId === contribution.id ? 'Deleting...' : 'Delete'}
