@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { apiFetch } from '../../api/client';
 import { GoalContributionListSchema, SavingsGoalProgressSchema } from '../../api/schemas';
@@ -80,9 +80,24 @@ export default function GoalPage() {
   const [goal, setGoal] = useState<SavingsGoalProgress | null>(null);
   const [contributions, setContributions] = useState<GoalContribution[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState(false);
+  const [deletingContributionId, setDeletingContributionId] = useState<string | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState<GoalStatusLabel | null>(null);
+  const [showAbandonModal, setShowAbandonModal] = useState(false);
+  const [abandoningGoal, setAbandoningGoal] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const fetchGoalDetails = useCallback(async () => {
+    if (!goalId) {
+      throw new Error('Goal id is missing.');
+    }
+
+    const [goalData, contributionData] = await Promise.all([
+      apiFetch(`/api/goals/${goalId}`, SavingsGoalProgressSchema),
+      apiFetch(`/api/goals/${goalId}/contributions`, GoalContributionListSchema),
+    ]);
+
+    return { goalData, contributionData };
+  }, [goalId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -95,10 +110,7 @@ export default function GoalPage() {
       }
 
       try {
-        const [goalData, contributionData] = await Promise.all([
-          apiFetch(`/api/goals/${goalId}`, SavingsGoalProgressSchema),
-          apiFetch(`/api/goals/${goalId}/contributions`, GoalContributionListSchema),
-        ]);
+        const { goalData, contributionData } = await fetchGoalDetails();
 
         if (cancelled) return;
         setGoal(goalData);
@@ -115,7 +127,7 @@ export default function GoalPage() {
     return () => {
       cancelled = true;
     };
-  }, [goalId]);
+  }, [fetchGoalDetails, goalId]);
 
   const totals = useMemo(
     () =>
@@ -130,24 +142,16 @@ export default function GoalPage() {
     [contributions],
   );
 
-  const handleDelete = async () => {
-    if (!goalId || !goal) return;
+  const contributionRows = useMemo(() => {
+    let runningBalance = goal?.currentBalance ?? 0;
 
-    const confirmed = window.confirm(
-      `Delete "${goal.name}"? This will remove the goal from your savings list.`,
-    );
-    if (!confirmed) return;
+    return contributions.map((contribution) => {
+      const balanceAfter = runningBalance;
+      runningBalance -= contribution.amount;
 
-    setDeleting(true);
-    setError(null);
-    try {
-      await apiFetch(`/api/goals/${goalId}`, { method: 'DELETE' });
-      navigate('/savings');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unable to delete goal');
-      setDeleting(false);
-    }
-  };
+      return { contribution, balanceAfter };
+    });
+  }, [contributions, goal?.currentBalance]);
 
   const handleStatusChange = async (status: GoalStatusLabel) => {
     if (!goalId || !goal) return;
@@ -159,11 +163,66 @@ export default function GoalPage() {
         method: 'PUT',
         body: JSON.stringify({ status: goalStatusValues[status] }),
       });
+      if (status === 'Abandoned') {
+        navigate('/savings', { replace: true });
+        return;
+      }
+
       setGoal((current) => (current ? { ...current, status } : current));
     } catch (e) {
       setError(e instanceof Error ? e.message : `Unable to mark goal as ${status.toLowerCase()}`);
     } finally {
       setUpdatingStatus(null);
+    }
+  };
+
+  const handleAbandonGoal = async () => {
+    if (!goalId || !goal) return;
+
+    setAbandoningGoal(true);
+    setError(null);
+    try {
+      await apiFetch(`/api/goals/${goalId}/abandon`, {
+        method: 'POST',
+        body: JSON.stringify({
+          date: new Date().toISOString(),
+          reason: 'Goal abandoned',
+          description:
+            goal.currentBalance > 0
+              ? `Withdrew ${fmt(goal.currentBalance)} before abandoning ${goal.name}.`
+              : `Abandoned ${goal.name}.`,
+        }),
+      });
+      navigate('/savings', { replace: true });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unable to abandon goal');
+    } finally {
+      setAbandoningGoal(false);
+    }
+  };
+
+  const handleDeleteContribution = async (contribution: GoalContribution) => {
+    if (!goalId) return;
+
+    const contributionType = contribution.amount < 0 ? 'withdrawal' : 'contribution';
+    const confirmed = window.confirm(
+      `Delete this ${contributionType} of ${fmt(Math.abs(contribution.amount))} from ${formatDate(
+        contribution.date,
+      )}?`,
+    );
+    if (!confirmed) return;
+
+    setDeletingContributionId(contribution.id);
+    setError(null);
+    try {
+      await apiFetch(`/api/goals/${goalId}/contributions/${contribution.id}`, { method: 'DELETE' });
+      const { goalData, contributionData } = await fetchGoalDetails();
+      setGoal(goalData);
+      setContributions(contributionData);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unable to delete contribution');
+    } finally {
+      setDeletingContributionId(null);
     }
   };
 
@@ -194,13 +253,19 @@ export default function GoalPage() {
   const goalStatus = formatGoalStatus(goal.status);
   const isGoalCompleted = goalStatus === 'Completed';
   const isGoalPaused = goalStatus === 'Paused';
+  const isGoalAbandoned = goalStatus === 'Abandoned';
   const pausedGoalContentClass = isGoalPaused ? 'opacity-50' : undefined;
-  const projectionTiming = isGoalPaused ? null : getProjectionTiming(goal);
+  const projectionTiming = isGoalPaused || isGoalCompleted ? null : getProjectionTiming(goal);
   const projectionIsLate = projectionTiming === 'late';
   const projectionBadgeClass = projectionIsLate ? 'text-bg-danger' : 'text-bg-success';
   const projectionTextClass = projectionIsLate ? 'text-danger' : 'text-success';
-  const progressBarClass =
-    projectionTiming === null ? 'bg-primary' : projectionIsLate ? 'bg-danger' : 'bg-success';
+  const progressBarClass = isGoalCompleted
+    ? 'bg-success'
+    : projectionTiming === null
+      ? 'bg-primary'
+      : projectionIsLate
+        ? 'bg-danger'
+        : 'bg-success';
 
   return (
     <div className="text-start">
@@ -220,14 +285,16 @@ export default function GoalPage() {
           </div>
         </div>
         <div className="d-flex flex-wrap gap-2 align-self-md-start justify-content-md-end">
-          {!isGoalCompleted && (
+          {!isGoalCompleted && !isGoalAbandoned && (
             <>
               {isGoalPaused ? (
                 <button
                   type="button"
                   className="btn btn-outline-primary btn-sm"
                   onClick={() => handleStatusChange('Active')}
-                  disabled={deleting || updatingStatus !== null}
+                  disabled={
+                    deletingContributionId !== null || updatingStatus !== null || abandoningGoal
+                  }
                 >
                   {updatingStatus === 'Active' ? 'Resuming...' : 'Resume Goal'}
                 </button>
@@ -236,7 +303,9 @@ export default function GoalPage() {
                   type="button"
                   className="btn btn-outline-warning btn-sm"
                   onClick={() => handleStatusChange('Paused')}
-                  disabled={deleting || updatingStatus !== null}
+                  disabled={
+                    deletingContributionId !== null || updatingStatus !== null || abandoningGoal
+                  }
                 >
                   {updatingStatus === 'Paused' ? 'Pausing...' : 'Mark Paused'}
                 </button>
@@ -244,23 +313,81 @@ export default function GoalPage() {
               <button
                 type="button"
                 className="btn btn-outline-secondary btn-sm"
-                onClick={() => handleStatusChange('Abandoned')}
-                disabled={deleting || updatingStatus !== null || goalStatus === 'Abandoned'}
+                onClick={() => setShowAbandonModal(true)}
+                disabled={deletingContributionId !== null || updatingStatus !== null || abandoningGoal}
               >
-                {updatingStatus === 'Abandoned' ? 'Abandoning...' : 'Mark Abandoned'}
+                {abandoningGoal ? 'Abandoning...' : 'Mark Abandoned'}
               </button>
             </>
           )}
-          <button
-            type="button"
-            className="btn btn-outline-danger btn-sm"
-            onClick={handleDelete}
-            disabled={deleting || updatingStatus !== null}
-          >
-            {deleting ? 'Deleting...' : 'Delete Goal'}
-          </button>
         </div>
       </div>
+
+      {showAbandonModal && (
+        <>
+          <dialog
+            className="modal show d-block"
+            open
+            aria-labelledby="abandon-goal-title"
+            style={{ border: 0, padding: 0, background: 'transparent' }}
+            onCancel={(event) => {
+              if (abandoningGoal) {
+                event.preventDefault();
+                return;
+              }
+
+              setShowAbandonModal(false);
+            }}
+          >
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title" id="abandon-goal-title">
+                    Abandon goal?
+                  </h5>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    aria-label="Close"
+                    onClick={() => setShowAbandonModal(false)}
+                    disabled={abandoningGoal}
+                  />
+                </div>
+                <div className="modal-body">
+                  <p className="mb-2">
+                    This will withdraw {fmt(goal.currentBalance)} from {goal.name} and mark the
+                    goal as abandoned.
+                  </p>
+                  <p className="text-muted small mb-0">
+                    The withdrawal will appear in the contribution history.
+                  </p>
+                </div>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => setShowAbandonModal(false)}
+                    disabled={abandoningGoal}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={handleAbandonGoal}
+                    disabled={abandoningGoal}
+                  >
+                    {abandoningGoal
+                      ? 'Abandoning...'
+                      : 'Withdraw saved amount and abandon goal'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </dialog>
+          <div className="modal-backdrop show" />
+        </>
+      )}
 
       {error && (
         <div className="alert alert-danger" role="alert">
@@ -307,7 +434,13 @@ export default function GoalPage() {
         <div className="card-body">
           <div className="d-flex justify-content-between gap-3 mb-2">
             <span className="fw-semibold">Progress</span>
-            <span className="text-muted small">{goal.percentReached}% reached</span>
+            <span
+              className={
+                isGoalCompleted ? 'text-success small fw-semibold' : 'text-muted small'
+              }
+            >
+              {isGoalCompleted ? 'Target reached' : `${goal.percentReached}% reached`}
+            </span>
           </div>
           <div className="progress" style={{ height: 10 }}>
             <div
@@ -318,6 +451,7 @@ export default function GoalPage() {
           <div className="d-flex flex-wrap align-items-center gap-3 mt-3 small">
             <span className="text-muted">Deposits: {fmt(totals.deposits)}</span>
             <span className="text-muted">Withdrawals: {fmt(totals.withdrawals)}</span>
+            {isGoalCompleted && <span className="text-success fw-semibold">Completed</span>}
             {!isGoalCompleted && !isGoalPaused && (
               <span className={projectionTiming ? projectionTextClass : 'text-muted'}>
                 Projected: {formatDate(goal.projectedCompletion)}
@@ -354,10 +488,13 @@ export default function GoalPage() {
                     <th scope="col" className="text-end">
                       Balance
                     </th>
+                    <th scope="col" className="text-end">
+                      Action
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {contributions.map((contribution) => (
+                  {contributionRows.map(({ contribution, balanceAfter }) => (
                     <tr key={contribution.id}>
                       <td className="text-nowrap">{formatDate(contribution.date)}</td>
                       <td>
@@ -375,7 +512,19 @@ export default function GoalPage() {
                         {contribution.amount < 0 ? '-' : '+'}
                         {fmt(Math.abs(contribution.amount))}
                       </td>
-                      <td className="text-end text-nowrap">{fmt(contribution.balanceAfter)}</td>
+                      <td className="text-end text-nowrap">{fmt(balanceAfter)}</td>
+                      <td className="text-end">
+                        <button
+                          type="button"
+                          className="btn btn-outline-danger btn-sm"
+                          onClick={() => handleDeleteContribution(contribution)}
+                          disabled={
+                            deletingContributionId !== null || updatingStatus !== null || abandoningGoal
+                          }
+                        >
+                          {deletingContributionId === contribution.id ? 'Deleting...' : 'Delete'}
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

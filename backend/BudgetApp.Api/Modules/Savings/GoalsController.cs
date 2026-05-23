@@ -53,6 +53,21 @@ public class GoalsController(ISavingsGoalRepository goalRepo, ISavingsService sa
         return updated ? NoContent() : NotFound();
     }
 
+    [HttpPost("{id}/abandon")]
+    public async Task<IActionResult> Abandon(string id, [FromBody] AbandonGoalRequest request)
+    {
+        try
+        {
+            await savingsService.AbandonGoalAsync(id, UserId, request.Date, request.Reason, request.Description);
+            return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
@@ -79,3 +94,4 @@ public class GoalsController(ISavingsGoalRepository goalRepo, ISavingsService sa
 public record CreateGoalRequest(string Name, decimal TargetAmount, DateTime Deadline, string? Description);
 public record UpdateGoalRequest(string Name, decimal TargetAmount, DateTime Deadline, string? Description);
 public record UpdateStatusRequest(GoalStatus Status);
+public record AbandonGoalRequest(DateTime Date, string? Reason, string? Description = null);

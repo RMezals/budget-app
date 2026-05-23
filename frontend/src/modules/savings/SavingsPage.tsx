@@ -1,5 +1,4 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { apiFetch } from '../../api/client';
 import {
   GoalContributionSchema,
@@ -8,25 +7,25 @@ import {
 } from '../../api/schemas';
 import type { SavingsGoalProgress } from '../../api/types';
 import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
+import GoalProgressSection from './GoalProgressSection';
+import SavingsFormsSection, {
+  type ContributionForm,
+  type ContributionMode,
+  type GoalForm,
+} from './SavingsFormsSection';
 
-type GoalForm = {
-  name: string;
-  targetAmount: string;
-  deadline: string;
-  description: string;
+const toDateInputValue = (date: Date) => {
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().slice(0, 10);
 };
 
-type ContributionForm = {
-  goalId: string;
-  amount: string;
-  date: string;
-  note: string;
-  reason: string;
+const daysFromToday = (days: number) => {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return toDateInputValue(date);
 };
 
-type ContributionMode = 'deposit' | 'withdraw';
-
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => daysFromToday(0);
 
 const initialGoalForm: GoalForm = {
   name: '',
@@ -62,8 +61,11 @@ const isCompletedGoal = (goal: SavingsGoalProgress) =>
 
 const isPausedGoal = (goal: SavingsGoalProgress) => formatGoalStatus(goal.status) === 'Paused';
 
+const isAbandonedGoal = (goal: SavingsGoalProgress) =>
+  formatGoalStatus(goal.status) === 'Abandoned';
+
 const canContributeToGoal = (goal: SavingsGoalProgress) =>
-  !isCompletedGoal(goal) && !isPausedGoal(goal);
+  !isCompletedGoal(goal) && !isPausedGoal(goal) && !isAbandonedGoal(goal);
 
 const getContributionLimit = (goal: SavingsGoalProgress, mode: ContributionMode) =>
   Math.max(mode === 'withdraw' ? goal.currentBalance : goal.amountRemaining, 0);
@@ -101,6 +103,7 @@ export default function SavingsPage() {
   const amountInputRef = useRef<HTMLInputElement>(null);
   const goalDeadlineInputRef = useRef<HTMLInputElement>(null);
   const contributionDateInputRef = useRef<HTMLInputElement>(null);
+  const minimumGoalDeadline = daysFromToday(7);
   const [goals, setGoals] = useState<SavingsGoalProgress[]>([]);
   const [goalForm, setGoalForm] = useState<GoalForm>(initialGoalForm);
   const [form, setForm] = useState<ContributionForm>(initialForm);
@@ -354,345 +357,38 @@ export default function SavingsPage() {
       {success && <div className="alert alert-success">{success}</div>}
 
       <div className="row g-4">
-        <div className="col-lg-5">
-          <div className="card border-0 shadow-sm mb-4">
-            <div className="card-body">
-              <h6 className="card-title mb-3">New Goal</h6>
-              <form onSubmit={handleCreateGoal}>
-                <div className="mb-3">
-                  <label className="form-label" htmlFor="goal-name">
-                    Name
-                  </label>
-                  <input
-                    id="goal-name"
-                    className="form-control"
-                    type="text"
-                    value={goalForm.name}
-                    onChange={(event) => updateGoalForm('name', event.target.value)}
-                    placeholder="Emergency fund"
-                    disabled={creatingGoal}
-                    required
-                  />
-                </div>
-
-                <div className="row g-3">
-                  <div className="col-sm-6">
-                    <label className="form-label" htmlFor="goal-target">
-                      Target
-                    </label>
-                    <input
-                      id="goal-target"
-                      className="form-control"
-                      type="number"
-                      min="10"
-                      step="1"
-                      value={goalForm.targetAmount}
-                      onChange={(event) => updateGoalForm('targetAmount', event.target.value)}
-                      placeholder="5000.00"
-                      disabled={creatingGoal}
-                      required
-                    />
-                  </div>
-                  <div className="col-sm-6">
-                    <label className="form-label" htmlFor="goal-deadline">
-                      Deadline
-                    </label>
-                    <div className="input-group">
-                      <input
-                        id="goal-deadline"
-                        ref={goalDeadlineInputRef}
-                        className="form-control"
-                        type="date"
-                        value={goalForm.deadline}
-                        onClick={() => openDatePicker(goalDeadlineInputRef.current)}
-                        onChange={(event) => updateGoalForm('deadline', event.target.value)}
-                        disabled={creatingGoal}
-                        required
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-outline-secondary"
-                        onClick={() => openDatePicker(goalDeadlineInputRef.current)}
-                        disabled={creatingGoal}
-                        aria-label="Open deadline calendar"
-                        title="Open calendar"
-                      >
-                        <svg
-                          aria-hidden="true"
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M8 2v4" />
-                          <path d="M16 2v4" />
-                          <rect width="18" height="18" x="3" y="4" rx="2" />
-                          <path d="M3 10h18" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mb-3 mt-3">
-                  <label className="form-label" htmlFor="goal-description">
-                    Description
-                  </label>
-                  <textarea
-                    id="goal-description"
-                    className="form-control"
-                    rows={3}
-                    value={goalForm.description}
-                    onChange={(event) => updateGoalForm('description', event.target.value)}
-                    placeholder="Optional details"
-                    disabled={creatingGoal}
-                  />
-                </div>
-
-                <button type="submit" className="btn btn-dark w-100" disabled={creatingGoal}>
-                  {creatingGoal ? 'Creating...' : 'Create Goal'}
-                </button>
-              </form>
-            </div>
-          </div>
-
-          <div className="card border-0 shadow-sm">
-            <div className="card-body">
-              <h6 className="card-title mb-3">New Contribution</h6>
-
-              {selectableGoals.length === 0 ? (
-                <p className="text-muted small mb-0">
-                  {goals.length === 0
-                    ? 'Create a savings goal before adding contributions.'
-                    : 'All savings goals are completed or paused. Resume a goal before adding contributions.'}
-                </p>
-              ) : (
-                <form onSubmit={handleSubmit}>
-                  <fieldset className="mb-3">
-                    <legend className="visually-hidden">Contribution type</legend>
-                    <div className="btn-group w-100">
-                      <button
-                        type="button"
-                        className={`btn ${contributionMode === 'deposit' ? 'btn-primary' : 'btn-outline-primary'}`}
-                        onClick={() => selectContributionMode('deposit')}
-                        disabled={submitting}
-                      >
-                        Deposit
-                      </button>
-                      <button
-                        type="button"
-                        className={`btn ${contributionMode === 'withdraw' ? 'btn-danger' : 'btn-outline-danger'}`}
-                        onClick={() => selectContributionMode('withdraw')}
-                        disabled={submitting}
-                      >
-                        Withdraw
-                      </button>
-                    </div>
-                  </fieldset>
-
-                  <div className="mb-3">
-                    <label className="form-label" htmlFor="contribution-goal">
-                      Goal
-                    </label>
-                    <select
-                      id="contribution-goal"
-                      className="form-select"
-                      value={form.goalId}
-                      onChange={(event) => updateContributionGoal(event.target.value)}
-                      disabled={submitting}
-                    >
-                      {selectableGoals.map((goal) => (
-                        <option key={goal.id} value={goal.id}>
-                          {goal.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="row g-3">
-                    <div className="col-sm-6">
-                      <label className="form-label" htmlFor="contribution-amount">
-                        {contributionMode === 'withdraw' ? 'Withdrawal Amount' : 'Deposit Amount'}
-                      </label>
-                      <input
-                        id="contribution-amount"
-                        ref={amountInputRef}
-                        className="form-control"
-                        type="number"
-                        min="0.01"
-                        max={contributionLimit ?? undefined}
-                        step="0.01"
-                        value={form.amount}
-                        onChange={(event) => updateContributionAmount(event.target.value)}
-                        placeholder="100.00"
-                        disabled={submitting}
-                        required
-                      />
-                      {selectedGoal && (
-                        <p className="form-text mb-0">
-                          {contributionMode === 'withdraw'
-                            ? `${fmt(selectedGoal.currentBalance)} available to withdraw.`
-                            : `${fmt(selectedGoal.amountRemaining)} remaining for this goal.`}
-                        </p>
-                      )}
-                    </div>
-                    <div className="col-sm-6">
-                      <label className="form-label" htmlFor="contribution-date">
-                        Date
-                      </label>
-                      <div className="input-group">
-                        <input
-                          id="contribution-date"
-                          ref={contributionDateInputRef}
-                          className="form-control"
-                          type="date"
-                          value={form.date}
-                          onClick={() => openDatePicker(contributionDateInputRef.current)}
-                          onChange={(event) => updateForm('date', event.target.value)}
-                          disabled={submitting}
-                          required
-                        />
-                        <button
-                          type="button"
-                          className="btn btn-outline-secondary"
-                          onClick={() => openDatePicker(contributionDateInputRef.current)}
-                          disabled={submitting}
-                          aria-label="Open contribution date calendar"
-                          title="Open calendar"
-                        >
-                          <svg
-                            aria-hidden="true"
-                            width="18"
-                            height="18"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M8 2v4" />
-                            <path d="M16 2v4" />
-                            <rect width="18" height="18" x="3" y="4" rx="2" />
-                            <path d="M3 10h18" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mb-3 mt-3">
-                    <label className="form-label" htmlFor="contribution-reason">
-                      Reason
-                    </label>
-                    <input
-                      id="contribution-reason"
-                      className="form-control"
-                      type="text"
-                      value={form.reason}
-                      onChange={(event) => updateForm('reason', event.target.value)}
-                      placeholder={
-                        contributionMode === 'withdraw' ? 'Transfer out' : 'Payday transfer'
-                      }
-                      disabled={submitting}
-                    />
-                  </div>
-
-                  {/* <div className="mb-3">
-                    <label className="form-label" htmlFor="contribution-note">
-                      Note
-                    </label>
-                    <textarea
-                      id="contribution-note"
-                      className="form-control"
-                      rows={3}
-                      value={form.note}
-                      onChange={(event) => updateForm('note', event.target.value)}
-                      placeholder="Optional details"
-                      disabled={submitting}
-                    />
-                  </div> */}
-
-                  <button
-                    type="submit"
-                    className={`btn w-100 ${contributionMode === 'withdraw' ? 'btn-danger' : 'btn-primary'}`}
-                    disabled={submitting}
-                  >
-                    {submitting
-                      ? contributionMode === 'withdraw'
-                        ? 'Withdrawing...'
-                        : 'Adding...'
-                      : contributionMode === 'withdraw'
-                        ? 'Withdraw Money'
-                        : 'Add Contribution'}
-                  </button>
-                </form>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="col-lg-7">
-          <div className="card border-0 shadow-sm">
-            <div className="card-body">
-              <h6 className="card-title mb-3">Goal Progress</h6>
-              {goals.length === 0 ? (
-                <p className="text-muted small mb-0">No savings goals found.</p>
-              ) : (
-                <div className="d-flex flex-column gap-3">
-                  {goals.map((goal) => (
-                    <div key={goal.id} className={isPausedGoal(goal) ? 'opacity-50' : undefined}>
-                      <div className="d-flex justify-content-between gap-3 mb-1">
-                        <Link
-                          className="fw-semibold link-body-emphasis text-decoration-none"
-                          to={`/savings/${goal.id}`}
-                        >
-                          {goal.name}
-                        </Link>
-                        <span className="text-muted small text-nowrap">
-                          {fmt(goal.currentBalance)} / {fmt(goal.targetAmount)}
-                        </span>
-                      </div>
-                      <div className="progress" style={{ height: 8 }}>
-                        <div
-                          className="progress-bar bg-primary"
-                          style={{ width: `${Math.min(goal.percentReached, 100)}%` }}
-                        />
-                      </div>
-
-                      <div className="d-flex justify-content-between gap-3 mt-1">
-                        <span className="text-muted small">{goal.percentReached}% reached</span>
-                        <span className="text-muted small">
-                          {fmt(goal.amountRemaining)} remaining
-                        </span>
-                      </div>
-                      <div className="mt-2 mb-2 small text-muted">
-                        {formatGoalStatus(goal.status)}
-                      </div>
-                      <div className="d-flex flex-wrap gap-2 mt-2">
-                        <Link className="btn btn-outline-primary btn-sm" to={`/savings/${goal.id}`}>
-                          View Goal
-                        </Link>
-                        <button
-                          type="button"
-                          className="btn btn-outline-danger btn-sm"
-                          onClick={() => prepareWithdrawal(goal.id)}
-                          disabled={goal.currentBalance <= 0 || !canContributeToGoal(goal)}
-                        >
-                          Withdraw
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <SavingsFormsSection
+          goalForm={goalForm}
+          contributionForm={form}
+          contributionMode={contributionMode}
+          goals={goals}
+          selectableGoals={selectableGoals}
+          selectedGoal={selectedGoal}
+          contributionLimit={contributionLimit}
+          minimumGoalDeadline={minimumGoalDeadline}
+          creatingGoal={creatingGoal}
+          submitting={submitting}
+          amountInputRef={amountInputRef}
+          goalDeadlineInputRef={goalDeadlineInputRef}
+          contributionDateInputRef={contributionDateInputRef}
+          formatCurrency={fmt}
+          onCreateGoal={handleCreateGoal}
+          onSubmitContribution={handleSubmit}
+          onUpdateGoalForm={updateGoalForm}
+          onUpdateContributionForm={updateForm}
+          onUpdateContributionGoal={updateContributionGoal}
+          onUpdateContributionAmount={updateContributionAmount}
+          onSelectContributionMode={selectContributionMode}
+          onOpenDatePicker={openDatePicker}
+        />
+        <GoalProgressSection
+          goals={goals}
+          formatCurrency={fmt}
+          formatGoalStatus={formatGoalStatus}
+          isPausedGoal={isPausedGoal}
+          canContributeToGoal={canContributeToGoal}
+          onPrepareWithdrawal={prepareWithdrawal}
+        />
       </div>
     </div>
   );
