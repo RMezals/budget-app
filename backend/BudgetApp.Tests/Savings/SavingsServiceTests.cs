@@ -115,6 +115,102 @@ public class SavingsServiceTests
     }
 
     [Fact]
+    public async Task AddContributionAsync_RejectsAbandonedGoal()
+    {
+        _goalMock.Setup(g => g.GetByIdAsync("g1", "user1"))
+            .ReturnsAsync(new SavingsGoal
+            {
+                Id = "g1",
+                UserId = "user1",
+                Name = "Trip",
+                TargetAmount = 500m,
+                Status = GoalStatus.Abandoned
+            });
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            CreateSut().AddContributionAsync(
+                "g1",
+                "user1",
+                50m,
+                new DateTime(2026, 5, 14),
+                "Deposit",
+                null));
+
+        Assert.Equal("Abandoned goals cannot accept contributions or withdrawals.", ex.Message);
+        _contributionMock.Verify(c => c.GetByGoalAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _contributionMock.Verify(c => c.InsertAsync(It.IsAny<GoalContribution>()), Times.Never);
+        _goalMock.Verify(g => g.UpdateBalanceAsync(
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<decimal>(),
+            It.IsAny<GoalStatus?>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AbandonGoalAsync_WithdrawsCurrentBalanceAndMarksGoalAbandoned()
+    {
+        var abandonedOn = new DateTime(2026, 5, 21);
+        _goalMock.Setup(g => g.GetByIdAsync("g1", "user1"))
+            .ReturnsAsync(new SavingsGoal
+            {
+                Id = "g1",
+                UserId = "user1",
+                Name = "Trip",
+                TargetAmount = 500m,
+                CurrentAmount = 999m,
+                Status = GoalStatus.Paused
+            });
+        _contributionMock.Setup(c => c.GetByGoalAsync("g1", "user1"))
+            .ReturnsAsync([
+                new GoalContribution { GoalId = "g1", UserId = "user1", Amount = 200m },
+                new GoalContribution { GoalId = "g1", UserId = "user1", Amount = -25m }
+            ]);
+
+        await CreateSut().AbandonGoalAsync(
+            "g1",
+            "user1",
+            abandonedOn,
+            "Goal abandoned",
+            "Withdrew saved amount before abandoning.");
+
+        _contributionMock.Verify(c => c.InsertAsync(It.Is<GoalContribution>(contribution =>
+            contribution.GoalId == "g1" &&
+            contribution.UserId == "user1" &&
+            contribution.Amount == -175m &&
+            contribution.Date == abandonedOn &&
+            contribution.Reason == "Goal abandoned" &&
+            contribution.Description == "Withdrew saved amount before abandoning." &&
+            contribution.BalanceAfter == 0m)), Times.Once);
+        _goalMock.Verify(g => g.UpdateBalanceAsync("g1", "user1", 0m, GoalStatus.Abandoned), Times.Once);
+    }
+
+    [Fact]
+    public async Task AbandonGoalAsync_MarksGoalAbandonedWithoutWithdrawalWhenBalanceIsZero()
+    {
+        _goalMock.Setup(g => g.GetByIdAsync("g1", "user1"))
+            .ReturnsAsync(new SavingsGoal
+            {
+                Id = "g1",
+                UserId = "user1",
+                Name = "Trip",
+                TargetAmount = 500m,
+                Status = GoalStatus.Active
+            });
+        _contributionMock.Setup(c => c.GetByGoalAsync("g1", "user1"))
+            .ReturnsAsync([]);
+
+        await CreateSut().AbandonGoalAsync(
+            "g1",
+            "user1",
+            new DateTime(2026, 5, 21),
+            "Goal abandoned",
+            null);
+
+        _contributionMock.Verify(c => c.InsertAsync(It.IsAny<GoalContribution>()), Times.Never);
+        _goalMock.Verify(g => g.UpdateBalanceAsync("g1", "user1", 0m, GoalStatus.Abandoned), Times.Once);
+    }
+
+    [Fact]
     public async Task GetGoalProgressAsync_ReturnsComputedProgressFromContributions()
     {
         _goalMock.Setup(g => g.GetByIdAsync("g1", "user1"))

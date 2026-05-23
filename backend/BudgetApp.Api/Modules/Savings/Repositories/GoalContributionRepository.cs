@@ -25,9 +25,9 @@ public class GoalContributionRepository(IMongoDatabase db) : IGoalContributionRe
     public async Task InsertAsync(GoalContribution contribution) =>
         await _col.InsertOneAsync(contribution);
 
-    public async Task<bool> DeleteAsync(string id, string userId)
+    public async Task<bool> DeleteAsync(string id, string goalId, string userId)
     {
-        var result = await _col.DeleteOneAsync(c => c.Id == id && c.UserId == userId);
+        var result = await _col.DeleteOneAsync(c => c.Id == id && c.GoalId == goalId && c.UserId == userId);
         return result.DeletedCount > 0;
     }
 }

@@ -82,47 +82,40 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h4 className="mb-4">Dashboard</h4>
+      <div className="page-header">
+        <h1 className="page-title">Dashboard</h1>
+        <p className="page-subtitle">Your financial overview at a glance.</p>
+      </div>
 
       {/* Overview cards */}
       <div className="row g-3 mb-4">
         <div className="col-sm-6 col-lg-3">
-          <div className="card h-100 border-0 shadow-sm">
-            <div className="card-body">
-              <p className="text-muted small mb-1">Net Worth</p>
-              <p className="fs-4 fw-bold mb-0">{fmt(summary.netWorth)}</p>
-            </div>
+          <div className="metric-card c-primary h-100">
+            <div className="metric-label">Net Worth</div>
+            <div className="metric-value">{fmt(summary.netWorth)}</div>
           </div>
         </div>
         <div className="col-sm-6 col-lg-3">
-          <div className="card h-100 border-0 shadow-sm">
-            <div className="card-body">
-              <p className="text-muted small mb-1">Total Invested</p>
-              <p className="fs-4 fw-bold mb-0">{fmt(summary.totalInvested)}</p>
-            </div>
+          <div className="metric-card c-cyan h-100">
+            <div className="metric-label">Total Invested</div>
+            <div className="metric-value">{fmt(summary.totalInvested)}</div>
           </div>
         </div>
         <div className="col-sm-6 col-lg-3">
-          <div className="card h-100 border-0 shadow-sm">
-            <div className="card-body">
-              <p className="text-muted small mb-1">Total Saved</p>
-              <p className="fs-4 fw-bold mb-0">{fmt(summary.totalSaved)}</p>
-            </div>
+          <div className="metric-card c-success h-100">
+            <div className="metric-label">Total Saved</div>
+            <div className="metric-value">{fmt(summary.totalSaved)}</div>
           </div>
         </div>
         <div className="col-sm-6 col-lg-3">
-          <div className="card h-100 border-0 shadow-sm">
-            <div className="card-body">
-              <p className="text-muted small mb-1">This Month</p>
-              <p
-                className={`fs-4 fw-bold mb-0 ${netForMonth >= 0 ? 'text-success' : 'text-danger'}`}
-              >
-                {netForMonth >= 0 ? '+' : ''}
-                {fmt(netForMonth)}
-              </p>
-              <p className="text-muted small mb-0">
-                {fmt(summary.monthlyIncome)} in · {fmt(summary.monthlyExpenses)} out
-              </p>
+          <div className={`metric-card ${netForMonth >= 0 ? 'c-success' : 'c-danger'} h-100`}>
+            <div className="metric-label">This Month</div>
+            <div className={`metric-value ${netForMonth >= 0 ? 'up' : 'down'}`}>
+              {netForMonth >= 0 ? '+' : ''}
+              {fmt(netForMonth)}
+            </div>
+            <div className="metric-sub">
+              {fmt(summary.monthlyIncome)} in · {fmt(summary.monthlyExpenses)} out
             </div>
           </div>
         </div>
@@ -131,7 +124,7 @@ export default function DashboardPage() {
       <div className="row g-4">
         {/* Budget usage */}
         <div className="col-lg-6">
-          <div className="card border-0 shadow-sm h-100">
+          <div className="card h-100">
             <div className="card-body">
               <h6 className="card-title mb-3">Budget Usage</h6>
               {hasBudgetData(summary) ? (
@@ -160,7 +153,7 @@ export default function DashboardPage() {
 
         {/* Savings goals */}
         <div className="col-lg-6">
-          <div className="card border-0 shadow-sm h-100">
+          <div className="card h-100">
             <div className="card-body">
               <h6 className="card-title mb-3">Savings Goals</h6>
               {hasSavingsGoals(summary) ? (
@@ -190,7 +183,7 @@ export default function DashboardPage() {
       </div>
 
       {/* AI Advisor */}
-      <div className="card border-0 shadow-sm mt-4">
+      <div className="card mt-4">
         <div className="card-body">
           <h6 className="card-title mb-1">AI Financial Advisor</h6>
           <p className="text-muted small mb-3">

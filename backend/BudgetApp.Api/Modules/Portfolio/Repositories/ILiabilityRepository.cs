@@ -7,6 +7,7 @@ public interface ILiabilityRepository
     Task<List<Liability>> GetByUserAsync(string userId);
     Task<Liability?> GetByIdAsync(string id, string userId);
     Task InsertAsync(Liability liability);
+    Task<bool> UpdateAsync(string id, string userId, string name, string type);
     Task<bool> AddAmountAsync(string id, string userId, AmountEntry entry);
     Task<bool> DeleteAsync(string id, string userId);
 }

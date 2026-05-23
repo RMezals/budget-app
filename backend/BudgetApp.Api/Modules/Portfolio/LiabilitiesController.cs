@@ -37,6 +37,13 @@ public class LiabilitiesController(ILiabilityRepository repo) : ApiControllerBas
         return CreatedAtAction(nameof(GetById), new { id = liability.Id }, liability);
     }
 
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(string id, [FromBody] UpdateLiabilityRequest request)
+    {
+        var updated = await repo.UpdateAsync(id, UserId, request.Name, request.Type);
+        return updated ? NoContent() : NotFound();
+    }
+
     // Append a new balance entry — never modifies existing entries
     [HttpPost("{id}/amounts")]
     public async Task<IActionResult> AddAmount(string id, [FromBody] AddAmountRequest request)
@@ -52,7 +59,11 @@ public class LiabilitiesController(ILiabilityRepository repo) : ApiControllerBas
         var deleted = await repo.DeleteAsync(id, UserId);
         return deleted ? NoContent() : NotFound();
     }
+
+    [HttpGet("types")]
+    public IActionResult GetTypes() => Ok(BudgetApp.Api.Modules.Portfolio.Validators.LiabilityTypes.All);
 }
 
 public record CreateLiabilityRequest(string Name, string Type, decimal InitialAmount, DateTime Date);
+public record UpdateLiabilityRequest(string Name, string Type);
 public record AddAmountRequest(decimal Value, DateTime Date);

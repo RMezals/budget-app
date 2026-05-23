@@ -40,7 +40,7 @@ public class ContributionsController(
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string goalId, string id)
     {
-        var deleted = await contributionRepo.DeleteAsync(id, UserId);
+        var deleted = await contributionRepo.DeleteAsync(id, goalId, UserId);
         if (!deleted) return NotFound();
 
         await savingsService.RecalculateBalanceAsync(goalId, UserId);

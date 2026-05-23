@@ -93,3 +93,112 @@ export interface AnalyseRequest {
 export interface ErrorResult {
   error: string;
 }
+
+// Portfolio module types — synced with BudgetApp.Api/Modules/Portfolio
+
+export interface Asset {
+  id: string;
+  userId: string;
+  name: string;
+  type: string;
+  quantity: number;
+  purchasePrice: number;
+  purchaseDate: string;
+  price: PriceEntry[];
+}
+
+export interface PriceEntry {
+  value: number;
+  date: string;
+}
+
+export interface AssetSummary {
+  id: string;
+  name: string;
+  type: string;
+  quantity: number;
+  purchasePrice: number;
+  currentPrice: number;
+  currentValue: number;
+  unrealisedGainLoss: number;
+  unrealisedGainLossPercent: number;
+}
+
+export interface AssetAllocation {
+  type: string;
+  totalValue: number;
+  allocationPercent: number;
+}
+
+export interface Liability {
+  id: string;
+  userId: string;
+  name: string;
+  type: string;
+  amount: AmountEntry[];
+}
+
+export interface AmountEntry {
+  value: number;
+  date: string;
+}
+
+export interface NetWorthSnapshot {
+  totalAssets: number;
+  totalLiabilities: number;
+  netWorth: number;
+}
+
+export interface NetWorthHistoryPoint {
+  date: string;
+  totalAssets: number;
+  totalLiabilities: number;
+  netWorth: number;
+}
+
+export interface MonthlyPerformance {
+  month: string;
+  startValue: number;
+  endValue: number;
+  gainLoss: number;
+  gainLossPercent: number;
+}
+
+export interface PortfolioGainLoss {
+  totalInvested: number;
+  currentValue: number;
+  totalGainLoss: number;
+  totalGainLossPercent: number;
+}
+
+// Transactions module types
+
+export interface Transaction {
+  id: string;
+  userId: string;
+  amount: number;
+  date: string;
+  category: string;
+  description?: string | null;
+}
+
+export interface Budget {
+  id: string;
+  userId: string;
+  category: string;
+  date: string;
+  limitAmount: number;
+}
+
+export interface TransactionBudgetUsage {
+  category: string;
+  limit: number;
+  spent: number;
+  remaining: number;
+  usagePercent: number;
+}
+
+export interface TransactionCategories {
+  expense: string[];
+  income: string[];
+}
