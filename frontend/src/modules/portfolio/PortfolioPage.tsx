@@ -1,11 +1,20 @@
 import { apiFetch } from '@/api/client';
-import type { MonthlyPerformance, PortfolioGainLoss } from '@/api/types';
+import type { MonthlyPerformance, NetWorthHistoryPoint, PortfolioGainLoss } from '@/api/types';
 import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
-import DatePicker from '@/modules/portfolio/DatePicker';
+import DatePicker from '@/components/DatePicker';
 import MonthPicker from '@/modules/portfolio/MonthPicker';
 import { usePortfolio } from '@/modules/portfolio/hooks/usePortfolio';
 import './PortfolioPage.css';
 import { useEffect, useState } from 'react';
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -82,7 +91,7 @@ export default function PortfolioPage() {
     reload,
   } = usePortfolio();
 
-  const [tab, setTab] = useState<'assets' | 'liabilities' | 'performance'>('assets');
+  const [tab, setTab] = useState<'assets' | 'liabilities' | 'performance' | 'networth'>('assets');
 
   // ── Performance state ──
   const [globalGainLoss, setGlobalGainLoss] = useState<PortfolioGainLoss | null>(null);
@@ -119,9 +128,32 @@ export default function PortfolioPage() {
     }
   }
 
-  function switchTab(t: 'assets' | 'liabilities' | 'performance') {
+  function switchTab(t: 'assets' | 'liabilities' | 'performance' | 'networth') {
     setTab(t);
     if (t === 'performance' && !perfLoaded) loadPerformance();
+    if (t === 'networth' && !nwLoaded) loadNwHistory();
+  }
+
+  // ── Net worth history state ──
+  const [nwHistory, setNwHistory] = useState<NetWorthHistoryPoint[]>([]);
+  const [nwLoading, setNwLoading] = useState(false);
+  const [nwLoaded, setNwLoaded] = useState(false);
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  const [nwFrom, setNwFrom] = useState(sixMonthsAgo.toISOString().slice(0, 10));
+  const [nwTo, setNwTo] = useState(new Date().toISOString().slice(0, 10));
+
+  async function loadNwHistory() {
+    setNwLoading(true);
+    try {
+      const data = await apiFetch<NetWorthHistoryPoint[]>(
+        `/api/networth/history?from=${new Date(nwFrom).toISOString()}&to=${new Date(nwTo).toISOString()}`,
+      );
+      setNwHistory(data);
+      setNwLoaded(true);
+    } finally {
+      setNwLoading(false);
+    }
   }
 
   // ── Delete confirmation ──
@@ -383,7 +415,7 @@ export default function PortfolioPage() {
 
   if (loading)
     return (
-      <div className="d-flex justify-content-center align-items-center py-5 gap-2">
+      <div className="loading-center gap-2">
         <div className="spinner-border spinner-border-sm text-primary" role="status" />
         <span className="text-muted">Loading portfolio…</span>
       </div>
@@ -400,18 +432,15 @@ export default function PortfolioPage() {
   const gl = globalGainLoss;
 
   return (
-    <div className="text-start">
+    <div>
       {/* ── Page header ── */}
-      <div className="d-flex justify-content-between align-items-baseline mb-4">
-        <h4 className="mb-0 fw-bold" style={{ color: '#111827' }}>
-          Investment Portfolio
-        </h4>
-        <span className="text-muted small">
-          {new Date().toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-          })}
+      <div className="page-header d-flex justify-content-between align-items-start">
+        <div>
+          <h1 className="page-title">Investment Portfolio</h1>
+          <p className="page-subtitle">Track assets, liabilities and performance over time.</p>
+        </div>
+        <span className="text-muted small mt-1">
+          {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
         </span>
       </div>
 
@@ -515,7 +544,7 @@ export default function PortfolioPage() {
       )}
 
       {/* ── Tabs ── */}
-      <ul className="nav pf-tabs mb-0">
+      <ul className="nav nav-tabs mb-0">
         <li className="nav-item">
           <button
             type="button"
@@ -547,6 +576,15 @@ export default function PortfolioPage() {
             onClick={() => switchTab('performance')}
           >
             Performance
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            type="button"
+            className={`nav-link ${tab === 'networth' ? 'active' : ''}`}
+            onClick={() => switchTab('networth')}
+          >
+            Net Worth History
           </button>
         </li>
       </ul>
@@ -839,6 +877,126 @@ export default function PortfolioPage() {
         </div>
       )}
 
+      {/* ── Net Worth History tab ── */}
+      {tab === 'networth' && (
+        <div className="card pf-tab-card">
+          <div className="card-body">
+            {/* Date range controls */}
+            <div className="pf-perf-controls mb-4">
+              <div>
+                <p className="form-label small fw-semibold mb-1">From</p>
+                <DatePicker value={nwFrom} onChange={setNwFrom} max={nwTo} />
+              </div>
+              <div>
+                <p className="form-label small fw-semibold mb-1">To</p>
+                <DatePicker value={nwTo} onChange={setNwTo} min={nwFrom} max={today()} />
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={loadNwHistory}
+                disabled={nwLoading}
+                style={{ borderRadius: 8 }}
+              >
+                {nwLoading ? (
+                  <><span className="spinner-border spinner-border-sm me-1" />Loading…</>
+                ) : 'Load'}
+              </button>
+            </div>
+
+            {nwLoading && (
+              <div className="loading-center">
+                <div className="spinner-border spinner-border-sm text-primary" />
+              </div>
+            )}
+
+            {!nwLoading && nwLoaded && nwHistory.length === 0 && (
+              <div className="pf-empty">
+                <div className="pf-empty-icon">📈</div>
+                <div className="pf-empty-title">No data for this period</div>
+                <div className="pf-empty-sub">Try a wider date range or add some assets.</div>
+              </div>
+            )}
+
+            {!nwLoading && nwHistory.length > 0 && (
+              <>
+                {/* Chart */}
+                <ResponsiveContainer width="100%" height={320}>
+                  <AreaChart data={nwHistory} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="nw-assets" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#2563eb" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="nw-liab" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#dc2626" stopOpacity={0.12} />
+                        <stop offset="95%" stopColor="#dc2626" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="nw-net" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#16a34a" stopOpacity={0.18} />
+                        <stop offset="95%" stopColor="#16a34a" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={(v: string) => {
+                        const d = new Date(v);
+                        return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                      }}
+                      tick={{ fontSize: 11, fill: '#94a3b8' }}
+                      axisLine={false}
+                      tickLine={false}
+                      minTickGap={40}
+                    />
+                    <YAxis
+                      tickFormatter={(v: number) => fmt(v)}
+                      tick={{ fontSize: 11, fill: '#94a3b8' }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={80}
+                    />
+                    <Tooltip
+                      formatter={(value, name) => [
+                        fmt(Number(value)),
+                        name === 'totalAssets' ? 'Assets' : name === 'totalLiabilities' ? 'Liabilities' : 'Net Worth',
+                      ]}
+                      labelFormatter={(label) =>
+                        new Date(String(label)).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+                      }
+                      contentStyle={{
+                        background: '#fff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 8,
+                        fontSize: 13,
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                      }}
+                    />
+                    <Area type="monotone" dataKey="totalAssets" stroke="#2563eb" strokeWidth={1.5} fill="url(#nw-assets)" dot={false} />
+                    <Area type="monotone" dataKey="totalLiabilities" stroke="#dc2626" strokeWidth={1.5} fill="url(#nw-liab)" dot={false} />
+                    <Area type="monotone" dataKey="netWorth" stroke="#16a34a" strokeWidth={2} fill="url(#nw-net)" dot={false} />
+                  </AreaChart>
+                </ResponsiveContainer>
+
+                {/* Legend */}
+                <div className="d-flex gap-4 justify-content-center mt-3">
+                  {[
+                    { color: '#16a34a', label: 'Net Worth' },
+                    { color: '#2563eb', label: 'Total Assets' },
+                    { color: '#dc2626', label: 'Liabilities' },
+                  ].map(({ color, label }) => (
+                    <div key={label} className="d-flex align-items-center gap-2">
+                      <div style={{ width: 12, height: 3, background: color, borderRadius: 2 }} />
+                      <span style={{ fontSize: '0.78rem', color: '#64748b' }}>{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Asset modal ── */}
       {assetModal && (
         <div
@@ -934,6 +1092,7 @@ export default function PortfolioPage() {
                           onChange={(v) => setAssetForm((f) => ({ ...f, purchaseDate: v }))}
                           max={today()}
                           invalid={!!assetValidation.purchaseDate}
+                          dropUp
                         />
                         {assetValidation.purchaseDate ? (
                           <div className="text-danger small mt-1">
@@ -981,6 +1140,7 @@ export default function PortfolioPage() {
                       onChange={(v) => setPriceForm((f) => ({ ...f, date: v }))}
                       max={today()}
                       invalid={!!assetValidation.date}
+                      dropUp
                     />
                     {assetValidation.date ? (
                       <div className="text-danger small mt-1">{assetValidation.date}</div>
@@ -1102,6 +1262,7 @@ export default function PortfolioPage() {
                           onChange={(v) => setLiabilityForm((f) => ({ ...f, date: v }))}
                           max={today()}
                           invalid={!!liabilityValidation.date}
+                          dropUp
                         />
                         {liabilityValidation.date ? (
                           <div className="text-danger small mt-1">{liabilityValidation.date}</div>
@@ -1147,6 +1308,7 @@ export default function PortfolioPage() {
                       onChange={(v) => setAmountForm((f) => ({ ...f, date: v }))}
                       max={today()}
                       invalid={!!liabilityValidation.date}
+                      dropUp
                     />
                     {liabilityValidation.date ? (
                       <div className="text-danger small mt-1">{liabilityValidation.date}</div>

@@ -170,3 +170,35 @@ export interface PortfolioGainLoss {
   totalGainLoss: number;
   totalGainLossPercent: number;
 }
+
+// Transactions module types
+
+export interface Transaction {
+  id: string;
+  userId: string;
+  amount: number;
+  date: string;
+  category: string;
+  description?: string | null;
+}
+
+export interface Budget {
+  id: string;
+  userId: string;
+  category: string;
+  date: string;
+  limitAmount: number;
+}
+
+export interface TransactionBudgetUsage {
+  category: string;
+  limit: number;
+  spent: number;
+  remaining: number;
+  usagePercent: number;
+}
+
+export interface TransactionCategories {
+  expense: string[];
+  income: string[];
+}

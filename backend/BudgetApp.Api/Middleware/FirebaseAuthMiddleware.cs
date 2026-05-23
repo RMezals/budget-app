@@ -10,30 +10,43 @@ public class FirebaseAuthMiddleware(RequestDelegate next, IWebHostEnvironment en
 
     public async Task InvokeAsync(HttpContext context)
     {
-        // Firebase not configured + Development = bypass auth with a fixed dev user
-        if (env.IsDevelopment() && FirebaseApp.DefaultInstance == null)
+        var authHeader = context.Request.Headers.Authorization.FirstOrDefault();
+        var hasToken = authHeader?.StartsWith("Bearer ") == true;
+
+        // Dev bypass: only when no token is sent AND Firebase Admin is not configured.
+        // If a token IS present we must verify it — never fall back to dev-user.
+        if (!hasToken && env.IsDevelopment() && FirebaseApp.DefaultInstance == null)
         {
             context.Items["UserId"] = DevUserId;
             await next(context);
             return;
         }
 
-        var authHeader = context.Request.Headers.Authorization.FirstOrDefault();
-        if (authHeader?.StartsWith("Bearer ") == true)
+        if (!hasToken)
         {
-            var token = authHeader["Bearer ".Length..];
-            try
-            {
-                var decoded = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(token);
-                context.Items["UserId"] = decoded.Uid;
-                context.Items["Claims"] = decoded.Claims;
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Failed to verify Firebase token. Path: {Path}", context.Request.Path);
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                return;
-            }
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return;
+        }
+
+        if (FirebaseApp.DefaultInstance == null)
+        {
+            logger.LogWarning("Firebase Admin SDK is not configured but a token was received.");
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return;
+        }
+
+        var token = authHeader!["Bearer ".Length..];
+        try
+        {
+            var decoded = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(token);
+            context.Items["UserId"] = decoded.Uid;
+            context.Items["Claims"] = decoded.Claims;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to verify Firebase token. Path: {Path}", context.Request.Path);
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return;
         }
 
         await next(context);

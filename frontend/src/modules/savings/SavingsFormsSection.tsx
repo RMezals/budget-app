@@ -1,4 +1,5 @@
 import type { FormEvent, RefObject } from 'react';
+import DatePicker from '@/components/DatePicker';
 import type { SavingsGoalProgress } from '../../api/types';
 
 export type GoalForm = {
@@ -30,8 +31,6 @@ type SavingsFormsSectionProps = {
   creatingGoal: boolean;
   submitting: boolean;
   amountInputRef: RefObject<HTMLInputElement | null>;
-  goalDeadlineInputRef: RefObject<HTMLInputElement | null>;
-  contributionDateInputRef: RefObject<HTMLInputElement | null>;
   formatCurrency: (value: number) => string;
   onCreateGoal: (event: FormEvent<HTMLFormElement>) => void;
   onSubmitContribution: (event: FormEvent<HTMLFormElement>) => void;
@@ -40,29 +39,7 @@ type SavingsFormsSectionProps = {
   onUpdateContributionGoal: (goalId: string) => void;
   onUpdateContributionAmount: (value: string) => void;
   onSelectContributionMode: (mode: ContributionMode) => void;
-  onOpenDatePicker: (input: HTMLInputElement | null) => void;
 };
-
-function CalendarIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M8 2v4" />
-      <path d="M16 2v4" />
-      <rect width="18" height="18" x="3" y="4" rx="2" />
-      <path d="M3 10h18" />
-    </svg>
-  );
-}
 
 export default function SavingsFormsSection({
   goalForm,
@@ -71,13 +48,11 @@ export default function SavingsFormsSection({
   goals,
   selectableGoals,
   selectedGoal,
-  contributionLimit,
+  contributionLimit: _contributionLimit,
   minimumGoalDeadline,
   creatingGoal,
   submitting,
   amountInputRef,
-  goalDeadlineInputRef,
-  contributionDateInputRef,
   formatCurrency,
   onCreateGoal,
   onSubmitContribution,
@@ -86,24 +61,22 @@ export default function SavingsFormsSection({
   onUpdateContributionGoal,
   onUpdateContributionAmount,
   onSelectContributionMode,
-  onOpenDatePicker,
 }: SavingsFormsSectionProps) {
   return (
     <div className="col-lg-5">
-      <div className="card border-0 shadow-sm mb-4">
+      {/* New Goal */}
+      <div className="card mb-4">
         <div className="card-body">
           <h6 className="card-title mb-3">New Goal</h6>
           <form onSubmit={onCreateGoal}>
             <div className="mb-3">
-              <label className="form-label" htmlFor="goal-name">
-                Name
-              </label>
+              <label className="form-label" htmlFor="goal-name">Name</label>
               <input
                 id="goal-name"
                 className="form-control"
                 type="text"
                 value={goalForm.name}
-                onChange={(event) => onUpdateGoalForm('name', event.target.value)}
+                onChange={(e) => onUpdateGoalForm('name', e.target.value)}
                 placeholder="Emergency fund"
                 disabled={creatingGoal}
                 required
@@ -112,9 +85,7 @@ export default function SavingsFormsSection({
 
             <div className="row g-3">
               <div className="col-sm-6">
-                <label className="form-label" htmlFor="goal-target">
-                  Target
-                </label>
+                <label className="form-label" htmlFor="goal-target">Target</label>
                 <input
                   id="goal-target"
                   className="form-control"
@@ -122,53 +93,31 @@ export default function SavingsFormsSection({
                   min="10"
                   step="1"
                   value={goalForm.targetAmount}
-                  onChange={(event) => onUpdateGoalForm('targetAmount', event.target.value)}
+                  onChange={(e) => onUpdateGoalForm('targetAmount', e.target.value)}
                   placeholder="5000.00"
                   disabled={creatingGoal}
                   required
                 />
               </div>
               <div className="col-sm-6">
-                <label className="form-label" htmlFor="goal-deadline">
-                  Deadline
-                </label>
-                <div className="input-group">
-                  <input
-                    id="goal-deadline"
-                    ref={goalDeadlineInputRef}
-                    className="form-control"
-                    type="date"
-                    min={minimumGoalDeadline}
-                    value={goalForm.deadline}
-                    onClick={() => onOpenDatePicker(goalDeadlineInputRef.current)}
-                    onChange={(event) => onUpdateGoalForm('deadline', event.target.value)}
-                    disabled={creatingGoal}
-                    required
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary"
-                    onClick={() => onOpenDatePicker(goalDeadlineInputRef.current)}
-                    disabled={creatingGoal}
-                    aria-label="Open deadline calendar"
-                    title="Open calendar"
-                  >
-                    <CalendarIcon />
-                  </button>
-                </div>
+                <label className="form-label" htmlFor="goal-deadline">Deadline</label>
+                <DatePicker
+                  value={goalForm.deadline}
+                  onChange={(v) => onUpdateGoalForm('deadline', v)}
+                  min={minimumGoalDeadline}
+                  placeholder="Select deadline"
+                />
               </div>
             </div>
 
             <div className="mb-3 mt-3">
-              <label className="form-label" htmlFor="goal-description">
-                Description
-              </label>
+              <label className="form-label" htmlFor="goal-description">Description</label>
               <textarea
                 id="goal-description"
                 className="form-control"
                 rows={3}
                 value={goalForm.description}
-                onChange={(event) => onUpdateGoalForm('description', event.target.value)}
+                onChange={(e) => onUpdateGoalForm('description', e.target.value)}
                 placeholder="Optional details"
                 disabled={creatingGoal}
               />
@@ -181,7 +130,8 @@ export default function SavingsFormsSection({
         </div>
       </div>
 
-      <div className="card border-0 shadow-sm">
+      {/* New Contribution */}
+      <div className="card">
         <div className="card-body">
           <h6 className="card-title mb-3">New Contribution</h6>
 
@@ -198,7 +148,7 @@ export default function SavingsFormsSection({
                 <div className="btn-group w-100">
                   <button
                     type="button"
-                    className={`btn ${contributionMode === 'deposit' ? 'btn-primary' : 'btn-outline-primary'}`}
+                    className={`btn ${contributionMode === 'deposit' ? 'btn-primary' : 'btn-outline-secondary'}`}
                     onClick={() => onSelectContributionMode('deposit')}
                     disabled={submitting}
                   >
@@ -206,7 +156,7 @@ export default function SavingsFormsSection({
                   </button>
                   <button
                     type="button"
-                    className={`btn ${contributionMode === 'withdraw' ? 'btn-danger' : 'btn-outline-danger'}`}
+                    className={`btn ${contributionMode === 'withdraw' ? 'btn-danger' : 'btn-outline-secondary'}`}
                     onClick={() => onSelectContributionMode('withdraw')}
                     disabled={submitting}
                   >
@@ -216,20 +166,16 @@ export default function SavingsFormsSection({
               </fieldset>
 
               <div className="mb-3">
-                <label className="form-label" htmlFor="contribution-goal">
-                  Goal
-                </label>
+                <label className="form-label" htmlFor="contribution-goal">Goal</label>
                 <select
                   id="contribution-goal"
                   className="form-select"
                   value={contributionForm.goalId}
-                  onChange={(event) => onUpdateContributionGoal(event.target.value)}
+                  onChange={(e) => onUpdateContributionGoal(e.target.value)}
                   disabled={submitting}
                 >
                   {selectableGoals.map((goal) => (
-                    <option key={goal.id} value={goal.id}>
-                      {goal.name}
-                    </option>
+                    <option key={goal.id} value={goal.id}>{goal.name}</option>
                   ))}
                 </select>
               </div>
@@ -245,10 +191,9 @@ export default function SavingsFormsSection({
                     className="form-control"
                     type="number"
                     min="0.01"
-                    max={contributionLimit ?? undefined}
                     step="0.01"
                     value={contributionForm.amount}
-                    onChange={(event) => onUpdateContributionAmount(event.target.value)}
+                    onChange={(e) => onUpdateContributionAmount(e.target.value)}
                     placeholder="100.00"
                     disabled={submitting}
                     required
@@ -256,70 +201,33 @@ export default function SavingsFormsSection({
                   {selectedGoal && (
                     <p className="form-text mb-0">
                       {contributionMode === 'withdraw'
-                        ? `${formatCurrency(selectedGoal.currentBalance)} available to withdraw.`
-                        : `${formatCurrency(selectedGoal.amountRemaining)} remaining for this goal.`}
+                        ? `${formatCurrency(selectedGoal.currentBalance)} available.`
+                        : `${formatCurrency(selectedGoal.amountRemaining)} remaining.`}
                     </p>
                   )}
                 </div>
                 <div className="col-sm-6">
-                  <label className="form-label" htmlFor="contribution-date">
-                    Date
-                  </label>
-                  <div className="input-group">
-                    <input
-                      id="contribution-date"
-                      ref={contributionDateInputRef}
-                      className="form-control"
-                      type="date"
-                      value={contributionForm.date}
-                      onClick={() => onOpenDatePicker(contributionDateInputRef.current)}
-                      onChange={(event) => onUpdateContributionForm('date', event.target.value)}
-                      disabled={submitting}
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary"
-                      onClick={() => onOpenDatePicker(contributionDateInputRef.current)}
-                      disabled={submitting}
-                      aria-label="Open contribution date calendar"
-                      title="Open calendar"
-                    >
-                      <CalendarIcon />
-                    </button>
-                  </div>
+                  <label className="form-label" htmlFor="contribution-date">Date</label>
+                  <DatePicker
+                    value={contributionForm.date}
+                    onChange={(v) => onUpdateContributionForm('date', v)}
+                    placeholder="Select date"
+                  />
                 </div>
               </div>
 
               <div className="mb-3 mt-3">
-                <label className="form-label" htmlFor="contribution-reason">
-                  Reason
-                </label>
+                <label className="form-label" htmlFor="contribution-reason">Reason</label>
                 <input
                   id="contribution-reason"
                   className="form-control"
                   type="text"
                   value={contributionForm.reason}
-                  onChange={(event) => onUpdateContributionForm('reason', event.target.value)}
+                  onChange={(e) => onUpdateContributionForm('reason', e.target.value)}
                   placeholder={contributionMode === 'withdraw' ? 'Transfer out' : 'Payday transfer'}
                   disabled={submitting}
                 />
               </div>
-
-              {/* <div className="mb-3">
-                <label className="form-label" htmlFor="contribution-note">
-                  Note
-                </label>
-                <textarea
-                  id="contribution-note"
-                  className="form-control"
-                  rows={3}
-                  value={contributionForm.note}
-                  onChange={(event) => onUpdateContributionForm('note', event.target.value)}
-                  placeholder="Optional details"
-                  disabled={submitting}
-                />
-              </div> */}
 
               <button
                 type="submit"
@@ -327,12 +235,8 @@ export default function SavingsFormsSection({
                 disabled={submitting}
               >
                 {submitting
-                  ? contributionMode === 'withdraw'
-                    ? 'Withdrawing...'
-                    : 'Adding...'
-                  : contributionMode === 'withdraw'
-                    ? 'Withdraw Money'
-                    : 'Add Contribution'}
+                  ? contributionMode === 'withdraw' ? 'Withdrawing...' : 'Adding...'
+                  : contributionMode === 'withdraw' ? 'Withdraw Money' : 'Add Contribution'}
               </button>
             </form>
           )}

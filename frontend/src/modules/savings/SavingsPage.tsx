@@ -42,10 +42,6 @@ const initialForm: ContributionForm = {
   reason: '',
 };
 
-type DateInputWithPicker = HTMLInputElement & {
-  showPicker?: () => void;
-};
-
 const goalStatusLabels = ['Active', 'Completed', 'Paused', 'Abandoned'] as const;
 
 const formatGoalStatus = (status: SavingsGoalProgress['status']) => {
@@ -101,8 +97,6 @@ const getSelectableGoalId = (
 export default function SavingsPage() {
   const fmt = useCurrencyFormatter();
   const amountInputRef = useRef<HTMLInputElement>(null);
-  const goalDeadlineInputRef = useRef<HTMLInputElement>(null);
-  const contributionDateInputRef = useRef<HTMLInputElement>(null);
   const minimumGoalDeadline = daysFromToday(7);
   const [goals, setGoals] = useState<SavingsGoalProgress[]>([]);
   const [goalForm, setGoalForm] = useState<GoalForm>(initialGoalForm);
@@ -193,17 +187,6 @@ export default function SavingsPage() {
     }));
     setContributionMode(mode);
     setSuccess(null);
-  };
-
-  const openDatePicker = (input: HTMLInputElement | null) => {
-    if (!input || input.disabled) return;
-
-    input.focus();
-    try {
-      (input as DateInputWithPicker).showPicker?.();
-    } catch {
-      // Some browsers only allow the native picker from specific user gestures.
-    }
   };
 
   const prepareWithdrawal = (goalId: string) => {
@@ -331,7 +314,7 @@ export default function SavingsPage() {
 
   if (loading) {
     return (
-      <div className="d-flex justify-content-center py-5">
+      <div className="loading-center">
         {/* biome-ignore lint/a11y/useSemanticElements: Bootstrap spinner requires role=status */}
         <div className="spinner-border text-primary" role="status">
           <span className="visually-hidden">Loading...</span>
@@ -341,12 +324,10 @@ export default function SavingsPage() {
   }
 
   return (
-    <div className="text-start">
-      <div className="d-flex flex-column flex-md-row justify-content-between gap-2 mb-4">
-        <div>
-          <h4 className="mb-1">Savings Goals</h4>
-          <p className="text-muted small mb-0">Create goals and track deposits or withdrawals.</p>
-        </div>
+    <div>
+      <div className="page-header">
+        <h1 className="page-title">Savings Goals</h1>
+        <p className="page-subtitle">Create goals and track deposits or withdrawals.</p>
       </div>
 
       {error && (
@@ -369,8 +350,6 @@ export default function SavingsPage() {
           creatingGoal={creatingGoal}
           submitting={submitting}
           amountInputRef={amountInputRef}
-          goalDeadlineInputRef={goalDeadlineInputRef}
-          contributionDateInputRef={contributionDateInputRef}
           formatCurrency={fmt}
           onCreateGoal={handleCreateGoal}
           onSubmitContribution={handleSubmit}
@@ -379,7 +358,6 @@ export default function SavingsPage() {
           onUpdateContributionGoal={updateContributionGoal}
           onUpdateContributionAmount={updateContributionAmount}
           onSelectContributionMode={selectContributionMode}
-          onOpenDatePicker={openDatePicker}
         />
         <GoalProgressSection
           goals={goals}
