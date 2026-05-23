@@ -22,6 +22,10 @@ public class SavingsGoal
     public DateTime Deadline { get; set; }
     public string? Description { get; set; }
     public GoalStatus Status { get; set; } = GoalStatus.Active;
+
+    public DateTime CreatedAt { get; set; }
+
+    public DateTime UpdatedAt { get; set; }
 }
 
 public enum GoalStatus { Active, Completed, Paused, Abandoned }

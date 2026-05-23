@@ -24,7 +24,7 @@ public class ContributionsController(
         try
         {
             var contribution = await savingsService.AddContributionAsync(
-                goalId, UserId, request.Amount, request.Date, request.Description);
+                goalId, UserId, request.Amount, request.Date, request.Reason, request.Description ?? request.Note);
             return CreatedAtAction(nameof(GetAll), new { goalId }, contribution);
         }
         catch (KeyNotFoundException)
@@ -48,4 +48,4 @@ public class ContributionsController(
     }
 }
 
-public record AddContributionRequest(decimal Amount, DateTime Date, string? Description);
+public record AddContributionRequest(decimal Amount, DateTime Date, string? Reason, string? Description = null, string? Note = null);

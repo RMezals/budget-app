@@ -43,6 +43,43 @@ export interface GoalProgress {
   projectedCompletion?: string | null;
 }
 
+export interface SavingsGoalProgress {
+  id: string;
+  userId: string;
+  name: string;
+  targetAmount: number;
+  currentBalance: number;
+  percentReached: number;
+  amountRemaining: number;
+  projectedCompletion?: string | null;
+  status: 'Active' | 'Completed' | 'Paused' | 'Abandoned' | number;
+  deadline: string;
+  description?: string | null;
+}
+
+export interface SavingsGoal {
+  id: string;
+  userId: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  deadline: string;
+  description?: string | null;
+  status: 'Active' | 'Completed' | 'Paused' | 'Abandoned' | number;
+}
+
+export interface GoalContribution {
+  id: string;
+  goalId: string;
+  userId: string;
+  amount: number;
+  date: string;
+  note?: string | null;
+  reason?: string | null;
+  description?: string | null;
+  balanceAfter: number;
+}
+
 export interface AdvisorResult {
   provider: string;
   tips: string;
