@@ -24,6 +24,9 @@ public class TransactionRepository(IMongoDatabase db) : ITransactionRepository
     public async Task<List<Transaction>> GetByMonthAsync(string userId, DateTime monthStart, DateTime monthEnd) =>
         await _col.Find(t => t.UserId == userId && t.Date >= monthStart && t.Date < monthEnd).ToListAsync();
 
+    public async Task<List<Transaction>> GetByRangeAsync(string userId, DateTime from, DateTime to) =>
+        await _col.Find(t => t.UserId == userId && t.Date >= from && t.Date < to).ToListAsync();
+
     public async Task InsertAsync(Transaction transaction) =>
         await _col.InsertOneAsync(transaction);
 

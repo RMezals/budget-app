@@ -11,6 +11,7 @@ namespace BudgetApp.Api.Modules.Savings;
 public class GoalsController(ISavingsGoalRepository goalRepo, ISavingsService savingsService) : ApiControllerBase
 {
     [HttpGet]
+    [ProducesResponseType(typeof(List<GoalProgressDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
     {
         var goals = await savingsService.GetGoalProgressListAsync(UserId);
@@ -18,6 +19,7 @@ public class GoalsController(ISavingsGoalRepository goalRepo, ISavingsService sa
     }
 
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(GoalProgressDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetById(string id)
     {
         var goal = await savingsService.GetGoalProgressAsync(id, UserId);
@@ -25,6 +27,7 @@ public class GoalsController(ISavingsGoalRepository goalRepo, ISavingsService sa
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(SavingsGoal), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] CreateGoalRequest request)
     {
         var goal = new SavingsGoal
@@ -77,12 +80,13 @@ public class GoalsController(ISavingsGoalRepository goalRepo, ISavingsService sa
 
     // Projected completion date based on last 30 days average daily contribution rate
     [HttpGet("{id}/projection")]
+    [ProducesResponseType(typeof(ProjectionResult), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetProjection(string id)
     {
         try
         {
             var result = await savingsService.GetProjectionAsync(id, UserId);
-            return Ok(new { projectedCompletion = result.ProjectedCompletion, reason = result.Reason });
+            return Ok(result);
         }
         catch (KeyNotFoundException)
         {

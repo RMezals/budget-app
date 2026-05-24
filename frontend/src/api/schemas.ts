@@ -71,6 +71,14 @@ export const GoalContributionSchema = z.object({
 
 export const GoalContributionListSchema = z.array(GoalContributionSchema);
 
+// Spending Trend
+export const SpendingTrendPointSchema = z.object({
+  month: z.string(),
+  expenses: z.record(z.string(), z.number()),
+});
+
+export const SpendingTrendSchema = z.array(SpendingTrendPointSchema);
+
 // Advisor Result Schema
 export const AdvisorResultSchema = z.object({
   provider: z.string(),

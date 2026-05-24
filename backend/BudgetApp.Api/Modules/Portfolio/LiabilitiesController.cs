@@ -10,6 +10,7 @@ namespace BudgetApp.Api.Modules.Portfolio;
 public class LiabilitiesController(ILiabilityRepository repo) : ApiControllerBase
 {
     [HttpGet]
+    [ProducesResponseType(typeof(List<Liability>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
     {
         var list = await repo.GetByUserAsync(UserId);
@@ -17,6 +18,7 @@ public class LiabilitiesController(ILiabilityRepository repo) : ApiControllerBas
     }
 
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(Liability), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetById(string id)
     {
         var item = await repo.GetByIdAsync(id, UserId);
@@ -24,6 +26,7 @@ public class LiabilitiesController(ILiabilityRepository repo) : ApiControllerBas
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(Liability), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] CreateLiabilityRequest request)
     {
         var liability = new Liability
@@ -61,6 +64,7 @@ public class LiabilitiesController(ILiabilityRepository repo) : ApiControllerBas
     }
 
     [HttpGet("types")]
+    [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
     public IActionResult GetTypes() => Ok(BudgetApp.Api.Modules.Portfolio.Validators.LiabilityTypes.All);
 }
 
