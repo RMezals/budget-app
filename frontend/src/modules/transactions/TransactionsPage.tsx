@@ -257,7 +257,6 @@ export default function TransactionsPage() {
                       onChange={(e) => setAmount(e.target.value)}
                       required
                     />
-
                   </div>
                   <div className="form-text small text-muted">
                     Negative for expenses, positive for income.
