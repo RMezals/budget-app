@@ -3,6 +3,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { CurrencyProvider } from '@/contexts/CurrencyContext';
 import { auth, firebaseConfigured } from '@/firebase';
 import LoginPage from '@/modules/auth/LoginPage';
+import ProfileModal from '@/modules/auth/ProfileModal';
 import DashboardPage from '@/modules/dashboard/DashboardPage';
 import PortfolioPage from '@/modules/portfolio/PortfolioPage';
 import SavingsPage from '@/modules/savings/SavingsPage';
@@ -18,10 +19,117 @@ type AuthState =
   | { status: 'unauthenticated' }
   | { status: 'disabled' };
 
+const IconDashboard = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <rect x="3" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+    <rect x="14" y="14" width="7" height="7" rx="1" />
+  </svg>
+);
+
+const IconTransactions = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M16 3l4 4-4 4" />
+    <path d="M20 7H4" />
+    <path d="M8 21l-4-4 4-4" />
+    <path d="M4 17h16" />
+  </svg>
+);
+
+const IconSavings = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10S2 17.52 2 12" />
+    <path d="M12 6v6l4 2" />
+  </svg>
+);
+
+const IconPortfolio = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+  </svg>
+);
+
+const IconSignOut = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+);
+
+const IconChevronLeft = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <polyline points="15 18 9 12 15 6" />
+  </svg>
+);
+
+function getInitials(user: User): string {
+  if (user.displayName) {
+    return user.displayName
+      .split(' ')
+      .slice(0, 2)
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase();
+  }
+  return (user.email?.[0] ?? '?').toUpperCase();
+}
+
 function App() {
   const [authState, setAuthState] = useState<AuthState>(
     firebaseConfigured ? { status: 'loading' } : { status: 'disabled' },
   );
+  const [collapsed, setCollapsed] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
 
   useEffect(() => {
     if (!firebaseConfigured || !auth) return;
@@ -35,38 +143,85 @@ function App() {
   if (authState.status === 'unauthenticated') return <LoginPage />;
 
   const isFirebaseEnabled = firebaseConfigured && auth;
+  const user = authState.status === 'authenticated' ? authState.user : null;
+  const displayName = user?.displayName ?? user?.email ?? 'User';
 
   return (
     <ErrorBoundary>
       <CurrencyProvider>
         <BrowserRouter>
-          <nav className="navbar navbar-expand navbar-dark bg-dark px-4">
-            <span className="navbar-brand fw-bold">💰 BudgetApp</span>
-            <div className="navbar-nav me-auto">
-              <AppNavLink to="/">Dashboard</AppNavLink>
-              <AppNavLink to="/transactions">Transactions</AppNavLink>
-              <AppNavLink to="/savings">Savings</AppNavLink>
-              <AppNavLink to="/portfolio">Portfolio</AppNavLink>
-            </div>
-            {isFirebaseEnabled && (
+          <div className={`app-layout${collapsed ? ' sidebar-collapsed' : ''}`}>
+            <aside className="app-sidebar">
               <button
                 type="button"
-                className="btn btn-outline-light btn-sm"
-                onClick={() => auth && signOut(auth)}
+                className="app-sidebar-toggle"
+                onClick={() => setCollapsed((c) => !c)}
+                title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
-                Sign out
+                <IconChevronLeft />
               </button>
-            )}
-          </nav>
-          <div className="container py-4">
-            <Routes>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/transactions" element={<TransactionsPage />} />
-              <Route path="/savings" element={<SavingsPage />} />
-              <Route path="/savings/:goalId" element={<GoalPage />} />
-              <Route path="/portfolio" element={<PortfolioPage />} />
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
+
+              <div className="app-sidebar-logo">
+                <div className="app-sidebar-logo-icon">💰</div>
+                <span className="app-sidebar-logo-text">BudgetApp</span>
+              </div>
+
+              <nav className="app-sidebar-nav">
+                <AppNavLink to="/" icon={<IconDashboard />}>
+                  Dashboard
+                </AppNavLink>
+                <AppNavLink to="/transactions" icon={<IconTransactions />}>
+                  Transactions
+                </AppNavLink>
+                <AppNavLink to="/savings" icon={<IconSavings />}>
+                  Savings
+                </AppNavLink>
+                <AppNavLink to="/portfolio" icon={<IconPortfolio />}>
+                  Portfolio
+                </AppNavLink>
+              </nav>
+
+              <div className="app-sidebar-footer">
+                {user && (
+                  <button
+                    type="button"
+                    className="app-sidebar-user app-sidebar-user-btn"
+                    onClick={() => setShowProfile(true)}
+                    title="Account settings"
+                  >
+                    <div className="app-sidebar-avatar">{getInitials(user)}</div>
+                    <span className="app-sidebar-username">{displayName}</span>
+                  </button>
+                )}
+                {isFirebaseEnabled && (
+                  <button
+                    type="button"
+                    className="app-sidebar-signout"
+                    onClick={() => auth && signOut(auth)}
+                  >
+                    <IconSignOut />
+                    <span className="nav-label">Sign out</span>
+                  </button>
+                )}
+              </div>
+
+              {showProfile && user && (
+                <ProfileModal user={user} onClose={() => setShowProfile(false)} />
+              )}
+            </aside>
+
+            <main className="app-main">
+              <div className="app-content">
+                <Routes>
+                  <Route path="/" element={<DashboardPage />} />
+                  <Route path="/transactions" element={<TransactionsPage />} />
+                  <Route path="/savings" element={<SavingsPage />} />
+                  <Route path="/savings/:goalId" element={<GoalPage />} />
+                  <Route path="/portfolio" element={<PortfolioPage />} />
+                  <Route path="*" element={<Navigate to="/" />} />
+                </Routes>
+              </div>
+            </main>
           </div>
         </BrowserRouter>
       </CurrencyProvider>

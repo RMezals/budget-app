@@ -11,6 +11,7 @@ namespace BudgetApp.Api.Modules.Transactions;
 public class BudgetsController(IBudgetRepository budgetRepo, IBudgetService budgetService) : ApiControllerBase
 {
     [HttpGet]
+    [ProducesResponseType(typeof(List<Budget>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByMonth([FromQuery] int year, [FromQuery] int month)
     {
         var monthStart = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -32,19 +33,19 @@ public class BudgetsController(IBudgetRepository budgetRepo, IBudgetService budg
 
     // Budget usage is computed on demand from transaction data — never stored
     [HttpGet("usage")]
+    [ProducesResponseType(typeof(List<BudgetUsageResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetUsage([FromQuery] int year, [FromQuery] int month)
     {
         var spending = await budgetService.GetUsageAsync(UserId, year, month);
-        var usage = spending.Select(b => new
-        {
+        var usage = spending.Select(b => new BudgetUsageResponse(
             b.Category,
-            Limit = b.Limit,
-            Spent = b.Spent,
-            Remaining = b.Limit - b.Spent,
-            UsagePercent = b.Limit > 0 ? Math.Round(b.Spent / b.Limit * 100, 1) : 0m
-        });
+            b.Limit,
+            b.Spent,
+            b.Limit - b.Spent,
+            b.Limit > 0 ? Math.Round(b.Spent / b.Limit * 100, 1) : 0m));
         return Ok(usage);
     }
 }
 
 public record UpsertBudgetRequest(int Year, int Month, string Category, decimal LimitAmount);
+public record BudgetUsageResponse(string Category, decimal Limit, decimal Spent, decimal Remaining, decimal UsagePercent);

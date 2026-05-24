@@ -25,7 +25,7 @@ public class SeedService(IMongoDatabase db) : ISeedService
         var lastMonth = thisMonth.AddMonths(-1);
         var twoMonths = thisMonth.AddMonths(-2);
 
-        var transactions = BuildTransactions(userId, thisMonth, lastMonth, twoMonths);
+        var transactions = BuildTransactions(userId, thisMonth);
         var budgets = BuildBudgets(userId, thisMonth);
         var (goals, contributions) = BuildGoalsAndContributions(userId, thisMonth, lastMonth, twoMonths);
         var assets = BuildAssets(userId);
@@ -51,46 +51,72 @@ public class SeedService(IMongoDatabase db) : ISeedService
         await _liabCol.DeleteManyAsync(x => x.UserId == userId);
     }
 
-    private static List<Transaction> BuildTransactions(string userId, DateTime thisMonth, DateTime lastMonth, DateTime twoMonths) =>
+    // Per-month spending profile (Housing, Utilities, Food, Transport, Entertainment, Healthcare, Clothing, Other)
+    private static readonly (decimal Housing, decimal Utilities, decimal Food, decimal Transport,
+        decimal Entertainment, decimal Healthcare, decimal Clothing, decimal Other, decimal? ExtraIncome, string? ExtraNote)[] MonthProfiles =
     [
-        Tx(userId, twoMonths.AddDays(0),  3200m,  "Salary",        "March salary"),
-        Tx(userId, twoMonths.AddDays(0),  -900m,  "Housing",       "Rent"),
-        Tx(userId, twoMonths.AddDays(1),  -98m,   "Utilities",     "Electricity & internet"),
-        Tx(userId, twoMonths.AddDays(3),  -62m,   "Food",          "Weekly groceries"),
-        Tx(userId, twoMonths.AddDays(7),  -55m,   "Food",          "Groceries"),
-        Tx(userId, twoMonths.AddDays(8),  -28m,   "Food",          "Restaurant"),
-        Tx(userId, twoMonths.AddDays(10), -95m,   "Transport",     "Monthly bus pass"),
-        Tx(userId, twoMonths.AddDays(12), -55m,   "Entertainment", "Cinema & dinner"),
-        Tx(userId, twoMonths.AddDays(14), -60m,   "Food",          "Groceries"),
-        Tx(userId, twoMonths.AddDays(18), -45m,   "Healthcare",    "Pharmacy"),
-        Tx(userId, twoMonths.AddDays(21), -65m,   "Food",          "Groceries"),
-        Tx(userId, twoMonths.AddDays(25), -40m,   "Entertainment", "Streaming + games"),
-        Tx(userId, twoMonths.AddDays(28), -55m,   "Food",          "Groceries + restaurant"),
-        Tx(userId, lastMonth.AddDays(0),  3200m,  "Salary",        "April salary"),
-        Tx(userId, lastMonth.AddDays(0),  -900m,  "Housing",       "Rent"),
-        Tx(userId, lastMonth.AddDays(1),  -105m,  "Utilities",     "Electricity & internet"),
-        Tx(userId, lastMonth.AddDays(2),  -120m,  "Clothing",      "Spring clothes"),
-        Tx(userId, lastMonth.AddDays(3),  -68m,   "Food",          "Weekly groceries"),
-        Tx(userId, lastMonth.AddDays(5),  -35m,   "Transport",     "Fuel"),
-        Tx(userId, lastMonth.AddDays(7),  -22m,   "Food",          "Lunch out"),
-        Tx(userId, lastMonth.AddDays(9),  -75m,   "Entertainment", "Concert tickets"),
-        Tx(userId, lastMonth.AddDays(10), -60m,   "Food",          "Groceries"),
-        Tx(userId, lastMonth.AddDays(12), -60m,   "Healthcare",    "Doctor visit"),
-        Tx(userId, lastMonth.AddDays(14), -110m,  "Transport",     "Monthly bus pass + taxi"),
-        Tx(userId, lastMonth.AddDays(16), -72m,   "Food",          "Groceries"),
-        Tx(userId, lastMonth.AddDays(20), -58m,   "Food",          "Groceries + coffee"),
-        Tx(userId, lastMonth.AddDays(22), -800m,  "Other",         "Freelance equipment"),
-        Tx(userId, lastMonth.AddDays(25), 400m,   "Freelance",     "Freelance project payment"),
-        Tx(userId, lastMonth.AddDays(28), -45m,   "Food",          "Weekend restaurant"),
-        Tx(userId, thisMonth.AddDays(0),  3200m,  "Salary",        "May salary"),
-        Tx(userId, thisMonth.AddDays(0),  -900m,  "Housing",       "Rent"),
-        Tx(userId, thisMonth.AddDays(1),  -95m,   "Utilities",     "Electricity & internet"),
-        Tx(userId, thisMonth.AddDays(2),  -45m,   "Food",          "Groceries"),
-        Tx(userId, thisMonth.AddDays(3),  -35m,   "Transport",     "Fuel"),
-        Tx(userId, thisMonth.AddDays(4),  -40m,   "Entertainment", "Cinema"),
-        Tx(userId, thisMonth.AddDays(5),  -22m,   "Food",          "Lunch"),
-        Tx(userId, thisMonth.AddDays(6),  -15m,   "Transport",     "Parking"),
+        (900m,  92m,  290m,  95m,  45m,   0m,    0m,   0m,   null,  null),                    // M-11
+        (900m,  88m,  305m,  95m,  60m,  45m,    0m,   0m,   null,  null),                    // M-10
+        (900m,  95m,  280m,  95m,  80m,   0m,  150m,   0m,   null,  null),                    // M-9  winter clothes
+        (900m, 110m,  295m,  95m,  40m,   0m,    0m,   0m,   null,  null),                    // M-8
+        (900m, 118m,  310m,  95m,  55m,  60m,    0m,   0m,   null,  null),                    // M-7
+        (900m, 105m,  300m,  95m,  70m,   0m,    0m, 800m,  400m,  "Freelance project"),      // M-6  big purchase
+        (900m,  98m,  290m,  95m,  55m,  45m,    0m,   0m,   null,  null),                    // M-5
+        (900m,  90m,  285m,  95m,  40m,   0m,    0m,   0m,   null,  null),                    // M-4
+        (900m,  98m,  300m,  95m,  55m,  45m,    0m,   0m,   null,  null),                    // M-3  = twoMonths
+        (900m, 105m,  345m, 145m,  75m,  60m,  120m,   0m,  400m,  "Freelance project"),      // M-2  = lastMonth
+        (900m,  95m,  270m,  95m,  40m,   0m,    0m,   0m,   null,  null),                    // M-1  (current - partial)
     ];
+
+    private static List<Transaction> BuildTransactions(string userId, DateTime thisMonth)
+    {
+        var txs = new List<Transaction>();
+
+        for (var i = 0; i < MonthProfiles.Length; i++)
+        {
+            var m = thisMonth.AddMonths(-(MonthProfiles.Length - i));
+            var p = MonthProfiles[i];
+
+            txs.Add(Tx(userId, m.AddDays(0), 3200m, "Salary", "Monthly salary"));
+            txs.Add(Tx(userId, m.AddDays(0), -p.Housing, "Housing", "Rent"));
+            txs.Add(Tx(userId, m.AddDays(1), -p.Utilities, "Utilities", "Electricity & internet"));
+            txs.AddRange(SplitFood(userId, m, p.Food));
+            txs.AddRange(SplitTransport(userId, m, p.Transport));
+            if (p.Entertainment > 0) txs.Add(Tx(userId, m.AddDays(12), -p.Entertainment, "Entertainment", "Leisure"));
+            if (p.Healthcare > 0) txs.Add(Tx(userId, m.AddDays(18), -p.Healthcare, "Healthcare", "Medical"));
+            if (p.Clothing > 0) txs.Add(Tx(userId, m.AddDays(3), -p.Clothing, "Clothing", "Clothes"));
+            if (p.Other > 0) txs.Add(Tx(userId, m.AddDays(22), -p.Other, "Other", "Equipment"));
+            if (p.ExtraIncome > 0) txs.Add(Tx(userId, m.AddDays(25), p.ExtraIncome!.Value, "Freelance", p.ExtraNote));
+        }
+
+        // Current month (partial — only a few days in)
+        txs.Add(Tx(userId, thisMonth.AddDays(0), 3200m, "Salary", "Monthly salary"));
+        txs.Add(Tx(userId, thisMonth.AddDays(0), -900m, "Housing", "Rent"));
+        txs.Add(Tx(userId, thisMonth.AddDays(1), -95m, "Utilities", "Electricity & internet"));
+        txs.Add(Tx(userId, thisMonth.AddDays(2), -45m, "Food", "Groceries"));
+        txs.Add(Tx(userId, thisMonth.AddDays(3), -35m, "Transport", "Fuel"));
+        txs.Add(Tx(userId, thisMonth.AddDays(4), -40m, "Entertainment", "Cinema"));
+        txs.Add(Tx(userId, thisMonth.AddDays(5), -22m, "Food", "Lunch"));
+        txs.Add(Tx(userId, thisMonth.AddDays(6), -15m, "Transport", "Parking"));
+
+        return txs;
+    }
+
+    // Spread food spending across ~4 weekly shops so the transaction list looks realistic
+    private static IEnumerable<Transaction> SplitFood(string userId, DateTime month, decimal total)
+    {
+        var share = Math.Round(total / 4, 2);
+        yield return Tx(userId, month.AddDays(3), -share, "Food", "Weekly groceries");
+        yield return Tx(userId, month.AddDays(7), -share, "Food", "Groceries");
+        yield return Tx(userId, month.AddDays(14), -share, "Food", "Groceries");
+        yield return Tx(userId, month.AddDays(21), -(total - share * 3), "Food", "Groceries + restaurant");
+    }
+
+    private static IEnumerable<Transaction> SplitTransport(string userId, DateTime month, decimal total)
+    {
+        yield return Tx(userId, month.AddDays(1), -Math.Round(total * 0.6m, 2), "Transport", "Monthly bus pass");
+        yield return Tx(userId, month.AddDays(14), -(total - Math.Round(total * 0.6m, 2)), "Transport", "Fuel / taxi");
+    }
 
     private static List<Budget> BuildBudgets(string userId, DateTime thisMonth) =>
     [

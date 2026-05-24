@@ -10,6 +10,7 @@ namespace BudgetApp.Api.Modules.Portfolio;
 public class LiabilitiesController(ILiabilityRepository repo) : ApiControllerBase
 {
     [HttpGet]
+    [ProducesResponseType(typeof(List<Liability>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
     {
         var list = await repo.GetByUserAsync(UserId);
@@ -17,6 +18,7 @@ public class LiabilitiesController(ILiabilityRepository repo) : ApiControllerBas
     }
 
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(Liability), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetById(string id)
     {
         var item = await repo.GetByIdAsync(id, UserId);
@@ -24,6 +26,7 @@ public class LiabilitiesController(ILiabilityRepository repo) : ApiControllerBas
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(Liability), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] CreateLiabilityRequest request)
     {
         var liability = new Liability
@@ -35,6 +38,13 @@ public class LiabilitiesController(ILiabilityRepository repo) : ApiControllerBas
         };
         await repo.InsertAsync(liability);
         return CreatedAtAction(nameof(GetById), new { id = liability.Id }, liability);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(string id, [FromBody] UpdateLiabilityRequest request)
+    {
+        var updated = await repo.UpdateAsync(id, UserId, request.Name, request.Type);
+        return updated ? NoContent() : NotFound();
     }
 
     // Append a new balance entry — never modifies existing entries
@@ -52,7 +62,12 @@ public class LiabilitiesController(ILiabilityRepository repo) : ApiControllerBas
         var deleted = await repo.DeleteAsync(id, UserId);
         return deleted ? NoContent() : NotFound();
     }
+
+    [HttpGet("types")]
+    [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
+    public IActionResult GetTypes() => Ok(BudgetApp.Api.Modules.Portfolio.Validators.LiabilityTypes.All);
 }
 
 public record CreateLiabilityRequest(string Name, string Type, decimal InitialAmount, DateTime Date);
+public record UpdateLiabilityRequest(string Name, string Type);
 public record AddAmountRequest(decimal Value, DateTime Date);

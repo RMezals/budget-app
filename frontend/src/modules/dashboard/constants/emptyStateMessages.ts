@@ -12,4 +12,9 @@ export const EMPTY_STATE_MESSAGES = {
     title: 'No Savings Goals',
     message: 'Set a savings goal to track your progress toward financial targets.',
   },
+  SPENDING_TREND: {
+    icon: '📈',
+    title: 'No Spending Data',
+    message: 'Add expense transactions to see your monthly spending trend.',
+  },
 } as const;

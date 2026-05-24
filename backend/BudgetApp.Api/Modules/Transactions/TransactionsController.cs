@@ -10,6 +10,7 @@ namespace BudgetApp.Api.Modules.Transactions;
 public class TransactionsController(ITransactionRepository repo) : ApiControllerBase
 {
     [HttpGet]
+    [ProducesResponseType(typeof(List<Transaction>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(
         [FromQuery] DateTime? from,
         [FromQuery] DateTime? to,
@@ -24,6 +25,7 @@ public class TransactionsController(ITransactionRepository repo) : ApiController
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(Transaction), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] TransactionRequest request)
     {
         if (!Categories.IsValid(request.Category))
@@ -59,8 +61,10 @@ public class TransactionsController(ITransactionRepository repo) : ApiController
     }
 
     [HttpGet("categories")]
+    [ProducesResponseType(typeof(TransactionCategoriesResponse), StatusCodes.Status200OK)]
     public IActionResult GetCategories() =>
-        Ok(new { expense = Categories.Expense, income = Categories.Income });
+        Ok(new TransactionCategoriesResponse(Categories.Expense, Categories.Income));
 }
 
 public record TransactionRequest(decimal Amount, DateTime Date, string Category, string? Description);
+public record TransactionCategoriesResponse(IReadOnlyList<string> Expense, IReadOnlyList<string> Income);

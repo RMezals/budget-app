@@ -1,0 +1,156 @@
+/* ── MonthPicker ────────────────────────────────────────────────────────── */
+
+.mp-root {
+  position: relative;
+  width: 100%;
+  min-width: 130px;
+}
+
+.mp-input {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0.75rem;
+  background: #fff;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  text-align: left;
+  line-height: 1.5;
+}
+
+.mp-input:hover {
+  border-color: #9ca3af;
+}
+
+.mp-input.open,
+.mp-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  outline: none;
+}
+
+.mp-value {
+  color: #212529;
+  font-weight: 500;
+}
+.mp-placeholder {
+  color: #9ca3af;
+}
+
+.mp-icon {
+  color: #9ca3af;
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+  display: flex;
+}
+
+/* Popup */
+.mp-popup {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1200;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.13);
+  padding: 0.75rem;
+  min-width: 220px;
+  animation: mp-in 0.12s ease;
+}
+
+@keyframes mp-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.mp-nav {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: #f3f4f6;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s;
+  line-height: 1;
+  padding: 0;
+}
+
+.mp-nav:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+.mp-nav:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.mp-year {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #111827;
+}
+
+/* 3×4 month grid */
+.mp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.mp-month {
+  padding: 0.45rem 0;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  text-align: center;
+}
+
+.mp-month:hover:not(.disabled):not(.selected) {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.mp-month.current {
+  border-color: #2563eb;
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.mp-month.selected {
+  background: #2563eb;
+  color: #fff;
+  font-weight: 700;
+  border-color: #2563eb;
+}
+
+.mp-month.disabled {
+  color: #d1d5db;
+  cursor: not-allowed;
+}

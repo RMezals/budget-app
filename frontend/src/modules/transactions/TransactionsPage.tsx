@@ -1,528 +1,738 @@
-import { apiFetch } from '@/api/client';
-import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
-import { useEffect, useState } from 'react';
+import DatePicker from '@/components/DatePicker';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { apiFetch } from '../../api/client';
+import {
+  BudgetListSchema,
+  TransactionBudgetUsageListSchema,
+  TransactionCategoriesSchema,
+  TransactionListSchema,
+  TransactionSchema,
+} from '../../api/schemas';
+import type {
+  Budget,
+  Transaction,
+  TransactionBudgetUsage,
+  TransactionCategories,
+} from '../../api/types';
+import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 
-interface Transaction {
-  id: string;
-  amount: number;
-  category: string;
-  description?: string;
+// ── helpers ────────────────────────────────────────────────────────────────
+
+const todayStr = () => new Date().toISOString().slice(0, 10);
+
+const currentYear = new Date().getFullYear();
+const currentMonth = new Date().getMonth() + 1;
+
+function monthLabel(year: number, month: number) {
+  return new Date(year, month - 1, 1).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+}
+
+// ── types ──────────────────────────────────────────────────────────────────
+
+type Tab = 'transactions' | 'budgets';
+
+type TxForm = {
+  amount: string;
   date: string;
-}
-
-interface CategoriesData {
-  expense: string[];
-  income: string[];
-}
-
-const getLocalDateString = (dateInput?: string | Date) => {
-  const d = dateInput ? new Date(dateInput) : new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  category: string;
+  description: string;
+  isIncome: boolean;
 };
+
+const emptyTxForm = (categories: TransactionCategories): TxForm => ({
+  amount: '',
+  date: todayStr(),
+  category: categories.expense[0] ?? '',
+  description: '',
+  isIncome: false,
+});
+
+// ── component ─────────────────────────────────────────────────────────────
 
 export default function TransactionsPage() {
   const fmt = useCurrencyFormatter();
+
+  const [tab, setTab] = useState<Tab>('transactions');
+
+  const [categories, setCategories] = useState<TransactionCategories>({
+    expense: [],
+    income: [],
+  });
+
+  // ── transactions state ──────────────────────────────────────────────────
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [categories, setCategories] = useState<CategoriesData>({ expense: [], income: [] });
-  const [loading, setLoading] = useState(true);
-
-  const [amount, setAmount] = useState<string>('');
-  const [category, setCategory] = useState<string>('');
-  const [description, setDescription] = useState<string>('');
-  const [date, setDate] = useState<string>(getLocalDateString());
+  const [txLoading, setTxLoading] = useState(true);
+  const [txError, setTxError] = useState<string | null>(null);
+  const [txSuccess, setTxSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  const [filterFrom, setFilterFrom] = useState('');
+  const [filterTo, setFilterTo] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterKeyword, setFilterKeyword] = useState('');
+
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [txForm, setTxForm] = useState<TxForm>({
+    amount: '',
+    date: todayStr(),
+    category: '',
+    description: '',
+    isIncome: false,
+  });
+  const amountRef = useRef<HTMLInputElement>(null);
 
-  const [filterKeyword, setFilterKeyword] = useState<string>('');
-  const [filterCategory, setFilterCategory] = useState<string>('');
-  const [filterStartDate, setFilterStartDate] = useState<string>('');
-  const [filterEndDate, setFilterEndDate] = useState<string>('');
-  const [filterMinAmount, setFilterMinAmount] = useState<string>('');
-  const [filterMaxAmount, setFilterMaxAmount] = useState<string>('');
+  // ── budgets state ────────────────────────────────────────────────────────
+  const [budgetYear, setBudgetYear] = useState(currentYear);
+  const [budgetMonth, setBudgetMonth] = useState(currentMonth);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [usage, setUsage] = useState<TransactionBudgetUsage[]>([]);
+  const [budgetLoading, setBudgetLoading] = useState(false);
+  const [budgetError, setBudgetError] = useState<string | null>(null);
+  const [budgetSuccess, setBudgetSuccess] = useState<string | null>(null);
+  const [limitInputs, setLimitInputs] = useState<Record<string, string>>({});
+  const [savingCategory, setSavingCategory] = useState<string | null>(null);
 
+  // ── load categories ─────────────────────────────────────────────────────
   useEffect(() => {
-    let cancelled = false;
-
-    const loadData = async () => {
-      try {
-        const [transactionsData, categoriesData] = await Promise.all([
-          apiFetch<Transaction[]>('/api/transactions'),
-          apiFetch<CategoriesData>('/api/transactions/categories'),
-        ]);
-
-        if (cancelled) return;
-
-        setTransactions(transactionsData);
-        setCategories(categoriesData);
-
-        if (categoriesData.expense.length > 0) {
-          setCategory(categoriesData.expense[0]);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          console.error(err);
-          setError('Unable to load transactions data.');
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    loadData();
-    return () => {
-      cancelled = true;
-    };
+    apiFetch('/api/transactions/categories', TransactionCategoriesSchema)
+      .then((cats) => {
+        setCategories(cats);
+        setTxForm((f) => ({ ...f, category: f.category || cats.expense[0] || '' }));
+      })
+      .catch(() => {});
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  // ── load transactions ────────────────────────────────────────────────────
+  const loadTransactions = useCallback(async () => {
+    setTxLoading(true);
+    setTxError(null);
+    try {
+      const params = new URLSearchParams();
+      if (filterFrom) params.set('from', new Date(`${filterFrom}T00:00:00`).toISOString());
+      if (filterTo) params.set('to', new Date(`${filterTo}T23:59:59`).toISOString());
+      if (filterCategory) params.set('category', filterCategory);
+      if (filterKeyword) params.set('keyword', filterKeyword);
+      setTransactions(await apiFetch(`/api/transactions?${params}`, TransactionListSchema));
+    } catch (e) {
+      setTxError(e instanceof Error ? e.message : 'Failed to load transactions');
+    } finally {
+      setTxLoading(false);
+    }
+  }, [filterFrom, filterTo, filterCategory, filterKeyword]);
+
+  useEffect(() => {
+    loadTransactions();
+  }, [loadTransactions]);
+
+  // ── load budgets ─────────────────────────────────────────────────────────
+  const loadBudgets = useCallback(async () => {
+    setBudgetLoading(true);
+    setBudgetError(null);
+    try {
+      const [b, u] = await Promise.all([
+        apiFetch(`/api/budgets?year=${budgetYear}&month=${budgetMonth}`, BudgetListSchema),
+        apiFetch(
+          `/api/budgets/usage?year=${budgetYear}&month=${budgetMonth}`,
+          TransactionBudgetUsageListSchema,
+        ),
+      ]);
+      setBudgets(b);
+      setUsage(u);
+      const inputs: Record<string, string> = {};
+      for (const cat of categories.expense) {
+        const existing = b.find((x) => x.category === cat);
+        inputs[cat] = existing ? String(existing.limitAmount) : '';
+      }
+      setLimitInputs(inputs);
+    } catch (e) {
+      setBudgetError(e instanceof Error ? e.message : 'Failed to load budgets');
+    } finally {
+      setBudgetLoading(false);
+    }
+  }, [budgetYear, budgetMonth, categories]);
+
+  useEffect(() => {
+    if (tab === 'budgets' && categories.expense.length > 0) loadBudgets();
+  }, [tab, loadBudgets, categories.expense.length]);
+
+  // ── form helpers ─────────────────────────────────────────────────────────
+  const startEdit = (tx: Transaction) => {
+    const isIncome = tx.amount > 0;
+    setEditingId(tx.id);
+    setTxForm({
+      amount: String(Math.abs(tx.amount)),
+      date: tx.date.slice(0, 10),
+      category: tx.category,
+      description: tx.description ?? '',
+      isIncome,
+    });
+    setTxError(null);
+    setTxSuccess(null);
+    amountRef.current?.focus();
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setTxForm(emptyTxForm(categories));
+    setTxError(null);
+    setTxSuccess(null);
+  };
+
+  const updateForm = (field: keyof TxForm, value: string | boolean) => {
+    setTxForm((f) => {
+      const next = { ...f, [field]: value };
+      if (field === 'isIncome') {
+        const cats = value ? categories.income : categories.expense;
+        next.category = cats[0] ?? '';
+      }
+      return next;
+    });
+    setTxSuccess(null);
+  };
+
+  const handleTxSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault();
-    setError(null);
+    setTxError(null);
+    setTxSuccess(null);
+
+    const amount = Number(txForm.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setTxError('Enter a valid amount greater than zero.');
+      return;
+    }
+    if (!txForm.category) {
+      setTxError('Select a category.');
+      return;
+    }
+
+    const signedAmount = txForm.isIncome ? amount : -amount;
+    const body = JSON.stringify({
+      amount: signedAmount,
+      date: new Date(`${txForm.date}T12:00:00`).toISOString(),
+      category: txForm.category,
+      description: txForm.description.trim() || null,
+    });
+
     setSubmitting(true);
-
-    const selectedDateISO = new Date(date).toISOString();
-
-    const requestBody = {
-      amount: Number.parseFloat(amount),
-      date: selectedDateISO,
-      category: category,
-      description: description.trim() || undefined,
-    };
-
     try {
       if (editingId) {
-        await apiFetch(`/api/transactions/${editingId}`, {
-          method: 'PUT',
-          body: JSON.stringify(requestBody),
-        });
+        await apiFetch(`/api/transactions/${editingId}`, { method: 'PUT', body });
+        setTxSuccess('Transaction updated.');
       } else {
-        await apiFetch('/api/transactions', {
-          method: 'POST',
-          body: JSON.stringify(requestBody),
-        });
+        await apiFetch('/api/transactions', TransactionSchema, { method: 'POST', body });
+        setTxSuccess('Transaction added.');
       }
-
-      const updatedTransactions = await apiFetch<Transaction[]>('/api/transactions');
-      setTransactions(updatedTransactions);
-
-      resetForm();
+      setEditingId(null);
+      setTxForm(emptyTxForm(categories));
+      await loadTransactions();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save transaction');
+      setTxError(err instanceof Error ? err.message : 'Failed to save transaction');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const startEdit = (tx: Transaction) => {
-    setError(null);
-    setEditingId(tx.id);
-    setAmount(String(tx.amount));
-    setCategory(tx.category);
-    setDescription(tx.description || '');
-    setDate(getLocalDateString(tx.date));
-  };
-
-  const resetForm = () => {
-    setEditingId(null);
-    setAmount('');
-    setDescription('');
-    setDate(getLocalDateString());
-    if (categories.expense.length > 0) {
-      setCategory(categories.expense[0]);
-    }
-  };
-
-  const clearFilters = () => {
-    setFilterKeyword('');
-    setFilterCategory('');
-    setFilterStartDate('');
-    setFilterEndDate('');
-    setFilterMinAmount('');
-    setFilterMaxAmount('');
-  };
-
-  const handleDelete = async (id: string, currentAmount: number) => {
-    const confirmed = window.confirm(`Delete transaction for ${fmt(currentAmount)}?`);
-    if (!confirmed) return;
-
-    setError(null);
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this transaction?')) return;
     try {
       await apiFetch(`/api/transactions/${id}`, { method: 'DELETE' });
-      setTransactions((prev) => prev.filter((t) => t.id !== id));
-
-      if (editingId === id) {
-        resetForm();
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete transaction');
+      if (editingId === id) cancelEdit();
+      await loadTransactions();
+    } catch (e) {
+      setTxError(e instanceof Error ? e.message : 'Failed to delete');
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Intl.DateTimeFormat(undefined, {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(new Date(dateStr));
+  const saveBudget = async (category: string) => {
+    const raw = limitInputs[category];
+    const limit = Number(raw);
+    if (!raw || !Number.isFinite(limit) || limit < 0) {
+      setBudgetError('Enter a valid limit amount.');
+      return;
+    }
+    setBudgetError(null);
+    setBudgetSuccess(null);
+    setSavingCategory(category);
+    try {
+      await apiFetch('/api/budgets', {
+        method: 'PUT',
+        body: JSON.stringify({
+          year: budgetYear,
+          month: budgetMonth,
+          category,
+          limitAmount: limit,
+        }),
+      });
+      setBudgetSuccess(`Budget saved for ${category}.`);
+      await loadBudgets();
+    } catch (e) {
+      setBudgetError(e instanceof Error ? e.message : 'Failed to save budget');
+    } finally {
+      setSavingCategory(null);
+    }
   };
 
-  const filteredTransactions = transactions.filter((tx) => {
-    if (filterKeyword.trim()) {
-      const kw = filterKeyword.toLowerCase();
-      const descMatch = tx.description?.toLowerCase().includes(kw) ?? false;
-      const catMatch = tx.category.toLowerCase().includes(kw);
-      if (!descMatch && !catMatch) return false;
-    }
+  const getUsage = (category: string): TransactionBudgetUsage | undefined =>
+    usage.find((u) => u.category === category);
 
-    if (filterCategory && tx.category !== filterCategory) {
-      return false;
-    }
-
-    const txDateStr = getLocalDateString(tx.date);
-    if (filterStartDate && txDateStr < filterStartDate) {
-      return false;
-    }
-    if (filterEndDate && txDateStr > filterEndDate) {
-      return false;
-    }
-
-    if (filterMinAmount !== '' && tx.amount < Number.parseFloat(filterMinAmount)) {
-      return false;
-    }
-    if (filterMaxAmount !== '' && tx.amount > Number.parseFloat(filterMaxAmount)) {
-      return false;
-    }
-
-    return true;
-  });
-
-  if (loading) {
-    return (
-      <div className="d-flex justify-content-center py-5">
-        <output className="spinner-border text-primary">
-          <span className="visually-hidden">Loading...</span>
-        </output>
-      </div>
-    );
-  }
+  const totalIncome = transactions.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const totalExpenses = transactions
+    .filter((t) => t.amount < 0)
+    .reduce((s, t) => s + Math.abs(t.amount), 0);
+  const allCategories = [...categories.expense, ...categories.income];
 
   return (
-    <div className="text-start">
-      <h4 className="mb-4">Transactions</h4>
+    <div>
+      {/* Page header */}
+      <div className="page-header">
+        <h1 className="page-title">Transactions & Budgets</h1>
+        <p className="page-subtitle">Track income, expenses and set monthly spending limits.</p>
+      </div>
 
-      {error && (
-        <div className="alert alert-danger" role="alert">
-          {error}
+      {/* Tabs */}
+      <ul className="nav nav-tabs mb-4">
+        <li className="nav-item">
+          <button
+            type="button"
+            className={`nav-link${tab === 'transactions' ? ' active' : ''}`}
+            onClick={() => setTab('transactions')}
+          >
+            Transactions
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            type="button"
+            className={`nav-link${tab === 'budgets' ? ' active' : ''}`}
+            onClick={() => setTab('budgets')}
+          >
+            Budgets
+          </button>
+        </li>
+      </ul>
+
+      {/* ── TRANSACTIONS TAB ── */}
+      {tab === 'transactions' && (
+        <div>
+          {txError && <div className="alert alert-danger mb-3">{txError}</div>}
+          {txSuccess && <div className="alert alert-success mb-3">{txSuccess}</div>}
+
+          <div className="row g-4">
+            {/* Form */}
+            <div className="col-lg-4">
+              <div className="card">
+                <div className="card-body">
+                  <h6 className="card-title mb-3">
+                    {editingId ? 'Edit Transaction' : 'New Transaction'}
+                  </h6>
+                  <form onSubmit={handleTxSubmit}>
+                    <div className="mb-3">
+                      <div className="btn-group w-100">
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${!txForm.isIncome ? 'btn-danger' : 'btn-outline-secondary'}`}
+                          onClick={() => updateForm('isIncome', false)}
+                          disabled={submitting}
+                        >
+                          Expense
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${txForm.isIncome ? 'btn-success' : 'btn-outline-secondary'}`}
+                          onClick={() => updateForm('isIncome', true)}
+                          disabled={submitting}
+                        >
+                          Income
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mb-3">
+                      <label className="form-label" htmlFor="tx-amount">
+                        Amount
+                      </label>
+                      <input
+                        id="tx-amount"
+                        ref={amountRef}
+                        className="form-control"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={txForm.amount}
+                        onChange={(e) => updateForm('amount', e.target.value)}
+                        placeholder="0.00"
+                        disabled={submitting}
+                        required
+                      />
+                    </div>
+
+                    <div className="mb-3">
+                      <label className="form-label" htmlFor="tx-date">
+                        Date
+                      </label>
+                      <DatePicker value={txForm.date} onChange={(v) => updateForm('date', v)} />
+                    </div>
+
+                    <div className="mb-3">
+                      <label className="form-label" htmlFor="tx-category">
+                        Category
+                      </label>
+                      <select
+                        id="tx-category"
+                        className="form-select"
+                        value={txForm.category}
+                        onChange={(e) => updateForm('category', e.target.value)}
+                        disabled={submitting}
+                        required
+                      >
+                        {(txForm.isIncome ? categories.income : categories.expense).map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="mb-3">
+                      <label className="form-label" htmlFor="tx-desc">
+                        Description
+                      </label>
+                      <input
+                        id="tx-desc"
+                        className="form-control"
+                        type="text"
+                        value={txForm.description}
+                        onChange={(e) => updateForm('description', e.target.value)}
+                        placeholder="Optional"
+                        disabled={submitting}
+                      />
+                    </div>
+
+                    <div className="d-flex gap-2">
+                      <button
+                        type="submit"
+                        className={`btn flex-grow-1 ${txForm.isIncome ? 'btn-success' : 'btn-primary'}`}
+                        disabled={submitting}
+                      >
+                        {submitting ? 'Saving…' : editingId ? 'Update' : 'Add'}
+                      </button>
+                      {editingId && (
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={cancelEdit}
+                          disabled={submitting}
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            {/* List */}
+            <div className="col-lg-8">
+              {/* Summary metric cards */}
+              {!txLoading && transactions.length > 0 && (
+                <div className="row g-3 mb-4">
+                  <div className="col-6">
+                    <div className="metric-card c-success">
+                      <div className="metric-label">Income</div>
+                      <div className="metric-value up">{fmt(totalIncome)}</div>
+                      <div className="metric-sub">
+                        {transactions.filter((t) => t.amount > 0).length} transactions
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-6">
+                    <div className="metric-card c-danger">
+                      <div className="metric-label">Expenses</div>
+                      <div className="metric-value down">{fmt(totalExpenses)}</div>
+                      <div className="metric-sub">
+                        {transactions.filter((t) => t.amount < 0).length} transactions
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Filters */}
+              <div className="card mb-3">
+                <div className="card-body py-2">
+                  <div className="row g-2 align-items-end">
+                    <div className="col-sm-3">
+                      <label className="form-label" htmlFor="filter-from">
+                        From
+                      </label>
+                      <DatePicker value={filterFrom} onChange={setFilterFrom} placeholder="From" />
+                    </div>
+                    <div className="col-sm-3">
+                      <label className="form-label" htmlFor="filter-to">
+                        To
+                      </label>
+                      <DatePicker
+                        value={filterTo}
+                        onChange={setFilterTo}
+                        placeholder="To"
+                        min={filterFrom}
+                      />
+                    </div>
+                    <div className="col-sm-3">
+                      <label className="form-label" htmlFor="filter-cat">
+                        Category
+                      </label>
+                      <select
+                        id="filter-cat"
+                        className="form-select form-select-sm"
+                        value={filterCategory}
+                        onChange={(e) => setFilterCategory(e.target.value)}
+                      >
+                        <option value="">All</option>
+                        {allCategories.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-sm-3">
+                      <label className="form-label" htmlFor="filter-kw">
+                        Search
+                      </label>
+                      <input
+                        id="filter-kw"
+                        className="form-control form-control-sm"
+                        type="text"
+                        value={filterKeyword}
+                        onChange={(e) => setFilterKeyword(e.target.value)}
+                        placeholder="Keyword…"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Transaction list */}
+              <div className="card">
+                <div className="card-body p-0">
+                  {txLoading ? (
+                    <div className="loading-center">
+                      {/* biome-ignore lint/a11y/useSemanticElements: Bootstrap spinner requires role=status */}
+                      <div className="spinner-border spinner-border-sm text-primary" role="status">
+                        <span className="visually-hidden">Loading…</span>
+                      </div>
+                    </div>
+                  ) : transactions.length === 0 ? (
+                    <p className="text-muted small text-center py-5 mb-0">No transactions found.</p>
+                  ) : (
+                    <div
+                      className="list-group list-group-flush"
+                      style={{ borderRadius: 'inherit' }}
+                    >
+                      {[...transactions]
+                        .sort((a, b) => b.date.localeCompare(a.date))
+                        .map((tx) => {
+                          const isIncome = tx.amount > 0;
+                          const isEditing = editingId === tx.id;
+                          return (
+                            <div
+                              key={tx.id}
+                              className="list-group-item d-flex justify-content-between align-items-center gap-2"
+                              style={{
+                                background: isEditing ? 'var(--color-primary-light)' : undefined,
+                              }}
+                            >
+                              <div className="flex-grow-1 min-w-0">
+                                <div className="d-flex align-items-center gap-2">
+                                  <span className="tx-category-badge">{tx.category}</span>
+                                  <span className="text-muted" style={{ fontSize: '0.8rem' }}>
+                                    {new Date(tx.date).toLocaleDateString('en-GB', {
+                                      day: 'numeric',
+                                      month: 'short',
+                                      year: 'numeric',
+                                    })}
+                                  </span>
+                                </div>
+                                {tx.description && (
+                                  <div
+                                    className="text-muted text-truncate mt-1"
+                                    style={{ fontSize: '0.8rem' }}
+                                  >
+                                    {tx.description}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="d-flex align-items-center gap-2 flex-shrink-0">
+                                <span
+                                  className={`fw-semibold ${isIncome ? 'text-success' : 'text-danger'}`}
+                                  style={{ fontSize: '0.9rem' }}
+                                >
+                                  {isIncome ? '+' : '-'}
+                                  {fmt(Math.abs(tx.amount))}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="pf-btn-icon edit"
+                                  onClick={() => startEdit(tx)}
+                                  title="Edit"
+                                >
+                                  ✎
+                                </button>
+                                <button
+                                  type="button"
+                                  className="pf-btn-icon danger"
+                                  onClick={() => handleDelete(tx.id)}
+                                  title="Delete"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
-      <div className="row g-4">
-        <div className="col-lg-4">
-          <div className="card border-0 shadow-sm">
-            <div className="card-body">
-              <h6 className="card-title mb-3 text-primary">
-                {editingId ? 'Edit Transaction' : 'Add New Transaction'}
-              </h6>
+      {/* ── BUDGETS TAB ── */}
+      {tab === 'budgets' && (
+        <div>
+          {budgetError && <div className="alert alert-danger mb-3">{budgetError}</div>}
+          {budgetSuccess && <div className="alert alert-success mb-3">{budgetSuccess}</div>}
 
-              <form onSubmit={handleSubmit}>
-                <div className="mb-3">
-                  <label htmlFor="date" className="form-label small fw-semibold">
-                    Date
-                  </label>
-                  <input
-                    id="date"
-                    type="date"
-                    className="form-control form-control-sm"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label htmlFor="amount" className="form-label small fw-semibold">
-                    Amount
-                  </label>
-                  <div className="input-group input-group-sm">
-                    <input
-                      id="amount"
-                      type="number"
-                      step="0.01"
-                      className="form-control"
-                      placeholder="e.g. -15.50 or 500"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="form-text small text-muted">
-                    Negative for expenses, positive for income.
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <label htmlFor="category" className="form-label small fw-semibold">
-                    Category
-                  </label>
-                  <select
-                    id="category"
-                    className="form-select form-select-sm"
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    required
-                  >
-                    <optgroup label="Expenses">
-                      {categories.expense.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="Income">
-                      {categories.income.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </optgroup>
-                  </select>
-                </div>
-
-                <div className="mb-3">
-                  <label htmlFor="description" className="form-label small fw-semibold">
-                    Description
-                  </label>
-                  <input
-                    id="description"
-                    type="text"
-                    className="form-control form-control-sm"
-                    placeholder="e.g. Grocery shopping"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                  />
-                </div>
-
-                <div className="d-flex gap-2">
-                  <button
-                    type="submit"
-                    className={`btn btn-sm w-100 ${editingId ? 'btn-success' : 'btn-primary'}`}
-                    disabled={submitting}
-                  >
-                    {submitting ? 'Saving...' : editingId ? 'Update Changes' : 'Save Transaction'}
-                  </button>
-
-                  {editingId && (
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary btn-sm"
-                      onClick={resetForm}
-                      disabled={submitting}
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-lg-8">
-          <div className="card border-0 shadow-sm mb-4">
-            <div className="card-body bg-light rounded">
-              <h6 className="card-title mb-3 text-secondary small fw-bold text-uppercase">
-                Filter & Search
-              </h6>
-              <div className="row g-2">
-                <div className="col-md-4">
-                  <input
-                    type="text"
-                    className="form-control form-control-sm"
-                    placeholder="Search keyword..."
-                    value={filterKeyword}
-                    onChange={(e) => setFilterKeyword(e.target.value)}
-                  />
-                </div>
-
-                <div className="col-md-4">
-                  <select
-                    className="form-select form-select-sm"
-                    value={filterCategory}
-                    onChange={(e) => setFilterCategory(e.target.value)}
-                  >
-                    <option value="">All Categories</option>
-                    <optgroup label="Expenses">
-                      {categories.expense.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="Income">
-                      {categories.income.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </optgroup>
-                  </select>
-                </div>
-
-                <div className="col-md-4 text-md-end">
-                  {(filterKeyword ||
-                    filterCategory ||
-                    filterStartDate ||
-                    filterEndDate ||
-                    filterMinAmount ||
-                    filterMaxAmount) && (
-                    <button
-                      type="button"
-                      className="btn btn-link btn-sm text-decoration-none p-0 pt-1"
-                      onClick={clearFilters}
-                    >
-                      Clear Filters
-                    </button>
-                  )}
-                </div>
-
-                <div className="col-6 col-md-3">
-                  <label htmlFor="filterStartDate" className="form-label mb-0 small text-muted">
-                    From Date
-                  </label>
-                  <input
-                    id="filterStartDate"
-                    type="date"
-                    className="form-control form-control-sm"
-                    value={filterStartDate}
-                    onChange={(e) => setFilterStartDate(e.target.value)}
-                  />
-                </div>
-
-                <div className="col-6 col-md-3">
-                  <label htmlFor="filterEndDate" className="form-label mb-0 small text-muted">
-                    To Date
-                  </label>
-                  <input
-                    id="filterEndDate"
-                    type="date"
-                    className="form-control form-control-sm"
-                    value={filterEndDate}
-                    onChange={(e) => setFilterEndDate(e.target.value)}
-                  />
-                </div>
-
-                <div className="col-6 col-md-3">
-                  <label htmlFor="filterMinAmount" className="form-label mb-0 small text-muted">
-                    Min Amount
-                  </label>
-                  <input
-                    id="filterMinAmount"
-                    type="number"
-                    step="0.01"
-                    className="form-control form-control-sm"
-                    placeholder="Min €"
-                    value={filterMinAmount}
-                    onChange={(e) => setFilterMinAmount(e.target.value)}
-                  />
-                </div>
-
-                <div className="col-6 col-md-3">
-                  <label htmlFor="filterMaxAmount" className="form-label mb-0 small text-muted">
-                    Max Amount
-                  </label>
-                  <input
-                    id="filterMaxAmount"
-                    type="number"
-                    step="0.01"
-                    className="form-control form-control-sm"
-                    placeholder="Max €"
-                    value={filterMaxAmount}
-                    onChange={(e) => setFilterMaxAmount(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
+          {/* Month selector */}
+          <div className="d-flex align-items-center gap-3 mb-4">
+            <button
+              type="button"
+              className="btn btn-outline-secondary btn-sm"
+              onClick={() => {
+                if (budgetMonth === 1) {
+                  setBudgetMonth(12);
+                  setBudgetYear((y) => y - 1);
+                } else {
+                  setBudgetMonth((m) => m - 1);
+                }
+              }}
+            >
+              ‹
+            </button>
+            <span className="fw-semibold">{monthLabel(budgetYear, budgetMonth)}</span>
+            <button
+              type="button"
+              className="btn btn-outline-secondary btn-sm"
+              onClick={() => {
+                if (budgetMonth === 12) {
+                  setBudgetMonth(1);
+                  setBudgetYear((y) => y + 1);
+                } else {
+                  setBudgetMonth((m) => m + 1);
+                }
+              }}
+            >
+              ›
+            </button>
           </div>
 
-          <div className="card border-0 shadow-sm">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <h6 className="card-title mb-0">History</h6>
-                <span className="text-muted small">
-                  Showing {filteredTransactions.length} of {transactions.length} total
-                </span>
+          {budgetLoading ? (
+            <div className="loading-center">
+              {/* biome-ignore lint/a11y/useSemanticElements: Bootstrap spinner requires role=status */}
+              <div className="spinner-border spinner-border-sm text-primary" role="status">
+                <span className="visually-hidden">Loading…</span>
               </div>
+            </div>
+          ) : (
+            <div className="row g-3">
+              {categories.expense.map((cat) => {
+                const u = getUsage(cat);
+                const pct = u ? Math.min(u.usagePercent, 100) : 0;
+                const over = u && u.usagePercent > 100;
+                const hasLimit = !!budgets.find((b) => b.category === cat);
 
-              {filteredTransactions.length === 0 ? (
-                <p className="text-muted small mb-0 py-3 text-center">
-                  No transactions match the selected filters.
-                </p>
-              ) : (
-                <div className="table-responsive">
-                  <table className="table align-middle mb-0 small">
-                    <thead>
-                      <tr>
-                        <th scope="col">Date</th>
-                        <th scope="col">Category</th>
-                        <th scope="col">Description</th>
-                        <th scope="col" className="text-end">
-                          Amount
-                        </th>
-                        <th scope="col" className="text-end">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredTransactions.map((tx) => (
-                        <tr key={tx.id} className={editingId === tx.id ? 'table-light' : undefined}>
-                          <td className="text-nowrap">{formatDate(tx.date)}</td>
-                          <td>
-                            <span className="badge text-bg-light border text-secondary">
-                              {tx.category}
+                return (
+                  <div className="col-md-6" key={cat}>
+                    <div className="card h-100">
+                      <div className="card-body">
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                          <span className="fw-semibold" style={{ fontSize: '0.9rem' }}>
+                            {cat}
+                          </span>
+                          {u && (
+                            <span
+                              className={`small ${over ? 'text-danger fw-semibold' : 'text-muted'}`}
+                            >
+                              {fmt(u.spent)} / {hasLimit ? fmt(u.limit) : '—'}
                             </span>
-                          </td>
-                          <td className="text-muted">{tx.description || '—'}</td>
-                          <td
-                            className={`text-end fw-semibold text-nowrap ${
-                              tx.amount < 0 ? 'text-danger' : 'text-success'
-                            }`}
-                          >
-                            {tx.amount < 0 ? '' : '+'}
-                            {fmt(tx.amount)}
-                          </td>
-                          <td className="text-end">
-                            <div className="d-flex justify-content-end gap-2">
-                              <button
-                                type="button"
-                                className="btn btn-link btn-sm p-0 text-primary text-decoration-none"
-                                onClick={() => startEdit(tx)}
-                              >
-                                Edit
-                              </button>
-                              <span className="text-muted">|</span>
-                              <button
-                                type="button"
-                                className="btn btn-link btn-sm p-0 text-danger text-decoration-none"
-                                onClick={() => handleDelete(tx.id, tx.amount)}
-                              >
-                                Delete
-                              </button>
+                          )}
+                        </div>
+
+                        {hasLimit && u && (
+                          <div className="mb-2">
+                            <div className="progress" style={{ height: 6 }}>
+                              <div
+                                className={`progress-bar ${over ? 'bg-danger' : pct > 80 ? 'bg-warning' : 'bg-primary'}`}
+                                style={{ width: `${pct}%` }}
+                              />
                             </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                            <div className="d-flex justify-content-between mt-1">
+                              <span className="text-muted" style={{ fontSize: '0.72rem' }}>
+                                {u.usagePercent}% used
+                              </span>
+                              <span
+                                className={over ? 'text-danger' : 'text-muted'}
+                                style={{ fontSize: '0.72rem' }}
+                              >
+                                {over
+                                  ? `${fmt(Math.abs(u.remaining))} over`
+                                  : `${fmt(u.remaining)} left`}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {!hasLimit && u && u.spent > 0 && (
+                          <p className="small text-muted mb-2">
+                            {fmt(u.spent)} spent — no limit set
+                          </p>
+                        )}
+
+                        <div className="input-group input-group-sm mt-2">
+                          <span className="input-group-text">Limit</span>
+                          <input
+                            className="form-control"
+                            type="number"
+                            min="0"
+                            step="1"
+                            placeholder="e.g. 500"
+                            value={limitInputs[cat] ?? ''}
+                            onChange={(e) =>
+                              setLimitInputs((prev) => ({ ...prev, [cat]: e.target.value }))
+                            }
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={() => saveBudget(cat)}
+                            disabled={savingCategory === cat}
+                          >
+                            {savingCategory === cat ? '…' : 'Save'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }

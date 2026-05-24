@@ -71,6 +71,14 @@ export const GoalContributionSchema = z.object({
 
 export const GoalContributionListSchema = z.array(GoalContributionSchema);
 
+// Spending Trend
+export const SpendingTrendPointSchema = z.object({
+  month: z.string(),
+  expenses: z.record(z.string(), z.number()),
+});
+
+export const SpendingTrendSchema = z.array(SpendingTrendPointSchema);
+
 // Advisor Result Schema
 export const AdvisorResultSchema = z.object({
   provider: z.string(),
@@ -80,4 +88,42 @@ export const AdvisorResultSchema = z.object({
 // Error Result Schema
 export const ErrorResultSchema = z.object({
   error: z.string(),
+});
+
+// Transactions module schemas
+
+export const TransactionSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  amount: z.number(),
+  date: z.string(),
+  category: z.string(),
+  description: z.string().nullable().optional(),
+});
+
+export const TransactionListSchema = z.array(TransactionSchema);
+
+export const BudgetSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  category: z.string(),
+  date: z.string(),
+  limitAmount: z.number(),
+});
+
+export const BudgetListSchema = z.array(BudgetSchema);
+
+export const TransactionBudgetUsageSchema = z.object({
+  category: z.string(),
+  limit: z.number(),
+  spent: z.number(),
+  remaining: z.number(),
+  usagePercent: z.number(),
+});
+
+export const TransactionBudgetUsageListSchema = z.array(TransactionBudgetUsageSchema);
+
+export const TransactionCategoriesSchema = z.object({
+  expense: z.array(z.string()),
+  income: z.array(z.string()),
 });

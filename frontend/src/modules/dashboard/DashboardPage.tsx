@@ -4,10 +4,12 @@ import type { DashboardSummary } from '@/api/types';
 import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
 import EmptyState from '@/modules/dashboard/components/EmptyState';
 import FormattedTips from '@/modules/dashboard/components/FormattedTips';
+import SpendingTrendChart from '@/modules/dashboard/components/SpendingTrendChart';
 import { ADVISOR_GOAL_OPTIONS } from '@/modules/dashboard/constants/advisorGoals';
 import { EMPTY_STATE_MESSAGES } from '@/modules/dashboard/constants/emptyStateMessages';
 import { useAdvisor } from '@/modules/dashboard/hooks/useAdvisor';
 import { useClaudeApiKey } from '@/modules/dashboard/hooks/useClaudeApiKey';
+import { useSpendingTrend } from '@/modules/dashboard/hooks/useSpendingTrend';
 import { getBudgetProgressColor } from '@/modules/dashboard/utils/budgetUtils';
 import { hasBudgetData, hasSavingsGoals } from '@/modules/dashboard/utils/dataChecks';
 import { useEffect, useState } from 'react';
@@ -17,6 +19,9 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [selectedGoals, setSelectedGoals] = useState<string[]>(['save_more']);
   const [customQuestion, setCustomQuestion] = useState('');
+
+  const { data: spendingTrend, loading: trendLoading } = useSpendingTrend(12);
+  const hasTrendData = spendingTrend.some((p) => Object.keys(p.expenses).length > 0);
 
   // Custom hooks for advisor and API key management
   const apiKeyManager = useClaudeApiKey();
@@ -82,47 +87,40 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h4 className="mb-4">Dashboard</h4>
+      <div className="page-header">
+        <h1 className="page-title">Dashboard</h1>
+        <p className="page-subtitle">Your financial overview at a glance.</p>
+      </div>
 
       {/* Overview cards */}
       <div className="row g-3 mb-4">
         <div className="col-sm-6 col-lg-3">
-          <div className="card h-100 border-0 shadow-sm">
-            <div className="card-body">
-              <p className="text-muted small mb-1">Net Worth</p>
-              <p className="fs-4 fw-bold mb-0">{fmt(summary.netWorth)}</p>
-            </div>
+          <div className="metric-card c-primary h-100">
+            <div className="metric-label">Net Worth</div>
+            <div className="metric-value">{fmt(summary.netWorth)}</div>
           </div>
         </div>
         <div className="col-sm-6 col-lg-3">
-          <div className="card h-100 border-0 shadow-sm">
-            <div className="card-body">
-              <p className="text-muted small mb-1">Total Invested</p>
-              <p className="fs-4 fw-bold mb-0">{fmt(summary.totalInvested)}</p>
-            </div>
+          <div className="metric-card c-cyan h-100">
+            <div className="metric-label">Total Invested</div>
+            <div className="metric-value">{fmt(summary.totalInvested)}</div>
           </div>
         </div>
         <div className="col-sm-6 col-lg-3">
-          <div className="card h-100 border-0 shadow-sm">
-            <div className="card-body">
-              <p className="text-muted small mb-1">Total Saved</p>
-              <p className="fs-4 fw-bold mb-0">{fmt(summary.totalSaved)}</p>
-            </div>
+          <div className="metric-card c-success h-100">
+            <div className="metric-label">Total Saved</div>
+            <div className="metric-value">{fmt(summary.totalSaved)}</div>
           </div>
         </div>
         <div className="col-sm-6 col-lg-3">
-          <div className="card h-100 border-0 shadow-sm">
-            <div className="card-body">
-              <p className="text-muted small mb-1">This Month</p>
-              <p
-                className={`fs-4 fw-bold mb-0 ${netForMonth >= 0 ? 'text-success' : 'text-danger'}`}
-              >
-                {netForMonth >= 0 ? '+' : ''}
-                {fmt(netForMonth)}
-              </p>
-              <p className="text-muted small mb-0">
-                {fmt(summary.monthlyIncome)} in · {fmt(summary.monthlyExpenses)} out
-              </p>
+          <div className={`metric-card ${netForMonth >= 0 ? 'c-success' : 'c-danger'} h-100`}>
+            <div className="metric-label">This Month</div>
+            <div className={`metric-value ${netForMonth >= 0 ? 'up' : 'down'}`}>
+              {netForMonth >= 0 ? '+' : ''}
+              {fmt(netForMonth)}
+            </div>
+            <div className="metric-sub">
+              {fmt(summary.monthlyIncome)} in · {fmt(summary.monthlyExpenses)} out
             </div>
           </div>
         </div>
@@ -131,7 +129,7 @@ export default function DashboardPage() {
       <div className="row g-4">
         {/* Budget usage */}
         <div className="col-lg-6">
-          <div className="card border-0 shadow-sm h-100">
+          <div className="card h-100">
             <div className="card-body">
               <h6 className="card-title mb-3">Budget Usage</h6>
               {hasBudgetData(summary) ? (
@@ -160,7 +158,7 @@ export default function DashboardPage() {
 
         {/* Savings goals */}
         <div className="col-lg-6">
-          <div className="card border-0 shadow-sm h-100">
+          <div className="card h-100">
             <div className="card-body">
               <h6 className="card-title mb-3">Savings Goals</h6>
               {hasSavingsGoals(summary) ? (
@@ -189,8 +187,27 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Spending Trend */}
+      <div className="card mt-4">
+        <div className="card-body">
+          <h6 className="card-title mb-3">Spending Trend — Last 12 Months</h6>
+          {trendLoading ? (
+            <div className="d-flex justify-content-center py-4">
+              {/* biome-ignore lint/a11y/useSemanticElements: Bootstrap spinner requires role=status */}
+              <div className="spinner-border spinner-border-sm text-primary" role="status">
+                <span className="visually-hidden">Loading…</span>
+              </div>
+            </div>
+          ) : hasTrendData ? (
+            <SpendingTrendChart data={spendingTrend} />
+          ) : (
+            <EmptyState {...EMPTY_STATE_MESSAGES.SPENDING_TREND} />
+          )}
+        </div>
+      </div>
+
       {/* AI Advisor */}
-      <div className="card border-0 shadow-sm mt-4">
+      <div className="card mt-4">
         <div className="card-body">
           <h6 className="card-title mb-1">AI Financial Advisor</h6>
           <p className="text-muted small mb-3">
