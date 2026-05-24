@@ -9,6 +9,7 @@ namespace BudgetApp.Api.Modules.Auth;
 public class AuthController(IAuthService authService) : ApiControllerBase
 {
     [HttpGet("profile")]
+    [ProducesResponseType(typeof(ProfileResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetProfile()
     {
         var profile = await authService.GetProfileAsync(UserId);

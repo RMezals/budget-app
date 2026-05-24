@@ -10,9 +10,12 @@ namespace BudgetApp.Tests.Dashboard;
 
 public class DashboardControllerTests
 {
-    private static DashboardController CreateController(IDashboardService service, string userId = "user1")
+    private readonly Mock<IDashboardService> _dashboardMock = new();
+    private readonly Mock<ISpendingTrendService> _trendMock = new();
+
+    private DashboardController CreateController(string userId = "user1")
     {
-        var controller = new DashboardController(service);
+        var controller = new DashboardController(_dashboardMock.Object, _trendMock.Object);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()
@@ -25,10 +28,9 @@ public class DashboardControllerTests
     public async Task GetSummary_ReturnsOkWithDashboardSummary()
     {
         var expected = new DashboardSummary { NetWorth = 5000m, MonthlyIncome = 2000m };
-        var service = new Mock<IDashboardService>();
-        service.Setup(s => s.GetSummaryAsync("user1")).ReturnsAsync(expected);
+        _dashboardMock.Setup(s => s.GetSummaryAsync("user1")).ReturnsAsync(expected);
 
-        var result = await CreateController(service.Object).GetSummary();
+        var result = await CreateController().GetSummary();
 
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.Same(expected, ok.Value);
@@ -37,23 +39,48 @@ public class DashboardControllerTests
     [Fact]
     public async Task GetSummary_PassesUserIdFromHttpContextToService()
     {
-        var service = new Mock<IDashboardService>();
-        service.Setup(s => s.GetSummaryAsync("abc-123")).ReturnsAsync(new DashboardSummary());
+        _dashboardMock.Setup(s => s.GetSummaryAsync("abc-123")).ReturnsAsync(new DashboardSummary());
 
-        await CreateController(service.Object, "abc-123").GetSummary();
+        await CreateController("abc-123").GetSummary();
 
-        service.Verify(s => s.GetSummaryAsync("abc-123"), Times.Once);
+        _dashboardMock.Verify(s => s.GetSummaryAsync("abc-123"), Times.Once);
     }
 
     [Fact]
     public async Task GetSummary_MissingUserId_ThrowsUnauthorizedAccessException()
     {
-        var controller = new DashboardController(new Mock<IDashboardService>().Object);
+        var controller = new DashboardController(_dashboardMock.Object, _trendMock.Object);
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = new DefaultHttpContext()   // UserId not set
+            HttpContext = new DefaultHttpContext() // UserId not set
         };
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.GetSummary());
+    }
+
+    [Fact]
+    public async Task GetSpendingTrend_ReturnsOkWithTrendPoints()
+    {
+        var expected = new List<SpendingTrendPoint>
+        {
+            new() { Month = "2025-05", Expenses = new() { ["Food"] = 150m } },
+        };
+        _trendMock.Setup(s => s.GetSpendingTrendAsync("user1", 12)).ReturnsAsync(expected);
+
+        var result = await CreateController().GetSpendingTrend(12);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Same(expected, ok.Value);
+    }
+
+    [Fact]
+    public async Task GetSpendingTrend_PassesUserIdAndMonthsToService()
+    {
+        _trendMock.Setup(s => s.GetSpendingTrendAsync("user1", 6))
+                  .ReturnsAsync(new List<SpendingTrendPoint>());
+
+        await CreateController().GetSpendingTrend(6);
+
+        _trendMock.Verify(s => s.GetSpendingTrendAsync("user1", 6), Times.Once);
     }
 }

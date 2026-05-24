@@ -14,6 +14,7 @@ public interface ITransactionRepository
 {
     Task<List<Transaction>> GetAllAsync(string userId, TransactionFilter filter);
     Task<List<Transaction>> GetByMonthAsync(string userId, DateTime monthStart, DateTime monthEnd);
+    Task<List<Transaction>> GetByRangeAsync(string userId, DateTime from, DateTime to);
     Task InsertAsync(Transaction transaction);
     Task<bool> UpdateAsync(string id, string userId, decimal amount, DateTime date, string category, string? description);
     Task<bool> DeleteAsync(string id, string userId);

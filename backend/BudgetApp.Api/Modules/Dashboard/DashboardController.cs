@@ -7,7 +7,9 @@ namespace BudgetApp.Api.Modules.Dashboard;
 
 [ApiController]
 [Route("api/dashboard")]
-public class DashboardController(IDashboardService dashboardService) : ApiControllerBase
+public class DashboardController(
+    IDashboardService dashboardService,
+    ISpendingTrendService spendingTrendService) : ApiControllerBase
 {
     [HttpGet]
     [ProducesResponseType(typeof(DashboardSummary), StatusCodes.Status200OK)]
@@ -15,5 +17,13 @@ public class DashboardController(IDashboardService dashboardService) : ApiContro
     {
         var summary = await dashboardService.GetSummaryAsync(UserId);
         return Ok(summary);
+    }
+
+    [HttpGet("spending-trend")]
+    [ProducesResponseType(typeof(List<SpendingTrendPoint>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSpendingTrend([FromQuery] int months = 12)
+    {
+        var trend = await spendingTrendService.GetSpendingTrendAsync(UserId, months);
+        return Ok(trend);
     }
 }

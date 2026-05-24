@@ -11,6 +11,7 @@ namespace BudgetApp.Api.Modules.Portfolio;
 public class AssetsController(IAssetRepository repo, IPortfolioService portfolioService) : ApiControllerBase
 {
     [HttpGet]
+    [ProducesResponseType(typeof(List<Asset>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
     {
         var assets = await repo.GetByUserAsync(UserId);
@@ -19,6 +20,7 @@ public class AssetsController(IAssetRepository repo, IPortfolioService portfolio
 
     // Returns all assets enriched with unrealised gain/loss computed from price history
     [HttpGet("summary")]
+    [ProducesResponseType(typeof(List<AssetSummary>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSummary()
     {
         var assets = await repo.GetByUserAsync(UserId);
@@ -29,6 +31,7 @@ public class AssetsController(IAssetRepository repo, IPortfolioService portfolio
 
     // Allocation breakdown: percentage of total portfolio value per asset type
     [HttpGet("allocation")]
+    [ProducesResponseType(typeof(List<AssetAllocation>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllocation()
     {
         var assets = await repo.GetByUserAsync(UserId);
@@ -38,6 +41,7 @@ public class AssetsController(IAssetRepository repo, IPortfolioService portfolio
 
     // Global unrealised gain/loss vs total cost basis
     [HttpGet("gain-loss")]
+    [ProducesResponseType(typeof(PortfolioGainLoss), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetGainLoss()
     {
         var assets = await repo.GetByUserAsync(UserId);
@@ -46,6 +50,7 @@ public class AssetsController(IAssetRepository repo, IPortfolioService portfolio
 
     // Month-over-month performance for a date range
     [HttpGet("performance")]
+    [ProducesResponseType(typeof(List<MonthlyPerformance>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPerformance([FromQuery] DateTime from, [FromQuery] DateTime to)
     {
         if (from > to) return BadRequest(new { error = "from must be before to" });
@@ -55,9 +60,11 @@ public class AssetsController(IAssetRepository repo, IPortfolioService portfolio
 
     // Returns available asset types
     [HttpGet("types")]
+    [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
     public IActionResult GetTypes() => Ok(AssetTypes.All);
 
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(Asset), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetById(string id)
     {
         var asset = await repo.GetByIdAsync(id, UserId);
@@ -65,6 +72,7 @@ public class AssetsController(IAssetRepository repo, IPortfolioService portfolio
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(Asset), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] CreateAssetRequest request)
     {
         var asset = new Asset

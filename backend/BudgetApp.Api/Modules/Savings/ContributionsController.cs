@@ -1,4 +1,5 @@
 using BudgetApp.Api.Controllers;
+using BudgetApp.Api.Modules.Savings.Models;
 using BudgetApp.Api.Modules.Savings.Repositories;
 using BudgetApp.Api.Modules.Savings.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +13,7 @@ public class ContributionsController(
     ISavingsService savingsService) : ApiControllerBase
 {
     [HttpGet]
+    [ProducesResponseType(typeof(List<GoalContribution>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(string goalId)
     {
         var list = await contributionRepo.GetByGoalAsync(goalId, UserId);
@@ -19,6 +21,7 @@ public class ContributionsController(
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(GoalContribution), StatusCodes.Status201Created)]
     public async Task<IActionResult> Add(string goalId, [FromBody] AddContributionRequest request)
     {
         try

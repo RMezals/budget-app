@@ -9,6 +9,7 @@ namespace BudgetApp.Api.Modules.Portfolio;
 public class NetWorthController(IPortfolioService portfolioService) : ApiControllerBase
 {
     [HttpGet]
+    [ProducesResponseType(typeof(NetWorthSnapshot), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCurrent()
     {
         var (assets, liabilities) = await portfolioService.GetAllAsync(UserId);
@@ -18,6 +19,7 @@ public class NetWorthController(IPortfolioService portfolioService) : ApiControl
 
     // Reconstructs net worth series entirely in memory — no additional DB queries per date
     [HttpGet("history")]
+    [ProducesResponseType(typeof(List<NetWorthHistoryPoint>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetHistory([FromQuery] DateTime from, [FromQuery] DateTime to)
     {
         var (assets, liabilities) = await portfolioService.GetAllAsync(UserId);

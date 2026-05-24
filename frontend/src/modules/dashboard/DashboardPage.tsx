@@ -4,10 +4,12 @@ import type { DashboardSummary } from '@/api/types';
 import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
 import EmptyState from '@/modules/dashboard/components/EmptyState';
 import FormattedTips from '@/modules/dashboard/components/FormattedTips';
+import SpendingTrendChart from '@/modules/dashboard/components/SpendingTrendChart';
 import { ADVISOR_GOAL_OPTIONS } from '@/modules/dashboard/constants/advisorGoals';
 import { EMPTY_STATE_MESSAGES } from '@/modules/dashboard/constants/emptyStateMessages';
 import { useAdvisor } from '@/modules/dashboard/hooks/useAdvisor';
 import { useClaudeApiKey } from '@/modules/dashboard/hooks/useClaudeApiKey';
+import { useSpendingTrend } from '@/modules/dashboard/hooks/useSpendingTrend';
 import { getBudgetProgressColor } from '@/modules/dashboard/utils/budgetUtils';
 import { hasBudgetData, hasSavingsGoals } from '@/modules/dashboard/utils/dataChecks';
 import { useEffect, useState } from 'react';
@@ -17,6 +19,9 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [selectedGoals, setSelectedGoals] = useState<string[]>(['save_more']);
   const [customQuestion, setCustomQuestion] = useState('');
+
+  const { data: spendingTrend, loading: trendLoading } = useSpendingTrend(12);
+  const hasTrendData = spendingTrend.some((p) => Object.keys(p.expenses).length > 0);
 
   // Custom hooks for advisor and API key management
   const apiKeyManager = useClaudeApiKey();
@@ -179,6 +184,25 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Spending Trend */}
+      <div className="card mt-4">
+        <div className="card-body">
+          <h6 className="card-title mb-3">Spending Trend — Last 12 Months</h6>
+          {trendLoading ? (
+            <div className="d-flex justify-content-center py-4">
+              {/* biome-ignore lint/a11y/useSemanticElements: Bootstrap spinner requires role=status */}
+              <div className="spinner-border spinner-border-sm text-primary" role="status">
+                <span className="visually-hidden">Loading…</span>
+              </div>
+            </div>
+          ) : hasTrendData ? (
+            <SpendingTrendChart data={spendingTrend} />
+          ) : (
+            <EmptyState {...EMPTY_STATE_MESSAGES.SPENDING_TREND} />
+          )}
         </div>
       </div>
 
