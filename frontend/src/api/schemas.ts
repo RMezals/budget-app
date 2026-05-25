@@ -127,3 +127,32 @@ export const TransactionCategoriesSchema = z.object({
   expense: z.array(z.string()),
   income: z.array(z.string()),
 });
+
+// Monthly Report schemas
+export const GoalContributionSummarySchema = z.object({
+  goalId: z.string(),
+  goalName: z.string(),
+  totalDeposited: z.number(),
+  totalWithdrawn: z.number(),
+  netContribution: z.number(),
+  contributionCount: z.number(),
+});
+
+export const PortfolioChangeSummarySchema = z.object({
+  startValue: z.number(),
+  endValue: z.number(),
+  change: z.number(),
+  changePercent: z.number(),
+});
+
+export const MonthlyReportSchema = z.object({
+  year: z.number(),
+  month: z.number(),
+  totalIncome: z.number(),
+  totalExpenses: z.number(),
+  netSavings: z.number(),
+  expensesByCategory: z.record(z.string(), z.number()),
+  incomeByCategory: z.record(z.string(), z.number()),
+  savingsContributions: z.array(GoalContributionSummarySchema),
+  portfolioChange: PortfolioChangeSummarySchema,
+});

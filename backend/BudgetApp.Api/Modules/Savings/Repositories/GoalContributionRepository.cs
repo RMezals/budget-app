@@ -22,6 +22,11 @@ public class GoalContributionRepository(IMongoDatabase db) : IGoalContributionRe
     public async Task<List<GoalContribution>> GetRecentByGoalAsync(string goalId, string userId, DateTime since) =>
         await _col.Find(c => c.GoalId == goalId && c.UserId == userId && c.Date >= since).ToListAsync();
 
+    public async Task<List<GoalContribution>> GetByUserAndMonthAsync(string userId, DateTime from, DateTime to) =>
+        await _col.Find(c => c.UserId == userId && c.Date >= from && c.Date < to)
+            .SortByDescending(c => c.Date)
+            .ToListAsync();
+
     public async Task InsertAsync(GoalContribution contribution) =>
         await _col.InsertOneAsync(contribution);
 

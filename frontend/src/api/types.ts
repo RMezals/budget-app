@@ -50,3 +50,7 @@ export type AddContributionRequest = S['AddContributionRequest'];
 export type TransactionRequest = S['TransactionRequest'];
 export type UpsertBudgetRequest = S['UpsertBudgetRequest'];
 export type UpdateProfileRequest = S['UpdateProfileRequest'];
+
+export type MonthlyReport = S['MonthlyReport'];
+export type GoalContributionSummary = S['GoalContributionSummary'];
+export type PortfolioChangeSummary = S['PortfolioChangeSummary'];

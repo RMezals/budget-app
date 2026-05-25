@@ -3,12 +3,12 @@ using System.Text.Json;
 
 namespace BudgetApp.Api.Modules.Dashboard.Services;
 
-public class OllamaAdvisor(IHttpClientFactory httpClientFactory, IConfiguration config) : IAiAdvisor
+public class OllamaAdvisor(IHttpClientFactory httpClientFactory, IConfiguration config) : AiAdvisorBase
 {
     private readonly string _baseUrl = config["Ollama:BaseUrl"] ?? "http://localhost:11434";
     private readonly string _model = config["Ollama:Model"] ?? "llama3.2";
 
-    public async Task<string> AnalyseAsync(string financialSummary, string userGoals, string? apiKey = null)
+    public override async Task<string> AnalyseAsync(string financialSummary, string userGoals, string? apiKey = null)
     {
         using var client = httpClientFactory.CreateClient();
 
@@ -38,13 +38,4 @@ public class OllamaAdvisor(IHttpClientFactory httpClientFactory, IConfiguration 
         return parsed.RootElement.GetProperty("message").GetProperty("content").GetString() ?? string.Empty;
     }
 
-    private static string BuildPrompt(string financialSummary, string userGoals) =>
-        $"You are a personal finance advisor. The user wants to {userGoals}. " +
-        $"Based on this financial summary, provide exactly 3 concise, actionable tips.\n\n" +
-        $"Format your response as a simple numbered list:\n" +
-        $"1. First tip\n" +
-        $"2. Second tip\n" +
-        $"3. Third tip\n\n" +
-        $"Do NOT use headers (##) or special formatting. Just use plain numbered points.\n\n" +
-        $"Financial summary:\n{financialSummary}";
 }

@@ -9,6 +9,7 @@ using BudgetApp.Api.Modules.Savings.Repositories;
 using BudgetApp.Api.Modules.Savings.Services;
 using BudgetApp.Api.Modules.Transactions.Repositories;
 using BudgetApp.Api.Modules.Transactions.Services;
+using BudgetApp.Api.Modules.Reports.Services;
 using FirebaseAdmin;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -66,6 +67,7 @@ builder.Services.AddScoped<ISavingsService, SavingsService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<ISpendingTrendService, SpendingTrendService>();
 builder.Services.AddScoped<IAdvisorService, AdvisorService>();
+builder.Services.AddScoped<IMonthlyReportService, MonthlyReportService>();
 builder.Services.AddScoped<ISeedService, SeedService>();
 
 // AI advisor providers

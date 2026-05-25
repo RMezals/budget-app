@@ -10,10 +10,16 @@ namespace BudgetApp.Api.Modules.Dashboard.Services;
 public static class DashboardHelper
 {
     /// <summary>
+    /// Returns the UTC start of the given year and month.
+    /// </summary>
+    public static DateTime GetMonthStart(int year, int month) =>
+        new(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
+
+    /// <summary>
     /// Returns the UTC start of the month containing <paramref name="date"/>.
     /// </summary>
     public static DateTime GetMonthStart(DateTime date) =>
-        new(date.Year, date.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        GetMonthStart(date.Year, date.Month);
 
     /// <summary>
     /// Calculates the start and end dates for the current month.
@@ -68,5 +74,15 @@ public static class DashboardHelper
     public static decimal CalculateExpenses(List<Transaction> transactions)
     {
         return Math.Abs(GetExpenseTransactions(transactions).Sum(t => t.Amount));
+    }
+
+    /// <summary>
+    /// Calculates the total amount spent in a specific expense category (returned as positive value)
+    /// </summary>
+    public static decimal CalculateSpentInCategory(List<Transaction> transactions, string category)
+    {
+        return Math.Abs(GetExpenseTransactions(transactions)
+            .Where(t => t.Category == category)
+            .Sum(t => t.Amount));
     }
 }
