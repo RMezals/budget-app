@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace BudgetApp.Api.Modules.Dashboard.Services;
 
-public class ClaudeAdvisor(IHttpClientFactory httpClientFactory, IConfiguration config, ILogger<ClaudeAdvisor> logger) : IAiAdvisor
+public class ClaudeAdvisor(IHttpClientFactory httpClientFactory, IConfiguration config, ILogger<ClaudeAdvisor> logger) : AiAdvisorBase
 {
     private const string ApiUrl = "https://api.anthropic.com/v1/messages";
     private const string ApiKeyHeader = "x-api-key";
@@ -12,7 +12,7 @@ public class ClaudeAdvisor(IHttpClientFactory httpClientFactory, IConfiguration 
     private const string DefaultModel = "claude-haiku-4-5-20251001";
     private const int DefaultMaxTokens = 1024;
 
-    public async Task<string> AnalyseAsync(string financialSummary, string userGoals, string? apiKey = null)
+    public override async Task<string> AnalyseAsync(string financialSummary, string userGoals, string? apiKey = null)
     {
         var key = apiKey ?? config["Anthropic:ApiKey"];
         if (string.IsNullOrWhiteSpace(key))
@@ -50,13 +50,4 @@ public class ClaudeAdvisor(IHttpClientFactory httpClientFactory, IConfiguration 
         return parsed.RootElement.GetProperty("content")[0].GetProperty("text").GetString() ?? string.Empty;
     }
 
-    private static string BuildPrompt(string financialSummary, string userGoals) =>
-        $"You are a personal finance advisor. The user wants to {userGoals}. " +
-        $"Based on this financial summary, provide exactly 3 concise, actionable tips.\n\n" +
-        $"Format your response as a simple numbered list:\n" +
-        $"1. First tip\n" +
-        $"2. Second tip\n" +
-        $"3. Third tip\n\n" +
-        $"Do NOT use headers (##) or special formatting. Just use plain numbered points.\n\n" +
-        $"Financial summary:\n{financialSummary}";
 }

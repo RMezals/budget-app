@@ -101,17 +101,8 @@ public class DashboardService(
     {
         return budgets.Select(b =>
         {
-            var spent = CalculateSpentInCategory(transactions, b.Category);
+            var spent = DashboardHelper.CalculateSpentInCategory(transactions, b.Category);
             return new BudgetUsage { Category = b.Category, Limit = b.LimitAmount, Spent = spent };
         }).ToList();
-    }
-
-    private static decimal CalculateSpentInCategory(
-        List<Transaction> transactions,
-        string category)
-    {
-        return Math.Abs(transactions
-            .Where(t => t.Category == category && t.Amount < 0)
-            .Sum(t => t.Amount));
     }
 }
