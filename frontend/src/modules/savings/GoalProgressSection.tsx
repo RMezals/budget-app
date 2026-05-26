@@ -80,13 +80,14 @@ export default function GoalProgressSection({
                         <span className={`badge ${getStatusBadgeClass(status)}`}>{status}</span>
                       </div>
                       <span className="text-muted small text-nowrap">
-                        {formatCurrency(goal.currentBalance)} / {formatCurrency(goal.targetAmount)}
+                        {formatCurrency(goal.currentBalance ?? 0)} /{' '}
+                        {formatCurrency(goal.targetAmount ?? 0)}
                       </span>
                     </div>
                     <div className="progress" style={{ height: 8 }}>
                       <div
                         className={`progress-bar ${isCompleted ? 'bg-success' : 'bg-primary'}`}
-                        style={{ width: `${Math.min(goal.percentReached, 100)}%` }}
+                        style={{ width: `${Math.min(goal.percentReached ?? 0, 100)}%` }}
                       />
                     </div>
 
@@ -105,7 +106,7 @@ export default function GoalProgressSection({
                       >
                         {isCompleted
                           ? 'Completed'
-                          : `${formatCurrency(goal.amountRemaining)} remaining`}
+                          : `${formatCurrency(goal.amountRemaining ?? 0)} remaining`}
                       </span>
                     </div>
                     <div className="small text-muted mt-1">
@@ -123,8 +124,8 @@ export default function GoalProgressSection({
                         <button
                           type="button"
                           className="btn btn-outline-danger btn-sm"
-                          onClick={() => onPrepareWithdrawal(goal.id)}
-                          disabled={goal.currentBalance <= 0 || !canContributeToGoal(goal)}
+                          onClick={() => onPrepareWithdrawal(goal.id ?? '')}
+                          disabled={(goal.currentBalance ?? 0) <= 0 || !canContributeToGoal(goal)}
                         >
                           Withdraw
                         </button>

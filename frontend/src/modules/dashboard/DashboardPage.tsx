@@ -21,7 +21,7 @@ export default function DashboardPage() {
   const [customQuestion, setCustomQuestion] = useState('');
 
   const { data: spendingTrend, loading: trendLoading } = useSpendingTrend(12);
-  const hasTrendData = spendingTrend.some((p) => Object.keys(p.expenses).length > 0);
+  const hasTrendData = spendingTrend.some((p) => Object.keys(p.expenses ?? {}).length > 0);
 
   // Custom hooks for advisor and API key management
   const apiKeyManager = useClaudeApiKey();
@@ -83,7 +83,7 @@ export default function DashboardPage() {
       </div>
     );
 
-  const netForMonth = summary.monthlyIncome - summary.monthlyExpenses;
+  const netForMonth = (summary.monthlyIncome ?? 0) - (summary.monthlyExpenses ?? 0);
 
   return (
     <div>
@@ -97,19 +97,19 @@ export default function DashboardPage() {
         <div className="col-sm-6 col-lg-3">
           <div className="metric-card c-primary h-100">
             <div className="metric-label">Net Worth</div>
-            <div className="metric-value">{fmt(summary.netWorth)}</div>
+            <div className="metric-value">{fmt(summary.netWorth ?? 0)}</div>
           </div>
         </div>
         <div className="col-sm-6 col-lg-3">
           <div className="metric-card c-cyan h-100">
             <div className="metric-label">Total Invested</div>
-            <div className="metric-value">{fmt(summary.totalInvested)}</div>
+            <div className="metric-value">{fmt(summary.totalInvested ?? 0)}</div>
           </div>
         </div>
         <div className="col-sm-6 col-lg-3">
           <div className="metric-card c-success h-100">
             <div className="metric-label">Total Saved</div>
-            <div className="metric-value">{fmt(summary.totalSaved)}</div>
+            <div className="metric-value">{fmt(summary.totalSaved ?? 0)}</div>
           </div>
         </div>
         <div className="col-sm-6 col-lg-3">
@@ -120,7 +120,7 @@ export default function DashboardPage() {
               {fmt(netForMonth)}
             </div>
             <div className="metric-sub">
-              {fmt(summary.monthlyIncome)} in · {fmt(summary.monthlyExpenses)} out
+              {fmt(summary.monthlyIncome ?? 0)} in · {fmt(summary.monthlyExpenses ?? 0)} out
             </div>
           </div>
         </div>
@@ -138,13 +138,13 @@ export default function DashboardPage() {
                     <div className="d-flex justify-content-between mb-1">
                       <span className="small">{b.category}</span>
                       <span className="small text-muted">
-                        {fmt(b.spent)} / {fmt(b.limit)}
+                        {fmt(b.spent ?? 0)} / {fmt(b.limit ?? 0)}
                       </span>
                     </div>
                     <div className="progress" style={{ height: 8 }}>
                       <div
-                        className={`progress-bar ${getBudgetProgressColor(b.usagePercent)}`}
-                        style={{ width: `${Math.min(b.usagePercent, 100)}%` }}
+                        className={`progress-bar ${getBudgetProgressColor(b.usagePercent ?? 0)}`}
+                        style={{ width: `${Math.min(b.usagePercent ?? 0, 100)}%` }}
                       />
                     </div>
                   </div>
@@ -167,7 +167,7 @@ export default function DashboardPage() {
                     <div className="d-flex justify-content-between mb-1">
                       <span className="small">{g.name}</span>
                       <span className="small text-muted">
-                        {fmt(g.currentAmount)} / {fmt(g.targetAmount)}
+                        {fmt(g.currentAmount ?? 0)} / {fmt(g.targetAmount ?? 0)}
                       </span>
                     </div>
                     <div className="progress" style={{ height: 8 }}>

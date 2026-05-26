@@ -56,7 +56,7 @@ export default function SpendingTrendChart({ data }: Props) {
   const fmt = useCurrencyFormatter();
 
   // Collect all categories that appear at least once, preserving insertion order
-  const categories = Array.from(new Set(data.flatMap((p) => Object.keys(p.expenses))));
+  const categories = Array.from(new Set(data.flatMap((p) => Object.keys(p.expenses ?? {}))));
 
   // Flatten to the shape recharts expects: { month, [category]: value, ... }
   const chartData = data.map((p) => ({
@@ -84,8 +84,8 @@ export default function SpendingTrendChart({ data }: Props) {
           width={80}
         />
         <Tooltip
-          formatter={(value: number, name: string) => [fmt(value), name]}
-          labelFormatter={(label: string) => formatMonthLabel(label)}
+          formatter={(value, name) => [fmt(Number(value)), String(name)]}
+          labelFormatter={(label) => formatMonthLabel(String(label))}
           contentStyle={{
             background: '#fff',
             border: '1px solid #e2e8f0',

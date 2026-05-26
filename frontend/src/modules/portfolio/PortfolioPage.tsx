@@ -228,10 +228,10 @@ export default function PortfolioPage() {
     if (!a) return;
     setSelectedAssetId(id);
     setAssetForm({
-      name: a.name,
-      type: a.type,
-      quantity: String(a.quantity),
-      purchasePrice: String(a.purchasePrice),
+      name: a.name ?? '',
+      type: a.type ?? '',
+      quantity: String(a.quantity ?? 0),
+      purchasePrice: String(a.purchasePrice ?? 0),
       purchaseDate: today(),
     });
     setAssetError('');
@@ -323,7 +323,7 @@ export default function PortfolioPage() {
     const l = liabilities.find((x) => x.id === id);
     if (!l) return;
     setSelectedLiabilityId(id);
-    setLiabilityForm({ name: l.name, type: l.type, initialAmount: '', date: today() });
+    setLiabilityForm({ name: l.name ?? '', type: l.type ?? '', initialAmount: '', date: today() });
     setLiabilityError('');
     setLiabilityValidation({});
     setLiabilityModal('edit');
@@ -395,12 +395,15 @@ export default function PortfolioPage() {
 
   function currentLiabilityBalance(id: string): number {
     const l = liabilities.find((x) => x.id === id);
-    if (!l || l.amount.length === 0) return 0;
+    if (!l || (l.amount ?? []).length === 0) return 0;
     const nowTs = new Date();
-    const past = l.amount.filter((e) => new Date(e.date) <= nowTs);
+    const past = (l.amount ?? []).filter((e) => new Date(e.date ?? '') <= nowTs);
     if (past.length === 0) return 0;
-    return past.reduce((latest, e) => (new Date(e.date) > new Date(latest.date) ? e : latest))
-      .value;
+    return (
+      past.reduce((latest, e) =>
+        new Date(e.date ?? '') > new Date(latest.date ?? '') ? e : latest,
+      ).value ?? 0
+    );
   }
 
   function selectedAssetCurrentPrice(): number {
@@ -456,9 +459,9 @@ export default function PortfolioPage() {
             <div className="card-body">
               <div className="pf-metric-label">Net Worth</div>
               <div
-                className={`pf-metric-value featured ${nw.netWorth >= 0 ? 'text-primary' : 'text-danger'}`}
+                className={`pf-metric-value featured ${(nw.netWorth ?? 0) >= 0 ? 'text-primary' : 'text-danger'}`}
               >
-                {fmt(nw.netWorth)}
+                {fmt(nw.netWorth ?? 0)}
               </div>
               <div className="pf-metric-sub">Assets − Liabilities</div>
             </div>
@@ -470,7 +473,7 @@ export default function PortfolioPage() {
             <div className="card-body">
               <div className="pf-metric-label">Total Assets</div>
               <div className="pf-metric-value" style={{ color: '#2563eb' }}>
-                {fmt(nw.totalAssets)}
+                {fmt(nw.totalAssets ?? 0)}
               </div>
               <div className="pf-metric-sub">
                 {assets.length} position{assets.length !== 1 ? 's' : ''}
@@ -483,7 +486,7 @@ export default function PortfolioPage() {
           <div className="card pf-metric pf-metric-liabilities h-100">
             <div className="card-body">
               <div className="pf-metric-label">Total Liabilities</div>
-              <div className="pf-metric-value text-danger">{fmt(nw.totalLiabilities)}</div>
+              <div className="pf-metric-value text-danger">{fmt(nw.totalLiabilities ?? 0)}</div>
               <div className="pf-metric-sub">
                 {liabilities.length} item{liabilities.length !== 1 ? 's' : ''}
               </div>
@@ -493,23 +496,23 @@ export default function PortfolioPage() {
 
         <div className="col-12 col-md-6 col-lg-3">
           <div
-            className={`card pf-metric ${!gl || gl.totalGainLoss >= 0 ? 'pf-metric-gain' : 'pf-metric-loss'} h-100`}
+            className={`card pf-metric ${!gl || (gl.totalGainLoss ?? 0) >= 0 ? 'pf-metric-gain' : 'pf-metric-loss'} h-100`}
           >
             <div className="card-body">
               <div className="pf-metric-label">Unrealised G/L</div>
               {gl ? (
                 <>
                   <div
-                    className={`pf-metric-value ${gl.totalGainLoss >= 0 ? 'text-success' : 'text-danger'}`}
+                    className={`pf-metric-value ${(gl.totalGainLoss ?? 0) >= 0 ? 'text-success' : 'text-danger'}`}
                   >
-                    {gl.totalGainLoss >= 0 ? '+' : ''}
-                    {fmt(gl.totalGainLoss)}
+                    {(gl.totalGainLoss ?? 0) >= 0 ? '+' : ''}
+                    {fmt(gl.totalGainLoss ?? 0)}
                   </div>
                   <div
-                    className={`pf-metric-sub ${gl.totalGainLoss >= 0 ? 'text-success' : 'text-danger'}`}
+                    className={`pf-metric-sub ${(gl.totalGainLoss ?? 0) >= 0 ? 'text-success' : 'text-danger'}`}
                   >
-                    {gl.totalGainLossPercent >= 0 ? '+' : ''}
-                    {gl.totalGainLossPercent.toFixed(2)}% · cost {fmt(gl.totalInvested)}
+                    {(gl.totalGainLossPercent ?? 0) >= 0 ? '+' : ''}
+                    {(gl.totalGainLossPercent ?? 0).toFixed(2)}% · cost {fmt(gl.totalInvested ?? 0)}
                   </div>
                 </>
               ) : (
@@ -528,19 +531,22 @@ export default function PortfolioPage() {
             {allocation.map((a) => (
               <div key={a.type} className="pf-alloc-row">
                 <div className="pf-alloc-type">
-                  <span className="pf-alloc-dot" style={{ background: allocColor(a.type) }} />
+                  <span className="pf-alloc-dot" style={{ background: allocColor(a.type ?? '') }} />
                   {a.type}
                 </div>
                 <div className="pf-alloc-bar-wrap">
                   <div
                     className="pf-alloc-bar"
-                    style={{ width: `${a.allocationPercent}%`, background: allocColor(a.type) }}
+                    style={{
+                      width: `${a.allocationPercent ?? 0}%`,
+                      background: allocColor(a.type ?? ''),
+                    }}
                   />
                 </div>
-                <div className="pf-alloc-pct" style={{ color: allocColor(a.type) }}>
-                  {a.allocationPercent.toFixed(1)}%
+                <div className="pf-alloc-pct" style={{ color: allocColor(a.type ?? '') }}>
+                  {(a.allocationPercent ?? 0).toFixed(1)}%
                 </div>
-                <div className="pf-alloc-val">{fmt(a.totalValue)}</div>
+                <div className="pf-alloc-val">{fmt(a.totalValue ?? 0)}</div>
               </div>
             ))}
           </div>
@@ -639,16 +645,16 @@ export default function PortfolioPage() {
                       <tr key={a.id}>
                         <td className="fw-semibold">{a.name}</td>
                         <td>
-                          <TypeBadge type={a.type} />
+                          <TypeBadge type={a.type ?? ''} />
                         </td>
                         <td className="text-end">{a.quantity}</td>
-                        <td className="text-end text-muted">{fmt(a.purchasePrice)}</td>
-                        <td className="text-end fw-semibold">{fmt(a.currentPrice)}</td>
-                        <td className="text-end fw-bold">{fmt(a.currentValue)}</td>
+                        <td className="text-end text-muted">{fmt(a.purchasePrice ?? 0)}</td>
+                        <td className="text-end fw-semibold">{fmt(a.currentPrice ?? 0)}</td>
+                        <td className="text-end fw-bold">{fmt(a.currentValue ?? 0)}</td>
                         <td className="text-end">
                           <GainBadge
-                            value={a.unrealisedGainLoss}
-                            percent={a.unrealisedGainLossPercent}
+                            value={a.unrealisedGainLoss ?? 0}
+                            percent={a.unrealisedGainLossPercent ?? 0}
                           />
                         </td>
                         <td>
@@ -656,7 +662,7 @@ export default function PortfolioPage() {
                             <button
                               type="button"
                               className="pf-btn-icon price"
-                              onClick={() => openAddPrice(a.id)}
+                              onClick={() => openAddPrice(a.id ?? '')}
                               title="Update price"
                             >
                               ↑
@@ -664,7 +670,7 @@ export default function PortfolioPage() {
                             <button
                               type="button"
                               className="pf-btn-icon edit"
-                              onClick={() => openEditAsset(a.id)}
+                              onClick={() => openEditAsset(a.id ?? '')}
                               title="Edit"
                             >
                               ✎
@@ -674,7 +680,11 @@ export default function PortfolioPage() {
                               className="pf-btn-icon danger"
                               onClick={() => {
                                 setDeleteError('');
-                                setDeleteTarget({ type: 'asset', id: a.id, name: a.name });
+                                setDeleteTarget({
+                                  type: 'asset',
+                                  id: a.id ?? '',
+                                  name: a.name ?? '',
+                                });
                               }}
                               title="Delete"
                             >
@@ -734,17 +744,17 @@ export default function PortfolioPage() {
                       <tr key={l.id}>
                         <td className="fw-semibold">{l.name}</td>
                         <td>
-                          <TypeBadge type={l.type} />
+                          <TypeBadge type={l.type ?? ''} />
                         </td>
                         <td className="text-end fw-bold text-danger">
-                          {fmt(currentLiabilityBalance(l.id))}
+                          {fmt(currentLiabilityBalance(l.id ?? ''))}
                         </td>
                         <td>
                           <div className="pf-btn-group">
                             <button
                               type="button"
                               className="pf-btn-icon price"
-                              onClick={() => openAddAmount(l.id)}
+                              onClick={() => openAddAmount(l.id ?? '')}
                               title="Update balance"
                             >
                               ↑
@@ -752,7 +762,7 @@ export default function PortfolioPage() {
                             <button
                               type="button"
                               className="pf-btn-icon edit"
-                              onClick={() => openEditLiability(l.id)}
+                              onClick={() => openEditLiability(l.id ?? '')}
                               title="Edit"
                             >
                               ✎
@@ -762,7 +772,11 @@ export default function PortfolioPage() {
                               className="pf-btn-icon danger"
                               onClick={() => {
                                 setDeleteError('');
-                                setDeleteTarget({ type: 'liability', id: l.id, name: l.name });
+                                setDeleteTarget({
+                                  type: 'liability',
+                                  id: l.id ?? '',
+                                  name: l.name ?? '',
+                                });
                               }}
                               title="Delete"
                             >
@@ -841,19 +855,19 @@ export default function PortfolioPage() {
                     {monthlyPerf.map((m) => (
                       <tr key={m.month}>
                         <td className="fw-semibold">{m.month}</td>
-                        <td className="text-end text-muted">{fmt(m.startValue)}</td>
-                        <td className="text-end">{fmt(m.endValue)}</td>
+                        <td className="text-end text-muted">{fmt(m.startValue ?? 0)}</td>
+                        <td className="text-end">{fmt(m.endValue ?? 0)}</td>
                         <td
-                          className={`text-end fw-semibold ${m.gainLoss >= 0 ? 'text-success' : 'text-danger'}`}
+                          className={`text-end fw-semibold ${(m.gainLoss ?? 0) >= 0 ? 'text-success' : 'text-danger'}`}
                         >
-                          {m.gainLoss >= 0 ? '+' : ''}
-                          {fmt(m.gainLoss)}
+                          {(m.gainLoss ?? 0) >= 0 ? '+' : ''}
+                          {fmt(m.gainLoss ?? 0)}
                         </td>
                         <td
-                          className={`text-end ${m.gainLoss >= 0 ? 'text-success' : 'text-danger'}`}
+                          className={`text-end ${(m.gainLoss ?? 0) >= 0 ? 'text-success' : 'text-danger'}`}
                         >
-                          {m.gainLossPercent >= 0 ? '+' : ''}
-                          {m.gainLossPercent.toFixed(2)}%
+                          {(m.gainLossPercent ?? 0) >= 0 ? '+' : ''}
+                          {(m.gainLossPercent ?? 0).toFixed(2)}%
                         </td>
                       </tr>
                     ))}
@@ -864,10 +878,10 @@ export default function PortfolioPage() {
                       <td />
                       <td />
                       <td
-                        className={`text-end ${monthlyPerf.reduce((s, m) => s + m.gainLoss, 0) >= 0 ? 'text-success' : 'text-danger'}`}
+                        className={`text-end ${monthlyPerf.reduce((s, m) => s + (m.gainLoss ?? 0), 0) >= 0 ? 'text-success' : 'text-danger'}`}
                       >
                         {(() => {
-                          const t = monthlyPerf.reduce((s, m) => s + m.gainLoss, 0);
+                          const t = monthlyPerf.reduce((s, m) => s + (m.gainLoss ?? 0), 0);
                           return `${t >= 0 ? '+' : ''}${fmt(t)}`;
                         })()}
                       </td>

@@ -185,7 +185,7 @@ export default function SavingsFormsSection({
                   disabled={submitting}
                 >
                   {selectableGoals.map((goal) => (
-                    <option key={goal.id} value={goal.id}>
+                    <option key={goal.id} value={goal.id ?? ''}>
                       {goal.name}
                     </option>
                   ))}
@@ -213,8 +213,8 @@ export default function SavingsFormsSection({
                   {selectedGoal && (
                     <p className="form-text mb-0">
                       {contributionMode === 'withdraw'
-                        ? `${formatCurrency(selectedGoal.currentBalance)} available.`
-                        : `${formatCurrency(selectedGoal.amountRemaining)} remaining.`}
+                        ? `${formatCurrency(selectedGoal.currentBalance ?? 0)} available.`
+                        : `${formatCurrency(selectedGoal.amountRemaining ?? 0)} remaining.`}
                     </p>
                   )}
                 </div>
