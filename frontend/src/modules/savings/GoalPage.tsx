@@ -283,16 +283,13 @@ export default function GoalPage() {
     setContributionEditError(null);
     setError(null);
     try {
-      await apiFetch(
-        `/api/goals/${goalId}/contributions/${editingContribution.id}`,
-        {
-          method: 'PUT',
-          body: JSON.stringify({
-            amount: signedAmount,
-            reason: contributionEditForm.reason.trim() || null,
-          }),
-        },
-      );
+      await apiFetch(`/api/goals/${goalId}/contributions/${editingContribution.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          amount: signedAmount,
+          reason: contributionEditForm.reason.trim() || null,
+        }),
+      });
 
       const { goalData, contributionData } = await fetchGoalDetails();
       setGoal(goalData);
@@ -707,7 +704,6 @@ export default function GoalPage() {
           <div className="modal-backdrop show" />
         </>
       )}
-
 
       {editingContribution && (
         <>

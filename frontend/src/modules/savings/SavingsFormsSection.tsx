@@ -238,7 +238,11 @@ export default function SavingsFormsSection({
                   id="contribution-reason"
                   className="form-control"
                   type="text"
-                  value={contributionMode === 'withdraw' ? contributionForm.reason : contributionForm.note}
+                  value={
+                    contributionMode === 'withdraw'
+                      ? contributionForm.reason
+                      : contributionForm.note
+                  }
                   onChange={(e) =>
                     onUpdateContributionForm(
                       contributionMode === 'withdraw' ? 'reason' : 'note',
