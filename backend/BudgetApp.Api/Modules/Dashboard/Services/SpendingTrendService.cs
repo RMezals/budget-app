@@ -1,6 +1,7 @@
 using BudgetApp.Api.Modules.Dashboard.Models;
 using BudgetApp.Api.Modules.Transactions.Models;
 using BudgetApp.Api.Modules.Transactions.Repositories;
+using BudgetApp.Api.Shared;
 using Microsoft.Extensions.Logging;
 
 namespace BudgetApp.Api.Modules.Dashboard.Services;
@@ -23,8 +24,8 @@ public class SpendingTrendService(
                 "Getting spending trend for user {UserId}, past {Months} months", userId, clampedMonths);
 
             var now = DateTime.UtcNow;
-            var rangeStart = DashboardHelper.GetMonthStart(now.AddMonths(-(clampedMonths - 1)));
-            var rangeEnd = DashboardHelper.GetMonthStart(now).AddMonths(1); // exclusive end of current month
+            var rangeStart = FinancialCalculations.GetMonthStart(now.AddMonths(-(clampedMonths - 1)));
+            var rangeEnd = FinancialCalculations.GetMonthStart(now).AddMonths(1); // exclusive end of current month
 
             var transactions = await txRepo.GetByRangeAsync(userId, rangeStart, rangeEnd);
 
@@ -42,7 +43,7 @@ public class SpendingTrendService(
         DateTime rangeStart,
         int months)
     {
-        var expensesByMonth = DashboardHelper.GetExpenseTransactions(transactions)
+        var expensesByMonth = FinancialCalculations.GetExpenseTransactions(transactions)
             .GroupBy(t => t.Date.ToString("yyyy-MM"))
             .ToDictionary(
                 g => g.Key,

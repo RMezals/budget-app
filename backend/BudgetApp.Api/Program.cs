@@ -66,6 +66,7 @@ builder.Services.AddScoped<IPortfolioService, PortfolioService>();
 builder.Services.AddScoped<ISavingsService, SavingsService>();
 builder.Services.AddScoped<ISavingsProgressService, SavingsProgressService>();
 builder.Services.AddScoped<IGoalProjectionCalculator, BudgetApp.Api.Modules.Savings.Services.GoalProjectionCalculator>();
+builder.Services.AddScoped<IGoalProjectionCalculator, GoalProjectionCalculator>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<ISpendingTrendService, SpendingTrendService>();
 builder.Services.AddScoped<IAdvisorService, AdvisorService>();

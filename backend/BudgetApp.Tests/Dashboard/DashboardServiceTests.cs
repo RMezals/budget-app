@@ -18,19 +18,22 @@ public class DashboardServiceTests
     private readonly Mock<IBudgetRepository> _budgetMock = new();
     private readonly Mock<ISavingsGoalRepository> _goalMock = new();
     private readonly Mock<IGoalContributionRepository> _contributionMock = new();
+    private readonly Mock<IGoalProjectionCalculator> _projectionMock = new();
     private readonly Mock<ILogger<DashboardService>> _loggerMock = new();
 
     public DashboardServiceTests()
     {
-        // Setup default: no contributions
+        // Setup default: no contributions, no projected completion
         _contributionMock.Setup(c => c.GetByGoalAsync(It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(new List<GoalContribution>());
         _contributionMock.Setup(c => c.GetByGoalsAsync(It.IsAny<List<string>>(), It.IsAny<string>()))
             .ReturnsAsync(new List<GoalContribution>());
+        _projectionMock.Setup(p => p.CalculateProjectedCompletion(It.IsAny<SavingsGoal>(), It.IsAny<List<GoalContribution>>(), It.IsAny<DateTime>()))
+            .Returns((DateTime?)null);
     }
 
     private DashboardService CreateSut() =>
-        new(_portfolioMock.Object, _txMock.Object, _budgetMock.Object, _goalMock.Object, _contributionMock.Object, _loggerMock.Object);
+        new(_portfolioMock.Object, _txMock.Object, _budgetMock.Object, _goalMock.Object, _contributionMock.Object, _projectionMock.Object, _loggerMock.Object);
 
     private void SetupEmptyPortfolio(NetWorthSnapshot? snapshot = null)
     {

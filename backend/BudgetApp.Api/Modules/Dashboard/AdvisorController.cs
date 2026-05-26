@@ -11,10 +11,6 @@ public class AdvisorController(
     IAiAdvisorFactory advisorFactory,
     ILogger<AdvisorController> logger) : ApiControllerBase
 {
-    public record AnalyseRequest(string Provider = AiProviders.Ollama, List<string>? Goals = null, string? ApiKey = null);
-    public record AdvisorResult(string Provider, string Tips);
-    public record ErrorResult(string Error);
-
     // Tips are generated fresh on each request and are not persisted
     [HttpPost("analyse")]
     [ProducesResponseType(typeof(AdvisorResult), StatusCodes.Status200OK)]

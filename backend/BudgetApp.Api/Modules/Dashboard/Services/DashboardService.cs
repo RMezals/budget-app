@@ -4,6 +4,7 @@ using BudgetApp.Api.Modules.Savings.Models;
 using BudgetApp.Api.Modules.Savings.Repositories;
 using BudgetApp.Api.Modules.Transactions.Models;
 using BudgetApp.Api.Modules.Transactions.Repositories;
+using BudgetApp.Api.Shared;
 using Microsoft.Extensions.Logging;
 
 namespace BudgetApp.Api.Modules.Dashboard.Services;
@@ -14,6 +15,7 @@ public class DashboardService(
     IBudgetRepository budgetRepo,
     ISavingsGoalRepository goalRepo,
     IGoalContributionRepository contributionRepo,
+    IGoalProjectionCalculator projectionCalculator,
     ILogger<DashboardService> logger) : IDashboardService
 {
     public async Task<DashboardSummary> GetSummaryAsync(string userId)
@@ -24,9 +26,9 @@ public class DashboardService(
         {
             logger.LogInformation("Getting dashboard summary for user {UserId}", userId);
             var now = DateTime.UtcNow;
-            var (monthStart, monthEnd) = DashboardHelper.GetCurrentMonthRange(now);
+            var (monthStart, monthEnd) = FinancialCalculations.GetCurrentMonthRange(now);
 
-            var netWorth = await DashboardHelper.GetNetWorthAsync(portfolioService, userId, now);
+            var netWorth = await FinancialCalculations.GetNetWorthAsync(portfolioService, userId, now);
 
             var monthTxs = await txRepo.GetByMonthAsync(userId, monthStart, monthEnd);
             var budgets = await budgetRepo.GetByMonthAsync(userId, monthStart);
@@ -41,8 +43,8 @@ public class DashboardService(
                 NetWorth = netWorth.NetWorth,
                 TotalInvested = netWorth.TotalAssets,
                 TotalSaved = activeGoals.Sum(g => g.CurrentAmount),
-                MonthlyIncome = DashboardHelper.CalculateIncome(monthTxs),
-                MonthlyExpenses = DashboardHelper.CalculateExpenses(monthTxs),
+                MonthlyIncome = FinancialCalculations.CalculateIncome(monthTxs),
+                MonthlyExpenses = FinancialCalculations.CalculateExpenses(monthTxs),
                 BudgetUsage = budgetUsage,
                 ActiveGoals = goalProgress
             };
@@ -74,13 +76,13 @@ public class DashboardService(
         return goals.Select(goal => CreateGoalProgress(goal, contributionsByGoal, now)).ToList();
     }
 
-    private static GoalProgress CreateGoalProgress(
+    private GoalProgress CreateGoalProgress(
         SavingsGoal goal,
         Dictionary<string, List<GoalContribution>> contributionsByGoal,
         DateTime now)
     {
         contributionsByGoal.TryGetValue(goal.Id, out var contributions);
-        var projectedCompletion = GoalProjectionCalculator.CalculateProjectedCompletion(
+        var projectedCompletion = projectionCalculator.CalculateProjectedCompletion(
             goal,
             contributions ?? new List<GoalContribution>(),
             now);
@@ -101,7 +103,7 @@ public class DashboardService(
     {
         return budgets.Select(b =>
         {
-            var spent = DashboardHelper.CalculateSpentInCategory(transactions, b.Category);
+            var spent = FinancialCalculations.CalculateSpentInCategory(transactions, b.Category);
             return new BudgetUsage { Category = b.Category, Limit = b.LimitAmount, Spent = spent };
         }).ToList();
     }

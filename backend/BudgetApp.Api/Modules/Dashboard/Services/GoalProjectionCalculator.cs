@@ -5,7 +5,7 @@ namespace BudgetApp.Api.Modules.Dashboard.Services;
 /// <summary>
 /// Calculates projected completion dates for savings goals based on historical contributions
 /// </summary>
-public static class GoalProjectionCalculator
+public class GoalProjectionCalculator : IGoalProjectionCalculator
 {
     private const int LookbackMonths = 3;
     private const int MinimumContributionsRequired = 2;
@@ -17,7 +17,7 @@ public static class GoalProjectionCalculator
     /// <param name="contributions">Recent contributions to the goal</param>
     /// <param name="now">Current date/time</param>
     /// <returns>Projected completion date, or null if insufficient data or already completed</returns>
-    public static DateTime? CalculateProjectedCompletion(
+    public DateTime? CalculateProjectedCompletion(
         SavingsGoal goal,
         List<GoalContribution> contributions,
         DateTime now)
