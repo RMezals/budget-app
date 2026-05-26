@@ -7,6 +7,12 @@ public class SavingsService(ISavingsGoalRepository goalRepo, IGoalContributionRe
 {
     public async Task<GoalContribution> AddContributionAsync(string goalId, string userId, decimal amount, DateTime date, string? reason, string? description = null)
     {
+        if (amount == 0m)
+            throw new InvalidOperationException("Contribution amount must be greater than zero.");
+
+        if (date == default)
+            throw new InvalidOperationException("Enter a valid contribution date.");
+
         var goal = await goalRepo.GetByIdAsync(goalId, userId)
             ?? throw new KeyNotFoundException($"Goal {goalId} not found.");
 
@@ -22,6 +28,9 @@ public class SavingsService(ISavingsGoalRepository goalRepo, IGoalContributionRe
         if (amount < 0 && Math.Abs(amount) > currentBalance)
             throw new InvalidOperationException("Withdrawal exceeds current saved amount.");
 
+        if (amount < 0 && string.IsNullOrWhiteSpace(reason))
+            throw new InvalidOperationException("Enter a withdrawal reason.");
+
         var newBalance = currentBalance + amount;
         if (amount > 0 && newBalance > goal.TargetAmount)
         {
@@ -29,14 +38,15 @@ public class SavingsService(ISavingsGoalRepository goalRepo, IGoalContributionRe
             throw new InvalidOperationException($"Contribution exceeds the remaining target amount of {remainingAmount}.");
         }
 
-        var canonicalDescription = description ?? reason;
+        var canonicalReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+        var canonicalDescription = string.IsNullOrWhiteSpace(description) ? canonicalReason : description.Trim();
         var contribution = new GoalContribution
         {
             GoalId = goalId,
             UserId = userId,
             Amount = amount,
             Date = date,
-            Reason = reason,
+            Reason = canonicalReason,
             Description = canonicalDescription,
             BalanceAfter = newBalance
         };
@@ -45,6 +55,48 @@ public class SavingsService(ISavingsGoalRepository goalRepo, IGoalContributionRe
 
         var newStatus = SavingsGoalStatusResolver.ResolveStatusChange(goal, newBalance);
         await goalRepo.UpdateBalanceAsync(goalId, userId, newBalance, newStatus);
+
+        return contribution;
+    }
+
+    public async Task<GoalContribution> UpdateContributionAsync(string goalId, string contributionId, string userId, decimal amount, string? reason)
+    {
+        if (amount == 0m)
+            throw new InvalidOperationException("Contribution amount must be greater than zero.");
+
+        var goal = await goalRepo.GetByIdAsync(goalId, userId)
+            ?? throw new KeyNotFoundException($"Goal {goalId} not found.");
+
+        if (goal.Status == GoalStatus.Abandoned)
+            throw new InvalidOperationException("Abandoned goals cannot be edited.");
+
+        var contribution = await contributionRepo.GetByIdAsync(contributionId, goalId, userId)
+            ?? throw new KeyNotFoundException($"Contribution {contributionId} not found.");
+
+        var contributions = await contributionRepo.GetByGoalAsync(goalId, userId);
+        var currentBalance = SavingsBalanceCalculator.CalculateCurrentBalance(contributions);
+        var balanceWithoutContribution = currentBalance - contribution.Amount;
+
+        if (amount < 0 && Math.Abs(amount) > balanceWithoutContribution)
+            throw new InvalidOperationException("Withdrawal exceeds current saved amount.");
+
+        if (amount < 0 && string.IsNullOrWhiteSpace(reason))
+            throw new InvalidOperationException("Enter a withdrawal reason.");
+
+        var updatedBalance = balanceWithoutContribution + amount;
+        if (amount > 0 && updatedBalance > goal.TargetAmount)
+        {
+            var remainingAmount = Math.Max(goal.TargetAmount - balanceWithoutContribution, 0);
+            throw new InvalidOperationException($"Contribution exceeds the remaining target amount of {remainingAmount}.");
+        }
+
+        contribution.Amount = amount;
+        contribution.Reason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+
+        await contributionRepo.ReplaceAsync(contribution);
+
+        var newStatus = SavingsGoalStatusResolver.ResolveStatusChange(goal, updatedBalance);
+        await goalRepo.UpdateBalanceAsync(goalId, userId, updatedBalance, newStatus);
 
         return contribution;
     }

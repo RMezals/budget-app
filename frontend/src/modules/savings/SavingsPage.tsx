@@ -198,7 +198,7 @@ export default function SavingsPage() {
       goalId,
       amount: '',
       date: current.date || today(),
-      reason: current.reason || 'Withdrawal',
+      reason: current.reason,
     }));
     amountInputRef.current?.focus();
   };
@@ -279,6 +279,10 @@ export default function SavingsPage() {
       setError('Choose a contribution date.');
       return;
     }
+    if (contributionMode === 'withdraw' && !form.reason.trim()) {
+      setError('Enter a withdrawal reason.');
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -288,7 +292,8 @@ export default function SavingsPage() {
         body: JSON.stringify({
           amount: signedAmount,
           date: new Date(`${form.date}T00:00:00`).toISOString(),
-          reason: form.reason.trim() || null,
+          reason: contributionMode === 'withdraw' ? form.reason.trim() : null,
+          note: contributionMode === 'deposit' ? form.note.trim() || null : null,
         }),
       });
 

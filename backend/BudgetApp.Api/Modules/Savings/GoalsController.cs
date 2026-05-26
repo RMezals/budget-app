@@ -36,10 +36,10 @@ public class GoalsController(
         var goal = new SavingsGoal
         {
             UserId = UserId,
-            Name = request.Name,
+            Name = request.Name.Trim(),
             TargetAmount = request.TargetAmount,
             Deadline = request.Deadline,
-            Description = request.Description
+            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim()
         };
         await goalRepo.InsertAsync(goal);
         return CreatedAtAction(nameof(GetById), new { id = goal.Id }, goal);

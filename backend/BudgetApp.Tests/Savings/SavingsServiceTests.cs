@@ -53,6 +53,41 @@ public class SavingsServiceTests
     }
 
     [Fact]
+    public async Task AddContributionAsync_RejectsWithdrawalWithoutReason()
+    {
+        _goalMock.Setup(g => g.GetByIdAsync("g1", "user1"))
+            .ReturnsAsync(new SavingsGoal
+            {
+                Id = "g1",
+                UserId = "user1",
+                Name = "Trip",
+                TargetAmount = 500m,
+                Status = GoalStatus.Active
+            });
+        _contributionMock.Setup(c => c.GetByGoalAsync("g1", "user1"))
+            .ReturnsAsync([
+                new GoalContribution { GoalId = "g1", UserId = "user1", Amount = 100m }
+            ]);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            CreateSut().AddContributionAsync(
+                "g1",
+                "user1",
+                -50m,
+                new DateTime(2026, 5, 14),
+                " ",
+                null));
+
+        Assert.Equal("Enter a withdrawal reason.", ex.Message);
+        _contributionMock.Verify(c => c.InsertAsync(It.IsAny<GoalContribution>()), Times.Never);
+        _goalMock.Verify(g => g.UpdateBalanceAsync(
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<decimal>(),
+            It.IsAny<GoalStatus?>()), Times.Never);
+    }
+
+    [Fact]
     public async Task AddContributionAsync_RejectsWithdrawalAboveComputedContributionBalance()
     {
         _goalMock.Setup(g => g.GetByIdAsync("g1", "user1"))
@@ -149,6 +184,40 @@ public class SavingsServiceTests
             It.IsAny<string>(),
             It.IsAny<decimal>(),
             It.IsAny<GoalStatus?>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AddContributionAsync_RejectsZeroAmount()
+    {
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            CreateSut().AddContributionAsync(
+                "g1",
+                "user1",
+                0m,
+                new DateTime(2026, 5, 14),
+                "Deposit",
+                null));
+
+        Assert.Equal("Contribution amount must be greater than zero.", ex.Message);
+        _goalMock.Verify(g => g.GetByIdAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _contributionMock.Verify(c => c.InsertAsync(It.IsAny<GoalContribution>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AddContributionAsync_RejectsDefaultDate()
+    {
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            CreateSut().AddContributionAsync(
+                "g1",
+                "user1",
+                25m,
+                default,
+                "Deposit",
+                null));
+
+        Assert.Equal("Enter a valid contribution date.", ex.Message);
+        _goalMock.Verify(g => g.GetByIdAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _contributionMock.Verify(c => c.InsertAsync(It.IsAny<GoalContribution>()), Times.Never);
     }
 
     [Fact]

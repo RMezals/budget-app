@@ -5,6 +5,7 @@ namespace BudgetApp.Api.Modules.Savings.Services;
 public interface ISavingsService
 {
     Task<GoalContribution> AddContributionAsync(string goalId, string userId, decimal amount, DateTime date, string? reason, string? description = null);
+    Task<GoalContribution> UpdateContributionAsync(string goalId, string contributionId, string userId, decimal amount, string? reason);
     Task AbandonGoalAsync(string goalId, string userId, DateTime date, string? reason, string? description = null);
     Task RecalculateBalanceAsync(string goalId, string userId);
 }
