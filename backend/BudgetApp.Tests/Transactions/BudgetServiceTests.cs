@@ -46,9 +46,9 @@ public class BudgetServiceTests
 
         Assert.Single(result);
         var foodSpending = result.First();
-        
+
         Assert.Equal("Food", foodSpending.Category);
         Assert.Equal(100m, foodSpending.Limit);
-        Assert.Equal(45.50m, foodSpending.Spent); 
+        Assert.Equal(45.50m, foodSpending.Spent);
     }
 }

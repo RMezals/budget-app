@@ -33,9 +33,9 @@ public class BudgetsControllerTests
         int year = 2026;
         int month = 5;
         var expectedMonthStart = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
-        var mockBudgets = new List<Budget> 
-        { 
-            new() { Id = "b1", UserId = "user1", Category = "Food", LimitAmount = 300m, Date = expectedMonthStart } 
+        var mockBudgets = new List<Budget>
+        {
+            new() { Id = "b1", UserId = "user1", Category = "Food", LimitAmount = 300m, Date = expectedMonthStart }
         };
 
         _budgetRepoMock.Setup(r => r.GetByMonthAsync("user1", expectedMonthStart))
@@ -92,7 +92,7 @@ public class BudgetsControllerTests
         var usageList = Assert.IsAssignableFrom<IEnumerable<BudgetUsageResponse>>(okResult.Value).ToList();
 
         Assert.Equal(2, usageList.Count);
-        
+
         Assert.Equal("Food", usageList[0].Category);
         Assert.Equal(150m, usageList[0].Remaining);
         Assert.Equal(25m, usageList[0].UsagePercent);
