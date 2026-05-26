@@ -1,7 +1,7 @@
 import type { MonthlyReport } from '@/api/types';
 import { monthLabel } from './reportUtils';
 
-function toCsvRows(rows: [string, string][]): string {
+function toCsvRows(rows: string[][]): string {
   return rows.map((r) => r.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(',')).join('\n');
 }
 

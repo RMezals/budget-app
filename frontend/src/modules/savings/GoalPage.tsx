@@ -8,7 +8,7 @@ import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 const goalStatusLabels = ['Active', 'Completed', 'Paused', 'Abandoned'] as const;
 type GoalStatusLabel = (typeof goalStatusLabels)[number];
 
-const goalStatusValues: Record<GoalStatusLabel, number> = {
+const goalStatusValues: Record<GoalStatusLabel, 0 | 1 | 2 | 3> = {
   Active: 0,
   Completed: 1,
   Paused: 2,
@@ -75,7 +75,7 @@ const getProjectionTiming = (goal: SavingsGoalProgress) => {
 
 const getRequiredMonthlyContribution = (goal: SavingsGoalProgress) => {
   const deadlineKey = getDateKey(goal.deadline);
-  if (!deadlineKey || goal.amountRemaining <= 0) return null;
+  if (!deadlineKey || (goal.amountRemaining ?? 0) <= 0) return null;
 
   const [year, month, day] = deadlineKey.split('-').map(Number);
   if (!year || !month || !day) return null;
@@ -89,7 +89,7 @@ const getRequiredMonthlyContribution = (goal: SavingsGoalProgress) => {
   const daysRemaining = millisecondsRemaining / (1000 * 60 * 60 * 24);
   const monthsRemaining = Math.max(daysRemaining / 30.4375, 1);
 
-  return goal.amountRemaining / monthsRemaining;
+  return (goal.amountRemaining ?? 0) / monthsRemaining;
 };
 
 const toDateInputValue = (value?: string | null) => {
@@ -126,8 +126,8 @@ type ContributionEditForm = {
 };
 
 const toGoalEditForm = (goal: SavingsGoalProgress): GoalEditForm => ({
-  name: goal.name,
-  targetAmount: String(goal.targetAmount),
+  name: goal.name ?? '',
+  targetAmount: String(goal.targetAmount ?? 0),
   deadline: toDateInputValue(goal.deadline),
   description: goal.description ?? '',
 });
@@ -172,7 +172,7 @@ export default function GoalPage() {
       apiFetch(`/api/goals/${goalId}/contributions`, GoalContributionListSchema),
     ]);
 
-    return { goalData, contributionData };
+    return { goalData: goalData as unknown as SavingsGoalProgress, contributionData };
   }, [goalId]);
 
   useEffect(() => {
@@ -209,9 +209,9 @@ export default function GoalPage() {
     () =>
       contributions.reduce(
         (current, contribution) => ({
-          deposits: current.deposits + (contribution.amount > 0 ? contribution.amount : 0),
+          deposits: current.deposits + ((contribution.amount ?? 0) > 0 ? (contribution.amount ?? 0) : 0),
           withdrawals:
-            current.withdrawals + (contribution.amount < 0 ? Math.abs(contribution.amount) : 0),
+            current.withdrawals + ((contribution.amount ?? 0) < 0 ? Math.abs(contribution.amount ?? 0) : 0),
         }),
         { deposits: 0, withdrawals: 0 },
       ),
@@ -223,7 +223,7 @@ export default function GoalPage() {
 
     return contributions.map((contribution) => {
       const balanceAfter = runningBalance;
-      runningBalance -= contribution.amount;
+      runningBalance -= contribution.amount ?? 0;
 
       return { contribution, balanceAfter };
     });
@@ -244,7 +244,7 @@ export default function GoalPage() {
         return;
       }
 
-      setGoal((current) => (current ? { ...current, status } : current));
+      setGoal((current) => (current ? { ...current, status: goalStatusValues[status] } : current));
     } catch (e) {
       setError(e instanceof Error ? e.message : `Unable to mark goal as ${status.toLowerCase()}`);
     } finally {
@@ -262,7 +262,7 @@ export default function GoalPage() {
   const openContributionEditModal = (contribution: GoalContribution) => {
     setEditingContribution(contribution);
     setContributionEditForm({
-      amount: String(Math.abs(contribution.amount)),
+      amount: String(Math.abs(contribution.amount ?? 0)),
       reason: contribution.reason ?? '',
     });
     setContributionEditError(null);
@@ -277,7 +277,7 @@ export default function GoalPage() {
       return;
     }
 
-    const signedAmount = editingContribution.amount < 0 ? -absoluteAmount : absoluteAmount;
+    const signedAmount = (editingContribution.amount ?? 0) < 0 ? -absoluteAmount : absoluteAmount;
 
     setSavingContributionEdit(true);
     setContributionEditError(null);
@@ -315,9 +315,9 @@ export default function GoalPage() {
       setEditError('Enter a target amount greater than zero.');
       return;
     }
-    if (targetAmount < goal.currentBalance) {
+    if (targetAmount < (goal.currentBalance ?? 0)) {
       setEditError(
-        `Target amount cannot be less than current balance (${fmt(goal.currentBalance)}).`,
+        `Target amount cannot be less than current balance (${fmt(goal.currentBalance ?? 0)}).`,
       );
       return;
     }
@@ -362,8 +362,8 @@ export default function GoalPage() {
           date: new Date().toISOString(),
           reason: 'Goal abandoned',
           description:
-            goal.currentBalance > 0
-              ? `Withdrew ${fmt(goal.currentBalance)} before abandoning ${goal.name}.`
+            (goal.currentBalance ?? 0) > 0
+              ? `Withdrew ${fmt(goal.currentBalance ?? 0)} before abandoning ${goal.name}.`
               : `Abandoned ${goal.name}.`,
         }),
       });
@@ -378,15 +378,15 @@ export default function GoalPage() {
   const handleDeleteContribution = async (contribution: GoalContribution) => {
     if (!goalId) return;
 
-    const contributionType = contribution.amount < 0 ? 'withdrawal' : 'contribution';
+    const contributionType = (contribution.amount ?? 0) < 0 ? 'withdrawal' : 'contribution';
     const confirmed = window.confirm(
-      `Delete this ${contributionType} of ${fmt(Math.abs(contribution.amount))} from ${formatDate(
+      `Delete this ${contributionType} of ${fmt(Math.abs(contribution.amount ?? 0))} from ${formatDate(
         contribution.date,
       )}?`,
     );
     if (!confirmed) return;
 
-    setDeletingContributionId(contribution.id);
+    setDeletingContributionId(contribution.id ?? null);
     setError(null);
     try {
       await apiFetch(`/api/goals/${goalId}/contributions/${contribution.id}`, { method: 'DELETE' });
@@ -725,7 +725,7 @@ export default function GoalPage() {
               <div className="modal-content">
                 <div className="modal-header">
                   <h5 className="modal-title" id="edit-contribution-title">
-                    Edit {editingContribution.amount < 0 ? 'withdrawal' : 'contribution'}
+                    Edit {(editingContribution.amount ?? 0) < 0 ? 'withdrawal' : 'contribution'}
                   </h5>
                   <button
                     type="button"
@@ -859,7 +859,7 @@ export default function GoalPage() {
                 </div>
                 <div className="modal-body">
                   <p className="mb-2">
-                    This will withdraw {fmt(goal.currentBalance)} from {goal.name} and mark the goal
+                    This will withdraw {fmt(goal.currentBalance ?? 0)} from {goal.name} and mark the goal
                     as abandoned.
                   </p>
                   <p className="text-muted small mb-0">
@@ -902,7 +902,7 @@ export default function GoalPage() {
           <div className="card border-0 shadow-sm h-100">
             <div className="card-body">
               <p className="text-muted small mb-1">Current Balance</p>
-              <p className="fs-4 fw-bold mb-0">{fmt(goal.currentBalance)}</p>
+              <p className="fs-4 fw-bold mb-0">{fmt(goal.currentBalance ?? 0)}</p>
             </div>
           </div>
         </div>
@@ -910,7 +910,7 @@ export default function GoalPage() {
           <div className="card border-0 shadow-sm h-100">
             <div className="card-body">
               <p className="text-muted small mb-1">Target</p>
-              <p className="fs-4 fw-bold mb-0">{fmt(goal.targetAmount)}</p>
+              <p className="fs-4 fw-bold mb-0">{fmt(goal.targetAmount ?? 0)}</p>
             </div>
           </div>
         </div>
@@ -918,7 +918,7 @@ export default function GoalPage() {
           <div className="card border-0 shadow-sm h-100">
             <div className="card-body">
               <p className="text-muted small mb-1">Remaining</p>
-              <p className="fs-4 fw-bold mb-0">{fmt(goal.amountRemaining)}</p>
+              <p className="fs-4 fw-bold mb-0">{fmt(goal.amountRemaining ?? 0)}</p>
             </div>
           </div>
         </div>
@@ -945,7 +945,7 @@ export default function GoalPage() {
           <div className="progress" style={{ height: 10 }}>
             <div
               className={`progress-bar ${progressBarClass}`}
-              style={{ width: `${Math.min(goal.percentReached, 100)}%` }}
+              style={{ width: `${Math.min(goal.percentReached ?? 0, 100)}%` }}
             />
           </div>
           <div className="d-flex flex-wrap align-items-center gap-3 mt-3 small">
@@ -1011,11 +1011,11 @@ export default function GoalPage() {
                       </td>
                       <td
                         className={`text-end fw-semibold ${
-                          contribution.amount < 0 ? 'text-danger' : 'text-success'
+                          (contribution.amount ?? 0) < 0 ? 'text-danger' : 'text-success'
                         }`}
                       >
-                        {contribution.amount < 0 ? '-' : '+'}
-                        {fmt(Math.abs(contribution.amount))}
+                        {(contribution.amount ?? 0) < 0 ? '-' : '+'}
+                        {fmt(Math.abs(contribution.amount ?? 0))}
                       </td>
                       <td className="text-end text-nowrap">{fmt(balanceAfter)}</td>
                       <td className="text-end">

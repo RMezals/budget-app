@@ -44,12 +44,12 @@ const initialForm: ContributionForm = {
 
 const goalStatusLabels = ['Active', 'Completed', 'Paused', 'Abandoned'] as const;
 
-const formatGoalStatus = (status: SavingsGoalProgress['status']) => {
+const formatGoalStatus = (status: SavingsGoalProgress['status']): string => {
   if (typeof status === 'number') {
     return goalStatusLabels[status] ?? String(status);
   }
 
-  return status;
+  return status ?? '';
 };
 
 const isCompletedGoal = (goal: SavingsGoalProgress) =>
@@ -64,7 +64,7 @@ const canContributeToGoal = (goal: SavingsGoalProgress) =>
   !isCompletedGoal(goal) && !isPausedGoal(goal) && !isAbandonedGoal(goal);
 
 const getContributionLimit = (goal: SavingsGoalProgress, mode: ContributionMode) =>
-  Math.max(mode === 'withdraw' ? goal.currentBalance : goal.amountRemaining, 0);
+  Math.max(mode === 'withdraw' ? (goal.currentBalance ?? 0) : (goal.amountRemaining ?? 0), 0);
 
 const clampContributionAmount = (
   value: string,
@@ -119,10 +119,10 @@ export default function SavingsPage() {
 
   const loadGoals = async (preferredGoalId?: string) => {
     const data = await apiFetch('/api/goals', SavingsGoalProgressListSchema);
-    setGoals(data);
+    setGoals(data as unknown as SavingsGoalProgress[]);
     setForm((current) => ({
       ...current,
-      goalId: getSelectableGoalId(data, current.goalId, preferredGoalId),
+      goalId: getSelectableGoalId(data as unknown as SavingsGoalProgress[], current.goalId, preferredGoalId),
     }));
   };
 
@@ -133,10 +133,10 @@ export default function SavingsPage() {
       try {
         const data = await apiFetch('/api/goals', SavingsGoalProgressListSchema);
         if (cancelled) return;
-        setGoals(data);
+        setGoals(data as unknown as SavingsGoalProgress[]);
         setForm((current) => ({
           ...current,
-          goalId: getSelectableGoalId(data, current.goalId),
+          goalId: getSelectableGoalId(data as unknown as SavingsGoalProgress[], current.goalId),
         }));
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Unable to load savings goals');

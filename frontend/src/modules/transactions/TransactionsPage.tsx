@@ -42,7 +42,7 @@ type TxForm = {
 const emptyTxForm = (categories: TransactionCategories): TxForm => ({
   amount: '',
   date: todayStr(),
-  category: categories.expense[0] ?? '',
+  category: (categories.expense ?? [])[0] ?? '',
   description: '',
   isIncome: false,
 });
@@ -139,7 +139,7 @@ export default function TransactionsPage() {
       setBudgets(b);
       setUsage(u);
       const inputs: Record<string, string> = {};
-      for (const cat of categories.expense) {
+      for (const cat of (categories.expense ?? [])) {
         const existing = b.find((x) => x.category === cat);
         inputs[cat] = existing ? String(existing.limitAmount) : '';
       }
@@ -152,17 +152,17 @@ export default function TransactionsPage() {
   }, [budgetYear, budgetMonth, categories]);
 
   useEffect(() => {
-    if (tab === 'budgets' && categories.expense.length > 0) loadBudgets();
-  }, [tab, loadBudgets, categories.expense.length]);
+    if (tab === 'budgets' && (categories.expense?.length ?? 0) > 0) loadBudgets();
+  }, [tab, loadBudgets, categories.expense?.length]);
 
   // ── form helpers ─────────────────────────────────────────────────────────
   const startEdit = (tx: Transaction) => {
-    const isIncome = tx.amount > 0;
-    setEditingId(tx.id);
+    const isIncome = (tx.amount ?? 0) > 0;
+    setEditingId(tx.id ?? null);
     setTxForm({
-      amount: String(Math.abs(tx.amount)),
-      date: tx.date.slice(0, 10),
-      category: tx.category,
+      amount: String(Math.abs(tx.amount ?? 0)),
+      date: (tx.date ?? '').slice(0, 10),
+      category: tx.category ?? '',
       description: tx.description ?? '',
       isIncome,
     });
@@ -182,7 +182,7 @@ export default function TransactionsPage() {
     setTxForm((f) => {
       const next = { ...f, [field]: value };
       if (field === 'isIncome') {
-        const cats = value ? categories.income : categories.expense;
+        const cats = value ? (categories.income ?? []) : (categories.expense ?? []);
         next.category = cats[0] ?? '';
       }
       return next;
@@ -275,11 +275,11 @@ export default function TransactionsPage() {
   const getUsage = (category: string): TransactionBudgetUsage | undefined =>
     usage.find((u) => u.category === category);
 
-  const totalIncome = transactions.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const totalIncome = transactions.filter((t) => (t.amount ?? 0) > 0).reduce((s, t) => s + (t.amount ?? 0), 0);
   const totalExpenses = transactions
-    .filter((t) => t.amount < 0)
-    .reduce((s, t) => s + Math.abs(t.amount), 0);
-  const allCategories = [...categories.expense, ...categories.income];
+    .filter((t) => (t.amount ?? 0) < 0)
+    .reduce((s, t) => s + Math.abs(t.amount ?? 0), 0);
+  const allCategories = [...(categories.expense ?? []), ...(categories.income ?? [])];
 
   return (
     <div>
@@ -385,7 +385,7 @@ export default function TransactionsPage() {
                         disabled={submitting}
                         required
                       >
-                        {(txForm.isIncome ? categories.income : categories.expense).map((c) => (
+                        {(txForm.isIncome ? (categories.income ?? []) : (categories.expense ?? [])).map((c) => (
                           <option key={c} value={c}>
                             {c}
                           </option>
@@ -442,7 +442,7 @@ export default function TransactionsPage() {
                       <div className="metric-label">Income</div>
                       <div className="metric-value up">{fmt(totalIncome)}</div>
                       <div className="metric-sub">
-                        {transactions.filter((t) => t.amount > 0).length} transactions
+                        {transactions.filter((t) => (t.amount ?? 0) > 0).length} transactions
                       </div>
                     </div>
                   </div>
@@ -451,7 +451,7 @@ export default function TransactionsPage() {
                       <div className="metric-label">Expenses</div>
                       <div className="metric-value down">{fmt(totalExpenses)}</div>
                       <div className="metric-sub">
-                        {transactions.filter((t) => t.amount < 0).length} transactions
+                        {transactions.filter((t) => (t.amount ?? 0) < 0).length} transactions
                       </div>
                     </div>
                   </div>
@@ -532,9 +532,9 @@ export default function TransactionsPage() {
                       style={{ borderRadius: 'inherit' }}
                     >
                       {[...transactions]
-                        .sort((a, b) => b.date.localeCompare(a.date))
+                        .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
                         .map((tx) => {
-                          const isIncome = tx.amount > 0;
+                          const isIncome = (tx.amount ?? 0) > 0;
                           const isEditing = editingId === tx.id;
                           return (
                             <div
@@ -548,7 +548,7 @@ export default function TransactionsPage() {
                                 <div className="d-flex align-items-center gap-2">
                                   <span className="tx-category-badge">{tx.category}</span>
                                   <span className="text-muted" style={{ fontSize: '0.8rem' }}>
-                                    {new Date(tx.date).toLocaleDateString('en-GB', {
+                                    {new Date(tx.date ?? '').toLocaleDateString('en-GB', {
                                       day: 'numeric',
                                       month: 'short',
                                       year: 'numeric',
@@ -570,7 +570,7 @@ export default function TransactionsPage() {
                                   style={{ fontSize: '0.9rem' }}
                                 >
                                   {isIncome ? '+' : '-'}
-                                  {fmt(Math.abs(tx.amount))}
+                                  {fmt(Math.abs(tx.amount ?? 0))}
                                 </span>
                                 <button
                                   type="button"
@@ -583,7 +583,7 @@ export default function TransactionsPage() {
                                 <button
                                   type="button"
                                   className="pf-btn-icon danger"
-                                  onClick={() => handleDelete(tx.id)}
+                                  onClick={() => handleDelete(tx.id ?? '')}
                                   title="Delete"
                                 >
                                   ✕
@@ -649,10 +649,10 @@ export default function TransactionsPage() {
             </div>
           ) : (
             <div className="row g-3">
-              {categories.expense.map((cat) => {
+              {(categories.expense ?? []).map((cat) => {
                 const u = getUsage(cat);
-                const pct = u ? Math.min(u.usagePercent, 100) : 0;
-                const over = u && u.usagePercent > 100;
+                const pct = u ? Math.min(u.usagePercent ?? 0, 100) : 0;
+                const over = u && (u.usagePercent ?? 0) > 100;
                 const hasLimit = !!budgets.find((b) => b.category === cat);
 
                 return (
@@ -667,7 +667,7 @@ export default function TransactionsPage() {
                             <span
                               className={`small ${over ? 'text-danger fw-semibold' : 'text-muted'}`}
                             >
-                              {fmt(u.spent)} / {hasLimit ? fmt(u.limit) : '—'}
+                              {fmt(u.spent ?? 0)} / {hasLimit ? fmt(u.limit ?? 0) : '—'}
                             </span>
                           )}
                         </div>
@@ -689,16 +689,16 @@ export default function TransactionsPage() {
                                 style={{ fontSize: '0.72rem' }}
                               >
                                 {over
-                                  ? `${fmt(Math.abs(u.remaining))} over`
-                                  : `${fmt(u.remaining)} left`}
+                                  ? `${fmt(Math.abs(u.remaining ?? 0))} over`
+                                  : `${fmt(u.remaining ?? 0)} left`}
                               </span>
                             </div>
                           </div>
                         )}
 
-                        {!hasLimit && u && u.spent > 0 && (
+                        {!hasLimit && u && (u.spent ?? 0) > 0 && (
                           <p className="small text-muted mb-2">
-                            {fmt(u.spent)} spent — no limit set
+                            {fmt(u.spent ?? 0)} spent — no limit set
                           </p>
                         )}
 

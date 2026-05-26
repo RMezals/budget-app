@@ -18,7 +18,7 @@ export default function FormattedTips({ rawTips, provider }: FormattedTipsProps)
   // Memoize parsing to avoid re-parsing on every render
   const sections = useMemo(() => {
     try {
-      return parseTips(rawTips);
+      return parseTips(rawTips ?? '');
     } catch (error) {
       console.error('Failed to parse AI tips:', error);
       // Fallback to display raw tips if parsing fails
