@@ -12,7 +12,10 @@ import type { User } from 'firebase/auth';
  * @param user - Firebase user object (may be null if not authenticated)
  * @returns Currency code from token claims, or default currency
  */
-export async function getCurrencyFromToken(user: User | null, forceRefresh = false): Promise<CurrencyCode> {
+export async function getCurrencyFromToken(
+  user: User | null,
+  forceRefresh = false,
+): Promise<CurrencyCode> {
   if (!user) {
     return DEFAULT_CURRENCY;
   }

@@ -4,17 +4,13 @@
 .pf-metric {
   border: none !important;
   border-radius: 12px !important;
-  box-shadow:
-    0 1px 4px rgba(0, 0, 0, 0.06),
-    0 4px 16px rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.05) !important;
   border-left: 4px solid transparent !important;
   transition: box-shadow 0.15s ease;
 }
 
 .pf-metric:hover {
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.08),
-    0 8px 24px rgba(0, 0, 0, 0.07) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.07) !important;
 }
 
 .pf-metric-networth {
@@ -66,9 +62,7 @@
 .pf-alloc-card {
   border: none !important;
   border-radius: 12px !important;
-  box-shadow:
-    0 1px 4px rgba(0, 0, 0, 0.06),
-    0 4px 16px rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.05) !important;
 }
 
 .pf-alloc-row {
@@ -183,9 +177,7 @@
 .pf-tab-card {
   border: none !important;
   border-radius: 0 12px 12px 12px !important;
-  box-shadow:
-    0 1px 4px rgba(0, 0, 0, 0.06),
-    0 4px 16px rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.05) !important;
 }
 
 /* Table */
@@ -268,10 +260,7 @@
   background: transparent;
   cursor: pointer;
   font-size: 0.82rem;
-  transition:
-    background 0.1s,
-    border-color 0.1s,
-    color 0.1s;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
   color: #9ca3af;
   line-height: 1;
   padding: 0;
@@ -339,9 +328,7 @@
 .pf-modal {
   background: #ffffff;
   border-radius: 14px;
-  box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.18),
-    0 4px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18), 0 4px 16px rgba(0, 0, 0, 0.08);
   width: 100%;
   max-width: 640px;
   overflow: hidden;
