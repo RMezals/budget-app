@@ -122,7 +122,11 @@ export default function SavingsPage() {
     setGoals(data as unknown as SavingsGoalProgress[]);
     setForm((current) => ({
       ...current,
-      goalId: getSelectableGoalId(data as unknown as SavingsGoalProgress[], current.goalId, preferredGoalId),
+      goalId: getSelectableGoalId(
+        data as unknown as SavingsGoalProgress[],
+        current.goalId,
+        preferredGoalId,
+      ),
     }));
   };
 

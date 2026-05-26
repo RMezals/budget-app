@@ -52,7 +52,7 @@ jobs:
         working-directory: frontend
 
       - name: Type-check
-        run: npx tsc --noEmit
+        run: npx tsc -b
         working-directory: frontend
 
       - name: Test

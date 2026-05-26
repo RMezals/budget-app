@@ -537,7 +537,10 @@ export default function PortfolioPage() {
                 <div className="pf-alloc-bar-wrap">
                   <div
                     className="pf-alloc-bar"
-                    style={{ width: `${a.allocationPercent ?? 0}%`, background: allocColor(a.type ?? '') }}
+                    style={{
+                      width: `${a.allocationPercent ?? 0}%`,
+                      background: allocColor(a.type ?? ''),
+                    }}
                   />
                 </div>
                 <div className="pf-alloc-pct" style={{ color: allocColor(a.type ?? '') }}>
@@ -677,7 +680,11 @@ export default function PortfolioPage() {
                               className="pf-btn-icon danger"
                               onClick={() => {
                                 setDeleteError('');
-                                setDeleteTarget({ type: 'asset', id: a.id ?? '', name: a.name ?? '' });
+                                setDeleteTarget({
+                                  type: 'asset',
+                                  id: a.id ?? '',
+                                  name: a.name ?? '',
+                                });
                               }}
                               title="Delete"
                             >
@@ -765,7 +772,11 @@ export default function PortfolioPage() {
                               className="pf-btn-icon danger"
                               onClick={() => {
                                 setDeleteError('');
-                                setDeleteTarget({ type: 'liability', id: l.id ?? '', name: l.name ?? '' });
+                                setDeleteTarget({
+                                  type: 'liability',
+                                  id: l.id ?? '',
+                                  name: l.name ?? '',
+                                });
                               }}
                               title="Delete"
                             >

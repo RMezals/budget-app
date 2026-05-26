@@ -209,9 +209,11 @@ export default function GoalPage() {
     () =>
       contributions.reduce(
         (current, contribution) => ({
-          deposits: current.deposits + ((contribution.amount ?? 0) > 0 ? (contribution.amount ?? 0) : 0),
+          deposits:
+            current.deposits + ((contribution.amount ?? 0) > 0 ? (contribution.amount ?? 0) : 0),
           withdrawals:
-            current.withdrawals + ((contribution.amount ?? 0) < 0 ? Math.abs(contribution.amount ?? 0) : 0),
+            current.withdrawals +
+            ((contribution.amount ?? 0) < 0 ? Math.abs(contribution.amount ?? 0) : 0),
         }),
         { deposits: 0, withdrawals: 0 },
       ),
@@ -859,8 +861,8 @@ export default function GoalPage() {
                 </div>
                 <div className="modal-body">
                   <p className="mb-2">
-                    This will withdraw {fmt(goal.currentBalance ?? 0)} from {goal.name} and mark the goal
-                    as abandoned.
+                    This will withdraw {fmt(goal.currentBalance ?? 0)} from {goal.name} and mark the
+                    goal as abandoned.
                   </p>
                   <p className="text-muted small mb-0">
                     The withdrawal will appear in the contribution history.

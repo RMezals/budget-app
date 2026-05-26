@@ -80,7 +80,8 @@ export default function GoalProgressSection({
                         <span className={`badge ${getStatusBadgeClass(status)}`}>{status}</span>
                       </div>
                       <span className="text-muted small text-nowrap">
-                        {formatCurrency(goal.currentBalance ?? 0)} / {formatCurrency(goal.targetAmount ?? 0)}
+                        {formatCurrency(goal.currentBalance ?? 0)} /{' '}
+                        {formatCurrency(goal.targetAmount ?? 0)}
                       </span>
                     </div>
                     <div className="progress" style={{ height: 8 }}>

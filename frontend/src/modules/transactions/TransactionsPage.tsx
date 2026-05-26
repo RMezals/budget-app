@@ -139,7 +139,7 @@ export default function TransactionsPage() {
       setBudgets(b);
       setUsage(u);
       const inputs: Record<string, string> = {};
-      for (const cat of (categories.expense ?? [])) {
+      for (const cat of categories.expense ?? []) {
         const existing = b.find((x) => x.category === cat);
         inputs[cat] = existing ? String(existing.limitAmount) : '';
       }
@@ -275,7 +275,9 @@ export default function TransactionsPage() {
   const getUsage = (category: string): TransactionBudgetUsage | undefined =>
     usage.find((u) => u.category === category);
 
-  const totalIncome = transactions.filter((t) => (t.amount ?? 0) > 0).reduce((s, t) => s + (t.amount ?? 0), 0);
+  const totalIncome = transactions
+    .filter((t) => (t.amount ?? 0) > 0)
+    .reduce((s, t) => s + (t.amount ?? 0), 0);
   const totalExpenses = transactions
     .filter((t) => (t.amount ?? 0) < 0)
     .reduce((s, t) => s + Math.abs(t.amount ?? 0), 0);
@@ -385,7 +387,10 @@ export default function TransactionsPage() {
                         disabled={submitting}
                         required
                       >
-                        {(txForm.isIncome ? (categories.income ?? []) : (categories.expense ?? [])).map((c) => (
+                        {(txForm.isIncome
+                          ? (categories.income ?? [])
+                          : (categories.expense ?? [])
+                        ).map((c) => (
                           <option key={c} value={c}>
                             {c}
                           </option>
