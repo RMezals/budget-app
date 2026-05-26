@@ -97,7 +97,7 @@ const getSelectableGoalId = (
 export default function SavingsPage() {
   const fmt = useCurrencyFormatter();
   const amountInputRef = useRef<HTMLInputElement>(null);
-  const minimumGoalDeadline = daysFromToday(7);
+  const minimumGoalDeadline = daysFromToday(30);
   const [goals, setGoals] = useState<SavingsGoalProgress[]>([]);
   const [goalForm, setGoalForm] = useState<GoalForm>(initialGoalForm);
   const [form, setForm] = useState<ContributionForm>(initialForm);
@@ -198,7 +198,7 @@ export default function SavingsPage() {
       goalId,
       amount: '',
       date: current.date || today(),
-      reason: current.reason || 'Withdrawal',
+      reason: current.reason,
     }));
     amountInputRef.current?.focus();
   };
@@ -279,6 +279,10 @@ export default function SavingsPage() {
       setError('Choose a contribution date.');
       return;
     }
+    if (contributionMode === 'withdraw' && !form.reason.trim()) {
+      setError('Enter a withdrawal reason.');
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -288,8 +292,8 @@ export default function SavingsPage() {
         body: JSON.stringify({
           amount: signedAmount,
           date: new Date(`${form.date}T00:00:00`).toISOString(),
-          // note: form.note.trim() || null,
-          reason: form.reason.trim() || null,
+          reason: contributionMode === 'withdraw' ? form.reason.trim() : null,
+          note: contributionMode === 'deposit' ? form.note.trim() || null : null,
         }),
       });
 

@@ -27,8 +27,20 @@ public class GoalContributionRepository(IMongoDatabase db) : IGoalContributionRe
             .SortByDescending(c => c.Date)
             .ToListAsync();
 
+    public async Task<GoalContribution?> GetByIdAsync(string id, string goalId, string userId) =>
+        await _col.Find(c => c.Id == id && c.GoalId == goalId && c.UserId == userId).FirstOrDefaultAsync();
+
     public async Task InsertAsync(GoalContribution contribution) =>
         await _col.InsertOneAsync(contribution);
+
+    public async Task<bool> ReplaceAsync(GoalContribution contribution)
+    {
+        var result = await _col.ReplaceOneAsync(
+            c => c.Id == contribution.Id && c.GoalId == contribution.GoalId && c.UserId == contribution.UserId,
+            contribution);
+
+        return result.ModifiedCount > 0;
+    }
 
     public async Task<bool> DeleteAsync(string id, string goalId, string userId)
     {

@@ -40,6 +40,31 @@ public class ContributionsController(
         }
     }
 
+    [HttpPut("{id}")]
+    [ProducesResponseType(typeof(GoalContribution), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Update(string goalId, string id, [FromBody] UpdateContributionRequest request)
+    {
+        try
+        {
+            var contribution = await savingsService.UpdateContributionAsync(
+                goalId,
+                id,
+                UserId,
+                request.Amount,
+                request.Reason);
+
+            return Ok(contribution);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string goalId, string id)
     {
@@ -52,3 +77,4 @@ public class ContributionsController(
 }
 
 public record AddContributionRequest(decimal Amount, DateTime Date, string? Reason, string? Description = null, string? Note = null);
+public record UpdateContributionRequest(decimal Amount, string? Reason);

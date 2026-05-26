@@ -232,16 +232,26 @@ export default function SavingsFormsSection({
 
               <div className="mb-3 mt-3">
                 <label className="form-label" htmlFor="contribution-reason">
-                  Reason
+                  {contributionMode === 'withdraw' ? 'Reason' : 'Note'}
                 </label>
                 <input
                   id="contribution-reason"
                   className="form-control"
                   type="text"
-                  value={contributionForm.reason}
-                  onChange={(e) => onUpdateContributionForm('reason', e.target.value)}
+                  value={
+                    contributionMode === 'withdraw'
+                      ? contributionForm.reason
+                      : contributionForm.note
+                  }
+                  onChange={(e) =>
+                    onUpdateContributionForm(
+                      contributionMode === 'withdraw' ? 'reason' : 'note',
+                      e.target.value,
+                    )
+                  }
                   placeholder={contributionMode === 'withdraw' ? 'Transfer out' : 'Payday transfer'}
                   disabled={submitting}
+                  required={contributionMode === 'withdraw'}
                 />
               </div>
 
