@@ -8,13 +8,16 @@ namespace BudgetApp.Api.Modules.Savings;
 
 [ApiController]
 [Route("api/goals")]
-public class GoalsController(ISavingsGoalRepository goalRepo, ISavingsService savingsService) : ApiControllerBase
+public class GoalsController(
+    ISavingsGoalRepository goalRepo,
+    ISavingsProgressService savingsProgressService,
+    ISavingsService savingsService) : ApiControllerBase
 {
     [HttpGet]
     [ProducesResponseType(typeof(List<GoalProgressDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
     {
-        var goals = await savingsService.GetGoalProgressListAsync(UserId);
+        var goals = await savingsProgressService.GetGoalProgressListAsync(UserId);
         return Ok(goals);
     }
 
@@ -22,7 +25,7 @@ public class GoalsController(ISavingsGoalRepository goalRepo, ISavingsService sa
     [ProducesResponseType(typeof(GoalProgressDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetById(string id)
     {
-        var goal = await savingsService.GetGoalProgressAsync(id, UserId);
+        var goal = await savingsProgressService.GetGoalProgressAsync(id, UserId);
         return goal is null ? NotFound() : Ok(goal);
     }
 
@@ -85,7 +88,7 @@ public class GoalsController(ISavingsGoalRepository goalRepo, ISavingsService sa
     {
         try
         {
-            var result = await savingsService.GetProjectionAsync(id, UserId);
+            var result = await savingsProgressService.GetProjectionAsync(id, UserId);
             return Ok(result);
         }
         catch (KeyNotFoundException)

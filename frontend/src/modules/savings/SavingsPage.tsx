@@ -97,7 +97,7 @@ const getSelectableGoalId = (
 export default function SavingsPage() {
   const fmt = useCurrencyFormatter();
   const amountInputRef = useRef<HTMLInputElement>(null);
-  const minimumGoalDeadline = daysFromToday(7);
+  const minimumGoalDeadline = daysFromToday(30);
   const [goals, setGoals] = useState<SavingsGoalProgress[]>([]);
   const [goalForm, setGoalForm] = useState<GoalForm>(initialGoalForm);
   const [form, setForm] = useState<ContributionForm>(initialForm);
@@ -288,7 +288,6 @@ export default function SavingsPage() {
         body: JSON.stringify({
           amount: signedAmount,
           date: new Date(`${form.date}T00:00:00`).toISOString(),
-          // note: form.note.trim() || null,
           reason: form.reason.trim() || null,
         }),
       });

@@ -10,8 +10,13 @@ public class SavingsServiceTests
 {
     private readonly Mock<ISavingsGoalRepository> _goalMock = new();
     private readonly Mock<IGoalContributionRepository> _contributionMock = new();
+    private readonly IGoalProjectionCalculator _projectionCalculator = new GoalProjectionCalculator();
 
     private SavingsService CreateSut() => new(_goalMock.Object, _contributionMock.Object);
+    private SavingsProgressService CreateProgressSut() => new(
+        _goalMock.Object,
+        _contributionMock.Object,
+        _projectionCalculator);
 
     [Fact]
     public async Task AddContributionAsync_WithdrawalUsesComputedContributionBalance()
@@ -231,7 +236,7 @@ public class SavingsServiceTests
                 new GoalContribution { GoalId = "g1", UserId = "user1", Amount = -50m }
             ]);
 
-        var result = await CreateSut().GetGoalProgressAsync("g1", "user1");
+        var result = await CreateProgressSut().GetGoalProgressAsync("g1", "user1");
 
         Assert.NotNull(result);
         Assert.Equal("g1", result.Id);
@@ -261,7 +266,7 @@ public class SavingsServiceTests
                 new GoalContribution { GoalId = "g2", UserId = "user1", Amount = -100m }
             ]);
 
-        var result = await CreateSut().GetGoalProgressListAsync("user1");
+        var result = await CreateProgressSut().GetGoalProgressListAsync("user1");
 
         Assert.Equal(2, result.Count);
         Assert.Equal(200m, result.Single(g => g.Id == "g1").CurrentBalance);
