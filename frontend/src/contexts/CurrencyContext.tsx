@@ -8,6 +8,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 interface CurrencyContextValue {
   currency: CurrencyCode;
   isLoading: boolean;
+  refreshCurrency: () => Promise<void>;
 }
 
 const CurrencyContext = createContext<CurrencyContextValue | undefined>(undefined);
@@ -35,8 +36,16 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const refreshCurrency = async () => {
+    if (!auth?.currentUser) return;
+    const currencyCode = await getCurrencyFromToken(auth.currentUser, true);
+    setCurrency(currencyCode);
+  };
+
   return (
-    <CurrencyContext.Provider value={{ currency, isLoading }}>{children}</CurrencyContext.Provider>
+    <CurrencyContext.Provider value={{ currency, isLoading, refreshCurrency }}>
+      {children}
+    </CurrencyContext.Provider>
   );
 }
 
