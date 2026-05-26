@@ -4,7 +4,6 @@ backend/**/obj/
 backend/.vs/
 backend/**/*.user
 backend/**/appsettings.*.local.json
-backend/**/firebase-service-account.json
 
 # Node / frontend
 frontend/node_modules/
@@ -19,12 +18,6 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
-# Environment
-.env
-.env.*
-frontend/.env
-frontend/.env.*
 
 # Editor
 .idea/
