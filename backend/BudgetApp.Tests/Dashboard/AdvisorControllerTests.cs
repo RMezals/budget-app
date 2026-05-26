@@ -42,7 +42,7 @@ public class AdvisorControllerTests
         _ollamaMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
             .ReturnsAsync("tips");
 
-        await CreateController().Analyse(new AdvisorController.AnalyseRequest());
+        await CreateController().Analyse(new AnalyseRequest());
 
         _ollamaMock.Verify(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()), Times.Once);
         _claudeMock.Verify(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()), Times.Never);
@@ -54,7 +54,7 @@ public class AdvisorControllerTests
         _claudeMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
             .ReturnsAsync("tips");
 
-        await CreateController().Analyse(new AdvisorController.AnalyseRequest("claude"));
+        await CreateController().Analyse(new AnalyseRequest("claude"));
 
         _claudeMock.Verify(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()), Times.Once);
         _ollamaMock.Verify(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()), Times.Never);
@@ -69,7 +69,7 @@ public class AdvisorControllerTests
             .ReturnsAsync("tips");
 
         await CreateController().Analyse(
-            new AdvisorController.AnalyseRequest("ollama", ["save_more", "pay_debt"]));
+            new AnalyseRequest("ollama", ["save_more", "pay_debt"]));
 
         Assert.Contains("save more money", capturedGoals);
         Assert.Contains("pay off debt", capturedGoals);
@@ -83,7 +83,7 @@ public class AdvisorControllerTests
             .Callback<string, string, string?>((_, goals, _) => capturedGoals = goals)
             .ReturnsAsync("tips");
 
-        await CreateController().Analyse(new AdvisorController.AnalyseRequest("ollama", null));
+        await CreateController().Analyse(new AnalyseRequest("ollama", null));
 
         Assert.Equal("improve their overall financial health", capturedGoals);
     }
@@ -96,7 +96,7 @@ public class AdvisorControllerTests
             .Callback<string, string, string?>((_, goals, _) => capturedGoals = goals)
             .ReturnsAsync("tips");
 
-        await CreateController().Analyse(new AdvisorController.AnalyseRequest("ollama", []));
+        await CreateController().Analyse(new AnalyseRequest("ollama", []));
 
         Assert.Equal("improve their overall financial health", capturedGoals);
     }
@@ -110,7 +110,7 @@ public class AdvisorControllerTests
             .ReturnsAsync("tips");
 
         await CreateController().Analyse(
-            new AdvisorController.AnalyseRequest("ollama", ["unknown_goal"]));
+            new AnalyseRequest("ollama", ["unknown_goal"]));
 
         Assert.Contains("unknown_goal", capturedGoals);
     }
@@ -121,7 +121,7 @@ public class AdvisorControllerTests
         _ollamaMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
             .ReturnsAsync("3 great tips");
 
-        var result = await CreateController().Analyse(new AdvisorController.AnalyseRequest("ollama"));
+        var result = await CreateController().Analyse(new AnalyseRequest("ollama"));
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var value = ok.Value!;
@@ -135,7 +135,7 @@ public class AdvisorControllerTests
         _ollamaMock.Setup(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
             .ThrowsAsync(new InvalidOperationException("Service not configured."));
 
-        var result = await CreateController().Analyse(new AdvisorController.AnalyseRequest());
+        var result = await CreateController().Analyse(new AnalyseRequest());
 
         var status = Assert.IsType<ObjectResult>(result);
         Assert.Equal(503, status.StatusCode);
@@ -156,7 +156,7 @@ public class AdvisorControllerTests
             .Callback<string, string, string?>((summary, _, _) => capturedSummary = summary)
             .ReturnsAsync("tips");
 
-        await controller.Analyse(new AdvisorController.AnalyseRequest());
+        await controller.Analyse(new AnalyseRequest());
 
         Assert.Equal("my personal summary", capturedSummary);
     }
@@ -169,7 +169,7 @@ public class AdvisorControllerTests
             .Callback<string, string, string?>((_, _, apiKey) => capturedApiKey = apiKey)
             .ReturnsAsync("tips");
 
-        await CreateController().Analyse(new AdvisorController.AnalyseRequest("claude", null, "user-key-123"));
+        await CreateController().Analyse(new AnalyseRequest("claude", null, "user-key-123"));
 
         Assert.Equal("user-key-123", capturedApiKey);
     }
@@ -182,7 +182,7 @@ public class AdvisorControllerTests
             .Callback<string, string, string?>((_, _, apiKey) => capturedApiKey = apiKey)
             .ReturnsAsync("tips");
 
-        await CreateController().Analyse(new AdvisorController.AnalyseRequest("ollama", null, null));
+        await CreateController().Analyse(new AnalyseRequest("ollama", null, null));
 
         Assert.Null(capturedApiKey);
     }
@@ -196,7 +196,7 @@ public class AdvisorControllerTests
             .ReturnsAsync("tips");
 
         await CreateController().Analyse(
-            new AdvisorController.AnalyseRequest("claude", ["save_more"], "sk-ant-test-key"));
+            new AnalyseRequest("claude", ["save_more"], "sk-ant-test-key"));
 
         Assert.Equal("sk-ant-test-key", capturedApiKey);
         _claudeMock.Verify(a => a.AnalyseAsync(It.IsAny<string>(), It.IsAny<string>(), "sk-ant-test-key"), Times.Once);

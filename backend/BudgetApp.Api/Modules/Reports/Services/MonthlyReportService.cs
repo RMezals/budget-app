@@ -1,5 +1,5 @@
-using BudgetApp.Api.Modules.Dashboard.Services;
 using BudgetApp.Api.Modules.Portfolio.Services;
+using BudgetApp.Api.Shared;
 using BudgetApp.Api.Modules.Reports.Models;
 using BudgetApp.Api.Modules.Savings.Repositories;
 using BudgetApp.Api.Modules.Transactions.Repositories;
@@ -14,7 +14,7 @@ public class MonthlyReportService(
 {
     public async Task<MonthlyReport> GetMonthlyReportAsync(string userId, int year, int month)
     {
-        var monthStart = DashboardHelper.GetMonthStart(year, month);
+        var monthStart = FinancialCalculations.GetMonthStart(year, month);
         var monthEnd = monthStart.AddMonths(1);
 
         var transactions = await txRepo.GetByMonthAsync(userId, monthStart, monthEnd);
@@ -23,11 +23,11 @@ public class MonthlyReportService(
         var allGoals = await goalRepo.GetByUserAsync(userId);
         var goalNames = allGoals.ToDictionary(g => g.Id, g => g.Name);
 
-        var expensesByCategory = DashboardHelper.GetExpenseTransactions(transactions)
+        var expensesByCategory = FinancialCalculations.GetExpenseTransactions(transactions)
             .GroupBy(t => t.Category)
             .ToDictionary(g => g.Key, g => Math.Abs(g.Sum(t => t.Amount)));
 
-        var incomeByCategory = DashboardHelper.GetIncomeTransactions(transactions)
+        var incomeByCategory = FinancialCalculations.GetIncomeTransactions(transactions)
             .GroupBy(t => t.Category)
             .ToDictionary(g => g.Key, g => g.Sum(t => t.Amount));
 
@@ -59,8 +59,8 @@ public class MonthlyReportService(
         {
             Year = year,
             Month = month,
-            TotalIncome = DashboardHelper.CalculateIncome(transactions),
-            TotalExpenses = DashboardHelper.CalculateExpenses(transactions),
+            TotalIncome = FinancialCalculations.CalculateIncome(transactions),
+            TotalExpenses = FinancialCalculations.CalculateExpenses(transactions),
             ExpensesByCategory = expensesByCategory,
             IncomeByCategory = incomeByCategory,
             SavingsContributions = savingsContributions,

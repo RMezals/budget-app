@@ -28,7 +28,7 @@ public class GoalContribution
     [BsonElement("Note")]
     [BsonIgnoreIfNull]
     [JsonIgnore]
-    public string? Note { get; set; }
+    internal string? Note { get; set; }
 
     // Goal balance immediately after this contribution (for timeline display)
     [BsonRepresentation(BsonType.Decimal128)]

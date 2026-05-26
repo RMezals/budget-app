@@ -31,7 +31,14 @@ public class OllamaAdvisor(IHttpClientFactory httpClientFactory, IConfiguration 
             throw new InvalidOperationException("Ollama is not running. Start it locally with: ollama serve");
         }
 
-        response.EnsureSuccessStatusCode();
+        try
+        {
+            response.EnsureSuccessStatusCode();
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new InvalidOperationException($"Ollama request failed ({response.StatusCode}): {ex.Message}");
+        }
 
         var body = await response.Content.ReadAsStringAsync();
         var parsed = JsonDocument.Parse(body);

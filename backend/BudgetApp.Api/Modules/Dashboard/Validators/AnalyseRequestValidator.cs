@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace BudgetApp.Api.Modules.Dashboard.Validators;
 
-public class AnalyseRequestValidator : AbstractValidator<AdvisorController.AnalyseRequest>
+public class AnalyseRequestValidator : AbstractValidator<AnalyseRequest>
 {
     private const int MaxGoalsCount = 10;
     private const int MaxGoalLength = 100;

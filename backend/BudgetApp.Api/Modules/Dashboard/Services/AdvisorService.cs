@@ -1,4 +1,5 @@
 using BudgetApp.Api.Modules.Portfolio.Services;
+using BudgetApp.Api.Shared;
 using BudgetApp.Api.Modules.Savings.Models;
 using BudgetApp.Api.Modules.Savings.Repositories;
 using BudgetApp.Api.Modules.Transactions.Models;
@@ -22,16 +23,16 @@ public class AdvisorService(
         {
             logger.LogInformation("Building financial summary for user {UserId}", userId);
             var now = DateTime.UtcNow;
-            var (monthStart, monthEnd) = DashboardHelper.GetCurrentMonthRange(now);
+            var (monthStart, monthEnd) = FinancialCalculations.GetCurrentMonthRange(now);
 
-            var netWorth = await DashboardHelper.GetNetWorthAsync(portfolioService, userId, now);
+            var netWorth = await FinancialCalculations.GetNetWorthAsync(portfolioService, userId, now);
 
             var monthTxs = await txRepo.GetByMonthAsync(userId, monthStart, monthEnd);
             var budgets = await budgetRepo.GetByMonthAsync(userId, monthStart);
             var activeGoals = await goalRepo.GetActiveByUserAsync(userId);
 
-            var income = DashboardHelper.CalculateIncome(monthTxs);
-            var expenses = DashboardHelper.CalculateExpenses(monthTxs);
+            var income = FinancialCalculations.CalculateIncome(monthTxs);
+            var expenses = FinancialCalculations.CalculateExpenses(monthTxs);
             var spendByCategory = FormatSpendingByCategory(monthTxs);
 
             return BuildSummaryText(netWorth, income, expenses, spendByCategory, activeGoals, budgets.Count);
@@ -45,7 +46,7 @@ public class AdvisorService(
 
     private static IEnumerable<string> FormatSpendingByCategory(List<Transaction> transactions)
     {
-        return DashboardHelper.GetExpenseTransactions(transactions)
+        return FinancialCalculations.GetExpenseTransactions(transactions)
             .GroupBy(t => t.Category ?? "Uncategorized")
             .Select(g => FormattableString.Invariant($"{g.Key}: {Math.Abs(g.Sum(t => t.Amount)):F2}"));
     }
