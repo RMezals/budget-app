@@ -1,4 +1,7 @@
+import { apiFetch } from '@/api/client';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { auth } from '@/firebase';
+import { SUPPORTED_CURRENCIES } from '@/utils/currency/constants';
 import {
   EmailAuthProvider,
   type User,
@@ -13,7 +16,7 @@ interface Props {
   onClose: () => void;
 }
 
-type Section = 'name' | 'password';
+type Section = 'name' | 'email' | 'currency' | 'password';
 
 function firebaseErrorMessage(code: string): string {
   switch (code) {
@@ -33,12 +36,25 @@ function firebaseErrorMessage(code: string): string {
 
 export default function ProfileModal({ user, onClose }: Props) {
   const [section, setSection] = useState<Section>('name');
+  const { currency: currentCurrency, refreshCurrency } = useCurrency();
 
   // Name
   const [nameValue, setNameValue] = useState(user.displayName ?? '');
   const [nameSaving, setNameSaving] = useState(false);
   const [nameSuccess, setNameSuccess] = useState('');
   const [nameError, setNameError] = useState('');
+
+  // Email
+  const [emailValue, setEmailValue] = useState(user.email ?? '');
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [emailSuccess, setEmailSuccess] = useState('');
+  const [emailError, setEmailError] = useState('');
+
+  // Currency
+  const [currencyValue, setCurrencyValue] = useState(currentCurrency);
+  const [currencySaving, setCurrencySaving] = useState(false);
+  const [currencySuccess, setCurrencySuccess] = useState('');
+  const [currencyError, setCurrencyError] = useState('');
 
   // Password
   const [currentPw, setCurrentPw] = useState('');
@@ -64,6 +80,51 @@ export default function ProfileModal({ user, onClose }: Props) {
       setNameError(firebaseErrorMessage((e as { code?: string }).code ?? ''));
     } finally {
       setNameSaving(false);
+    }
+  }
+
+  async function handleEmailSave() {
+    const trimmed = emailValue.trim();
+    if (!trimmed) {
+      setEmailError('Email cannot be empty.');
+      return;
+    }
+    if (trimmed === user.email) {
+      setEmailError('New email must be different from the current one.');
+      return;
+    }
+    setEmailError('');
+    setEmailSuccess('');
+    setEmailSaving(true);
+    try {
+      await apiFetch('/api/auth/profile', {
+        method: 'PUT',
+        body: JSON.stringify({ email: trimmed }),
+      });
+      await auth?.currentUser?.reload();
+      setEmailSuccess('Email updated successfully.');
+    } catch (e: unknown) {
+      setEmailError((e as Error).message ?? 'Something went wrong. Please try again.');
+    } finally {
+      setEmailSaving(false);
+    }
+  }
+
+  async function handleCurrencySave() {
+    setCurrencyError('');
+    setCurrencySuccess('');
+    setCurrencySaving(true);
+    try {
+      await apiFetch('/api/auth/profile', {
+        method: 'PUT',
+        body: JSON.stringify({ currency: currencyValue }),
+      });
+      await refreshCurrency();
+      setCurrencySuccess('Currency updated.');
+    } catch (e: unknown) {
+      setCurrencyError((e as Error).message ?? 'Something went wrong. Please try again.');
+    } finally {
+      setCurrencySaving(false);
     }
   }
 
@@ -100,6 +161,13 @@ export default function ProfileModal({ user, onClose }: Props) {
     }
   }
 
+  const tabs: { key: Section; label: string }[] = [
+    { key: 'name', label: 'Display Name' },
+    { key: 'email', label: 'Email' },
+    { key: 'currency', label: 'Currency' },
+    { key: 'password', label: 'Change Password' },
+  ];
+
   return (
     <div
       className="pf-modal-overlay"
@@ -116,40 +184,23 @@ export default function ProfileModal({ user, onClose }: Props) {
           <button type="button" className="btn-close" onClick={onClose} aria-label="Close" />
         </div>
 
-        {/* Section tabs */}
         <div style={{ borderBottom: '1px solid var(--color-border)', padding: '0 1.5rem' }}>
           <ul className="nav nav-tabs" style={{ borderBottom: 'none', marginBottom: '-1px' }}>
-            <li className="nav-item">
-              <button
-                type="button"
-                className={`nav-link${section === 'name' ? ' active' : ''}`}
-                onClick={() => {
-                  setSection('name');
-                  setNameError('');
-                  setNameSuccess('');
-                }}
-              >
-                Display Name
-              </button>
-            </li>
-            <li className="nav-item">
-              <button
-                type="button"
-                className={`nav-link${section === 'password' ? ' active' : ''}`}
-                onClick={() => {
-                  setSection('password');
-                  setPwError('');
-                  setPwSuccess('');
-                }}
-              >
-                Change Password
-              </button>
-            </li>
+            {tabs.map(({ key, label }) => (
+              <li key={key} className="nav-item">
+                <button
+                  type="button"
+                  className={`nav-link${section === key ? ' active' : ''}`}
+                  onClick={() => setSection(key)}
+                >
+                  {label}
+                </button>
+              </li>
+            ))}
           </ul>
         </div>
 
         <div className="pf-modal-body">
-          {/* ── Name section ── */}
           {section === 'name' && (
             <div>
               <p className="text-muted small mb-3">
@@ -180,13 +231,77 @@ export default function ProfileModal({ user, onClose }: Props) {
                   autoFocus
                 />
               </div>
-              <div className="text-muted small mb-3">
-                <strong>Email:</strong> {user.email}
+            </div>
+          )}
+
+          {section === 'email' && (
+            <div>
+              <p className="text-muted small mb-3">
+                Update the email address associated with your account.
+              </p>
+              {emailError && <div className="alert alert-danger py-2 small mb-3">{emailError}</div>}
+              {emailSuccess && (
+                <div className="alert alert-success py-2 small mb-3">{emailSuccess}</div>
+              )}
+              <div className="mb-3">
+                <label className="form-label" htmlFor="profile-email">
+                  New email address
+                </label>
+                <input
+                  id="profile-email"
+                  className="form-control"
+                  type="email"
+                  value={emailValue}
+                  onChange={(e) => {
+                    setEmailValue(e.target.value);
+                    setEmailSuccess('');
+                    setEmailError('');
+                  }}
+                  disabled={emailSaving}
+                  autoComplete="email"
+                  // biome-ignore lint/a11y/noAutofocus: first field in modal
+                  autoFocus
+                />
               </div>
             </div>
           )}
 
-          {/* ── Password section ── */}
+          {section === 'currency' && (
+            <div>
+              <p className="text-muted small mb-3">
+                Your preferred currency is used to display all monetary values throughout the app.
+              </p>
+              {currencyError && (
+                <div className="alert alert-danger py-2 small mb-3">{currencyError}</div>
+              )}
+              {currencySuccess && (
+                <div className="alert alert-success py-2 small mb-3">{currencySuccess}</div>
+              )}
+              <div className="mb-3">
+                <label className="form-label" htmlFor="profile-currency">
+                  Preferred currency
+                </label>
+                <select
+                  id="profile-currency"
+                  className="form-select"
+                  value={currencyValue}
+                  onChange={(e) => {
+                    setCurrencyValue(e.target.value as (typeof SUPPORTED_CURRENCIES)[number]);
+                    setCurrencySuccess('');
+                    setCurrencyError('');
+                  }}
+                  disabled={currencySaving}
+                >
+                  {SUPPORTED_CURRENCIES.map((code) => (
+                    <option key={code} value={code}>
+                      {code}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
           {section === 'password' && (
             <div>
               <p className="text-muted small mb-3">
@@ -269,6 +384,26 @@ export default function ProfileModal({ user, onClose }: Props) {
                 disabled={nameSaving || nameValue.trim() === (user.displayName ?? '')}
               >
                 {nameSaving ? 'Saving…' : 'Save Name'}
+              </button>
+            )}
+            {section === 'email' && (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={handleEmailSave}
+                disabled={emailSaving || emailValue.trim() === (user.email ?? '')}
+              >
+                {emailSaving ? 'Saving…' : 'Save Email'}
+              </button>
+            )}
+            {section === 'currency' && (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={handleCurrencySave}
+                disabled={currencySaving || currencyValue === currentCurrency}
+              >
+                {currencySaving ? 'Saving…' : 'Save Currency'}
               </button>
             )}
             {section === 'password' && (
