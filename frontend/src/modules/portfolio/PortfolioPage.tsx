@@ -18,6 +18,7 @@ import {
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
+// Colour mapping used for the allocation bar chart — each asset type gets a distinct colour
 const ALLOC_COLORS: Record<string, string> = {
   Stock: '#2563eb',
   ETF: '#0891b2',
@@ -29,10 +30,12 @@ const ALLOC_COLORS: Record<string, string> = {
   Other: '#6b7280',
 };
 
+// Returns the chart colour for a given asset type, falling back to blue for unknown types
 function allocColor(type: string) {
   return ALLOC_COLORS[type] ?? '#2563eb';
 }
 
+// Background + text colour pairs used for the coloured type badge pills on each row
 const TYPE_STYLES: Record<string, { bg: string; color: string }> = {
   Stock: { bg: '#eff6ff', color: '#1d4ed8' },
   ETF: { bg: '#ecfeff', color: '#0e7490' },
@@ -51,10 +54,12 @@ const TYPE_STYLES: Record<string, { bg: string; color: string }> = {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+// Returns today's date as YYYY-MM-DD, used as the default for date inputs and as the max date
 function today() {
   return new Date().toISOString().split('T')[0];
 }
 
+// Displays a coloured gain/loss badge with an up/down arrow and percentage
 function GainBadge({ value, percent }: { value: number; percent: number }) {
   const pos = value >= 0;
   return (
@@ -66,6 +71,7 @@ function GainBadge({ value, percent }: { value: number; percent: number }) {
   );
 }
 
+// Renders a small coloured pill showing an asset or liability type (e.g. "Stock", "Mortgage")
 function TypeBadge({ type }: { type: string }) {
   const s = TYPE_STYLES[type] ?? { bg: '#f3f4f6', color: '#374151' };
   return (
@@ -77,6 +83,7 @@ function TypeBadge({ type }: { type: string }) {
 
 // ── Main page ──────────────────────────────────────────────────────────────
 
+// Main portfolio page — displays assets, liabilities, performance chart, and net worth history
 export default function PortfolioPage() {
   const fmt = useCurrencyFormatter();
   const {
@@ -88,17 +95,21 @@ export default function PortfolioPage() {
     liabilityTypes,
     loading,
     error,
-    reload,
+    reload, // call after mutations to refresh all portfolio data
   } = usePortfolio();
 
+  // Controls which tab panel is displayed; defaults to the assets list
   const [tab, setTab] = useState<'assets' | 'liabilities' | 'performance' | 'networth'>('assets');
 
   // ── Performance state ──
+  // globalGainLoss is the unrealised gain/loss across all current assets
   const [globalGainLoss, setGlobalGainLoss] = useState<PortfolioGainLoss | null>(null);
   const [monthlyPerf, setMonthlyPerf] = useState<MonthlyPerformance[]>([]);
   const [perfLoading, setPerfLoading] = useState(false);
+  // perfLoaded prevents re-fetching on every tab switch; only loads once unless the user clicks Reload
   const [perfLoaded, setPerfLoaded] = useState(false);
   const now = new Date();
+  // Default date range for performance: one year ago to this month
   const [perfFrom, setPerfFrom] = useState(
     `${now.getFullYear() - 1}-${String(now.getMonth() + 1).padStart(2, '0')}`,
   );
@@ -106,16 +117,19 @@ export default function PortfolioPage() {
     `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
   );
 
+  // Re-fetches unrealised gain/loss whenever the assets list changes (e.g. after a price update)
   // biome-ignore lint/correctness/useExhaustiveDependencies: re-fetch gain-loss whenever assets list changes
   useEffect(() => {
     apiFetch<PortfolioGainLoss>('/api/assets/gain-loss')
       .then(setGlobalGainLoss)
-      .catch(() => {});
+      .catch(() => {}); // Silently ignore errors; the metric card will show "—"
   }, [assets]);
 
+  // Fetches monthly performance data for the selected date range
   async function loadPerformance() {
     setPerfLoading(true);
     try {
+      // Convert YYYY-MM strings to full ISO timestamps (first day of each month)
       const from = new Date(`${perfFrom}-01`).toISOString();
       const to = new Date(`${perfTo}-01`).toISOString();
       const data = await apiFetch<MonthlyPerformance[]>(
@@ -128,8 +142,10 @@ export default function PortfolioPage() {
     }
   }
 
+  // Handles tab switching and lazy-loads data for tabs that need it (performance / net worth)
   function switchTab(t: 'assets' | 'liabilities' | 'performance' | 'networth') {
     setTab(t);
+    // Only fetch on first visit to each tab; the user can manually reload if needed
     if (t === 'performance' && !perfLoaded) loadPerformance();
     if (t === 'networth' && !nwLoaded) loadNwHistory();
   }
@@ -137,12 +153,15 @@ export default function PortfolioPage() {
   // ── Net worth history state ──
   const [nwHistory, setNwHistory] = useState<NetWorthHistoryPoint[]>([]);
   const [nwLoading, setNwLoading] = useState(false);
+  // nwLoaded prevents re-fetching on tab re-visit
   const [nwLoaded, setNwLoaded] = useState(false);
+  // Default date range: last 6 months
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
   const [nwFrom, setNwFrom] = useState(sixMonthsAgo.toISOString().slice(0, 10));
   const [nwTo, setNwTo] = useState(new Date().toISOString().slice(0, 10));
 
+  // Fetches net worth snapshots for each day in the selected range to power the area chart
   async function loadNwHistory() {
     setNwLoading(true);
     try {
@@ -157,6 +176,7 @@ export default function PortfolioPage() {
   }
 
   // ── Delete confirmation ──
+  // deleteTarget identifies what the user wants to delete so the modal can show its name
   const [deleteTarget, setDeleteTarget] = useState<{
     type: 'asset' | 'liability';
     id: string;
@@ -164,6 +184,7 @@ export default function PortfolioPage() {
   } | null>(null);
   const [deleteError, setDeleteError] = useState('');
 
+  // Executes the delete request for the currently targeted asset or liability
   async function confirmDelete() {
     if (!deleteTarget) return;
     try {
@@ -173,13 +194,14 @@ export default function PortfolioPage() {
         await apiFetch(`/api/liabilities/${deleteTarget.id}`, { method: 'DELETE' });
       }
       setDeleteTarget(null);
-      reload();
+      reload(); // Refresh portfolio data so the deleted item disappears from all lists
     } catch (e) {
       setDeleteError(String(e));
     }
   }
 
   // ── Asset modal ──
+  // assetModal tracks which mode the modal is in: 'create', 'edit', 'price', or null (closed)
   const [assetModal, setAssetModal] = useState<'create' | 'edit' | 'price' | null>(null);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [assetForm, setAssetForm] = useState({
@@ -189,9 +211,11 @@ export default function PortfolioPage() {
     purchasePrice: '',
     purchaseDate: today(),
   });
+  // priceForm is used only in 'price' mode to add a new price data point
   const [priceForm, setPriceForm] = useState({ value: '', date: today() });
   const [assetSaving, setAssetSaving] = useState(false);
   const [assetError, setAssetError] = useState('');
+  // assetValidation maps field names to their error messages for inline feedback
   const [assetValidation, setAssetValidation] = useState<Record<string, string>>({});
 
   // ── Liability modal ──
@@ -203,6 +227,7 @@ export default function PortfolioPage() {
     initialAmount: '',
     date: today(),
   });
+  // amountForm records a new balance snapshot for an existing liability
   const [amountForm, setAmountForm] = useState({ value: '', date: today() });
   const [liabilitySaving, setLiabilitySaving] = useState(false);
   const [liabilityError, setLiabilityError] = useState('');
@@ -210,6 +235,7 @@ export default function PortfolioPage() {
 
   // ── Asset actions ──
 
+  // Resets the asset form and opens the create modal with the first available type pre-selected
   function openCreateAsset() {
     setAssetForm({
       name: '',
@@ -223,6 +249,7 @@ export default function PortfolioPage() {
     setAssetModal('create');
   }
 
+  // Populates the asset form with the existing asset's data and opens edit mode
   function openEditAsset(id: string) {
     const a = assets.find((x) => x.id === id);
     if (!a) return;
@@ -232,13 +259,14 @@ export default function PortfolioPage() {
       type: a.type ?? '',
       quantity: String(a.quantity ?? 0),
       purchasePrice: String(a.purchasePrice ?? 0),
-      purchaseDate: today(),
+      purchaseDate: today(), // purchaseDate is not editable after creation
     });
     setAssetError('');
     setAssetValidation({});
     setAssetModal('edit');
   }
 
+  // Opens the price-update modal for a specific asset
   function openAddPrice(id: string) {
     setSelectedAssetId(id);
     setPriceForm({ value: '', date: today() });
@@ -247,11 +275,13 @@ export default function PortfolioPage() {
     setAssetModal('price');
   }
 
+  // Validates the asset create/edit form and returns true if all fields are valid
   function validateAsset(): boolean {
     const e: Record<string, string> = {};
     if (!assetForm.name.trim()) e.name = 'Name is required.';
     if (!assetForm.quantity || Number(assetForm.quantity) <= 0)
       e.quantity = 'Enter a positive quantity.';
+    // Purchase price and date are only required when creating, not when editing
     if (assetModal === 'create') {
       if (!assetForm.purchasePrice || Number(assetForm.purchasePrice) <= 0)
         e.purchasePrice = 'Enter a purchase price.';
@@ -261,6 +291,7 @@ export default function PortfolioPage() {
     return Object.keys(e).length === 0;
   }
 
+  // Validates the price-update form
   function validatePrice(): boolean {
     const e: Record<string, string> = {};
     if (!priceForm.value || Number(priceForm.value) <= 0) e.value = 'Enter a positive price.';
@@ -269,6 +300,7 @@ export default function PortfolioPage() {
     return Object.keys(e).length === 0;
   }
 
+  // Dispatches the appropriate API call based on which asset modal mode is active
   async function submitAsset() {
     const valid = assetModal === 'price' ? validatePrice() : validateAsset();
     if (!valid) return;
@@ -287,6 +319,7 @@ export default function PortfolioPage() {
           }),
         });
       } else if (assetModal === 'edit' && selectedAssetId) {
+        // Editing only allows updating name, type, and quantity — not purchase details
         await apiFetch(`/api/assets/${selectedAssetId}`, {
           method: 'PUT',
           body: JSON.stringify({
@@ -296,13 +329,14 @@ export default function PortfolioPage() {
           }),
         });
       } else if (assetModal === 'price' && selectedAssetId) {
+        // Adding a price creates a historical price record; the backend uses the latest one as current
         await apiFetch(`/api/assets/${selectedAssetId}/prices`, {
           method: 'POST',
           body: JSON.stringify({ value: Number(priceForm.value), date: priceForm.date }),
         });
       }
       setAssetModal(null);
-      reload();
+      reload(); // Refresh all data so the new values appear immediately
     } catch (e) {
       setAssetError(String(e));
     } finally {
@@ -312,6 +346,7 @@ export default function PortfolioPage() {
 
   // ── Liability actions ──
 
+  // Opens the create liability modal with defaults pre-filled
   function openCreateLiability() {
     setLiabilityForm({ name: '', type: liabilityTypes[0] ?? '', initialAmount: '', date: today() });
     setLiabilityError('');
@@ -319,16 +354,19 @@ export default function PortfolioPage() {
     setLiabilityModal('create');
   }
 
+  // Populates the liability form with existing data and opens edit mode
   function openEditLiability(id: string) {
     const l = liabilities.find((x) => x.id === id);
     if (!l) return;
     setSelectedLiabilityId(id);
+    // initialAmount is not shown when editing — only name and type are editable
     setLiabilityForm({ name: l.name ?? '', type: l.type ?? '', initialAmount: '', date: today() });
     setLiabilityError('');
     setLiabilityValidation({});
     setLiabilityModal('edit');
   }
 
+  // Opens the balance-update modal for a specific liability
   function openAddAmount(id: string) {
     setSelectedLiabilityId(id);
     setAmountForm({ value: '', date: today() });
@@ -337,9 +375,11 @@ export default function PortfolioPage() {
     setLiabilityModal('amount');
   }
 
+  // Validates the liability create/edit form
   function validateLiability(): boolean {
     const e: Record<string, string> = {};
     if (!liabilityForm.name.trim()) e.name = 'Name is required.';
+    // Initial amount and date are only needed when creating a new liability
     if (liabilityModal === 'create') {
       if (!liabilityForm.initialAmount || Number(liabilityForm.initialAmount) < 0)
         e.initialAmount = 'Enter a valid amount.';
@@ -349,6 +389,7 @@ export default function PortfolioPage() {
     return Object.keys(e).length === 0;
   }
 
+  // Validates the balance-update form
   function validateAmount(): boolean {
     const e: Record<string, string> = {};
     if (!amountForm.value || Number(amountForm.value) < 0) e.value = 'Enter a valid amount.';
@@ -357,6 +398,7 @@ export default function PortfolioPage() {
     return Object.keys(e).length === 0;
   }
 
+  // Dispatches the appropriate API call based on the active liability modal mode
   async function submitLiability() {
     const valid = liabilityModal === 'amount' ? validateAmount() : validateLiability();
     if (!valid) return;
@@ -379,6 +421,7 @@ export default function PortfolioPage() {
           body: JSON.stringify({ name: liabilityForm.name.trim(), type: liabilityForm.type }),
         });
       } else if (liabilityModal === 'amount' && selectedLiabilityId) {
+        // Recording a new balance snapshot; the backend uses the most-recent one as "current"
         await apiFetch(`/api/liabilities/${selectedLiabilityId}/amounts`, {
           method: 'POST',
           body: JSON.stringify({ value: Number(amountForm.value), date: amountForm.date }),
@@ -393,12 +436,15 @@ export default function PortfolioPage() {
     }
   }
 
+  // Returns the most recent balance snapshot for a liability that is not in the future
   function currentLiabilityBalance(id: string): number {
     const l = liabilities.find((x) => x.id === id);
     if (!l || (l.amount ?? []).length === 0) return 0;
     const nowTs = new Date();
+    // Filter out any future-dated entries before finding the latest
     const past = (l.amount ?? []).filter((e) => new Date(e.date ?? '') <= nowTs);
     if (past.length === 0) return 0;
+    // Pick the entry with the most-recent date using a reduce comparison
     return (
       past.reduce((latest, e) =>
         new Date(e.date ?? '') > new Date(latest.date ?? '') ? e : latest,
@@ -406,10 +452,12 @@ export default function PortfolioPage() {
     );
   }
 
+  // Returns the current price of the asset that is open in the modal (for the "current:" hint)
   function selectedAssetCurrentPrice(): number {
     return assets.find((a) => a.id === selectedAssetId)?.currentPrice ?? 0;
   }
 
+  // Returns the current balance of the liability open in the modal (for the "current:" hint)
   function selectedLiabilityCurrentBalance(): number {
     return selectedLiabilityId ? currentLiabilityBalance(selectedLiabilityId) : 0;
   }

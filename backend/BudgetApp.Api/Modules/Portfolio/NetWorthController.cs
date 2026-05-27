@@ -8,6 +8,7 @@ namespace BudgetApp.Api.Modules.Portfolio;
 [Route("api/networth")]
 public class NetWorthController(IPortfolioService portfolioService) : ApiControllerBase
 {
+    // Returns the user's current net worth (total assets minus total liabilities) as of now
     [HttpGet]
     [ProducesResponseType(typeof(NetWorthSnapshot), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCurrent()
@@ -22,8 +23,16 @@ public class NetWorthController(IPortfolioService portfolioService) : ApiControl
     [ProducesResponseType(typeof(List<NetWorthHistoryPoint>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetHistory([FromQuery] DateTime from, [FromQuery] DateTime to)
     {
+        // Cap the range to 5 years (1826 days) to prevent unbounded in-memory iteration
+        if ((to.Date - from.Date).TotalDays > 1826)
+            return BadRequest(new { error = "Date range cannot exceed 5 years." });
+
+        if (from > to)
+            return BadRequest(new { error = "Start date must be before end date." });
+
         var (assets, liabilities) = await portfolioService.GetAllAsync(UserId);
 
+        // Walk through each calendar day in the range and compute a net worth snapshot for it
         var series = new List<NetWorthHistoryPoint>();
         for (var date = from.Date; date <= to.Date; date = date.AddDays(1))
         {

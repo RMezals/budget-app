@@ -16,17 +16,17 @@ export interface UseAdvisorReturn {
   clearAdvisor: () => void;
 }
 
-/**
- * Hook for managing AI advisor state and operations
- */
+// Manages AI advisor requests, including loading state and error handling for both Claude and Ollama
 export function useAdvisor(options: UseAdvisorOptions): UseAdvisorReturn {
   const { claudeApiKey, onClaudeKeyRequired } = options;
+  // advisor holds the last successful response from the backend
   const [advisor, setAdvisor] = useState<AdvisorResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Sends the selected goals to the backend and stores the AI-generated tips in state
   const runAdvisor = async (provider: 'claude' | 'ollama', goals: string[]) => {
-    // Check if Claude API key is needed
+    // Guard: Claude requires an API key — prompt the user to enter one before proceeding
     if (provider === 'claude' && !claudeApiKey) {
       onClaudeKeyRequired();
       return;
@@ -37,6 +37,7 @@ export function useAdvisor(options: UseAdvisorOptions): UseAdvisorReturn {
       return;
     }
 
+    // Clear any previous result and error before starting a new request
     setLoading(true);
     setAdvisor(null);
     setError(null);
@@ -47,6 +48,7 @@ export function useAdvisor(options: UseAdvisorOptions): UseAdvisorReturn {
         body: JSON.stringify({
           provider,
           goals,
+          // Only send the API key when using Claude; Ollama runs locally and needs no key
           apiKey: provider === 'claude' ? claudeApiKey : undefined,
         }),
       });
@@ -59,6 +61,7 @@ export function useAdvisor(options: UseAdvisorOptions): UseAdvisorReturn {
     }
   };
 
+  // Resets advisor and error state so the UI can return to its initial empty form
   const clearAdvisor = () => {
     setAdvisor(null);
     setError(null);

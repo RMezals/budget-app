@@ -16,8 +16,10 @@ interface Props {
   onClose: () => void;
 }
 
+// Each tab in the modal maps to one of these section keys
 type Section = 'name' | 'email' | 'currency' | 'password';
 
+// Maps Firebase error codes to user-friendly messages shown in the modal
 function firebaseErrorMessage(code: string): string {
   switch (code) {
     case 'auth/wrong-password':
@@ -34,29 +36,31 @@ function firebaseErrorMessage(code: string): string {
   }
 }
 
+// Modal component that lets the signed-in user update their display name, email, currency, or password
 export default function ProfileModal({ user, onClose }: Props) {
+  // Controls which tab panel is visible; defaults to the name tab
   const [section, setSection] = useState<Section>('name');
   const { currency: currentCurrency, refreshCurrency } = useCurrency();
 
-  // Name
+  // Name section state — separate error/success per tab to avoid cross-contamination
   const [nameValue, setNameValue] = useState(user.displayName ?? '');
   const [nameSaving, setNameSaving] = useState(false);
   const [nameSuccess, setNameSuccess] = useState('');
   const [nameError, setNameError] = useState('');
 
-  // Email
+  // Email section state
   const [emailValue, setEmailValue] = useState(user.email ?? '');
   const [emailSaving, setEmailSaving] = useState(false);
   const [emailSuccess, setEmailSuccess] = useState('');
   const [emailError, setEmailError] = useState('');
 
-  // Currency
+  // Currency section state
   const [currencyValue, setCurrencyValue] = useState(currentCurrency);
   const [currencySaving, setCurrencySaving] = useState(false);
   const [currencySuccess, setCurrencySuccess] = useState('');
   const [currencyError, setCurrencyError] = useState('');
 
-  // Password
+  // Password section state — three fields: current, new, confirm
   const [currentPw, setCurrentPw] = useState('');
   const [newPw, setNewPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
@@ -64,6 +68,7 @@ export default function ProfileModal({ user, onClose }: Props) {
   const [pwSuccess, setPwSuccess] = useState('');
   const [pwError, setPwError] = useState('');
 
+  // Calls the Firebase Auth SDK directly — display name is not stored on the backend
   async function handleNameSave() {
     const trimmed = nameValue.trim();
     if (!trimmed) {
@@ -83,12 +88,15 @@ export default function ProfileModal({ user, onClose }: Props) {
     }
   }
 
+  // Sends the new email to the backend (which updates Firebase Admin + custom claims), then
+  // reloads the local user object so subsequent reads reflect the change
   async function handleEmailSave() {
     const trimmed = emailValue.trim();
     if (!trimmed) {
       setEmailError('Email cannot be empty.');
       return;
     }
+    // Guard: do not send a PUT if the email hasn't actually changed
     if (trimmed === user.email) {
       setEmailError('New email must be different from the current one.');
       return;
@@ -101,6 +109,7 @@ export default function ProfileModal({ user, onClose }: Props) {
         method: 'PUT',
         body: JSON.stringify({ email: trimmed }),
       });
+      // Reload the Firebase user to sync the updated email locally
       await auth?.currentUser?.reload();
       setEmailSuccess('Email updated successfully.');
     } catch (e: unknown) {
@@ -110,6 +119,8 @@ export default function ProfileModal({ user, onClose }: Props) {
     }
   }
 
+  // Sends the selected currency to the backend, then refreshes the token so the currency
+  // context picks up the new value immediately without requiring a sign-out/sign-in
   async function handleCurrencySave() {
     setCurrencyError('');
     setCurrencySuccess('');
@@ -119,6 +130,7 @@ export default function ProfileModal({ user, onClose }: Props) {
         method: 'PUT',
         body: JSON.stringify({ currency: currencyValue }),
       });
+      // refreshCurrency forces a token refresh so the updated claim is visible app-wide
       await refreshCurrency();
       setCurrencySuccess('Currency updated.');
     } catch (e: unknown) {
@@ -128,6 +140,7 @@ export default function ProfileModal({ user, onClose }: Props) {
     }
   }
 
+  // Changing passwords in Firebase requires re-authentication first to confirm identity
   async function handlePasswordSave() {
     setPwError('');
     setPwSuccess('');
@@ -147,10 +160,13 @@ export default function ProfileModal({ user, onClose }: Props) {
     setPwSaving(true);
     try {
       if (!auth || !user.email) throw new Error('Not authenticated');
+      // Build a credential from the current password and re-authenticate before allowing the change
       const credential = EmailAuthProvider.credential(user.email, currentPw);
       await reauthenticateWithCredential(user, credential);
+      // Only call updatePassword after successful re-auth
       await updatePassword(user, newPw);
       setPwSuccess('Password changed successfully.');
+      // Clear all password fields after a successful change
       setCurrentPw('');
       setNewPw('');
       setConfirmPw('');

@@ -10,10 +10,15 @@ namespace BudgetApp.Api.Modules.Transactions;
 [Route("api/budgets")]
 public class BudgetsController(IBudgetRepository budgetRepo, IBudgetService budgetService) : ApiControllerBase
 {
+    // Returns all budget limits set for the given calendar month
     [HttpGet]
     [ProducesResponseType(typeof(List<Budget>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByMonth([FromQuery] int year, [FromQuery] int month)
     {
+        // Validate before passing to DateTime — the constructor throws an uncaught exception for out-of-range values
+        if (month < 1 || month > 12 || year < 1)
+            return BadRequest(new { error = "Invalid year or month." });
+
         var monthStart = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
         var budgets = await budgetRepo.GetByMonthAsync(UserId, monthStart);
         return Ok(budgets);
@@ -26,6 +31,13 @@ public class BudgetsController(IBudgetRepository budgetRepo, IBudgetService budg
         if (!Categories.Expense.Contains(request.Category))
             return BadRequest(new { error = "Invalid expense category." });
 
+        // Validate year/month and limit amount before touching DateTime or the DB
+        if (request.Month < 1 || request.Month > 12 || request.Year < 1)
+            return BadRequest(new { error = "Invalid year or month." });
+
+        if (request.LimitAmount < 0)
+            return BadRequest(new { error = "Budget limit cannot be negative." });
+
         var monthStart = new DateTime(request.Year, request.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         await budgetRepo.UpsertAsync(UserId, request.Category, monthStart, request.LimitAmount);
         return NoContent();
@@ -36,7 +48,13 @@ public class BudgetsController(IBudgetRepository budgetRepo, IBudgetService budg
     [ProducesResponseType(typeof(List<BudgetUsageResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetUsage([FromQuery] int year, [FromQuery] int month)
     {
+        if (month < 1 || month > 12 || year < 1)
+            return BadRequest(new { error = "Invalid year or month." });
+
         var spending = await budgetService.GetUsageAsync(UserId, year, month);
+
+        // Remaining can be negative when spending exceeds the limit (intentional — shows overspend)
+        // UsagePercent is 0 when no limit is set to avoid division by zero
         var usage = spending.Select(b => new BudgetUsageResponse(
             b.Category,
             b.Limit,

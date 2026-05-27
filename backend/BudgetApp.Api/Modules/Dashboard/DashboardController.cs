@@ -11,6 +11,7 @@ public class DashboardController(
     IDashboardService dashboardService,
     ISpendingTrendService spendingTrendService) : ApiControllerBase
 {
+    // Returns the main dashboard summary: income, expenses, savings progress, and net worth for the current month
     [HttpGet]
     [ProducesResponseType(typeof(DashboardSummary), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSummary()
@@ -19,6 +20,7 @@ public class DashboardController(
         return Ok(summary);
     }
 
+    // Returns monthly spending totals for the past N months (default 12) used to render the spending trend chart
     [HttpGet("spending-trend")]
     [ProducesResponseType(typeof(List<SpendingTrendPoint>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSpendingTrend([FromQuery] int months = 12)

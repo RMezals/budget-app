@@ -8,6 +8,7 @@ namespace BudgetApp.Api.Modules.Auth;
 [Route("api/auth")]
 public class AuthController(IAuthService authService) : ApiControllerBase
 {
+    // Returns the profile data (display name, email, currency, etc.) for the authenticated user
     [HttpGet("profile")]
     [ProducesResponseType(typeof(ProfileResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetProfile()
@@ -16,6 +17,7 @@ public class AuthController(IAuthService authService) : ApiControllerBase
         return Ok(profile);
     }
 
+    // Updates the authenticated user's profile fields (e.g. display name or preferred currency)
     [HttpPut("profile")]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
     {
@@ -23,6 +25,7 @@ public class AuthController(IAuthService authService) : ApiControllerBase
         return NoContent();
     }
 
+    // Revokes all active Firebase tokens for the user, effectively logging them out on all devices
     [HttpPost("logout")]
     public async Task<IActionResult> Logout()
     {

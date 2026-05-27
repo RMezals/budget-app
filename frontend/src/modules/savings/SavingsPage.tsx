@@ -14,19 +14,24 @@ import SavingsFormsSection, {
   type GoalForm,
 } from './SavingsFormsSection';
 
+// Converts a Date to a YYYY-MM-DD string in the user's LOCAL timezone (not UTC)
+// This prevents date-picker values from shifting to the previous day in negative UTC offsets
 const toDateInputValue = (date: Date) => {
   const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
   return localDate.toISOString().slice(0, 10);
 };
 
+// Returns a YYYY-MM-DD string for a date that is `days` days from today
 const daysFromToday = (days: number) => {
   const date = new Date();
   date.setDate(date.getDate() + days);
   return toDateInputValue(date);
 };
 
+// Shorthand for today's date as a date-input value
 const today = () => daysFromToday(0);
 
+// Blank form state for creating a new savings goal
 const initialGoalForm: GoalForm = {
   name: '',
   targetAmount: '',
@@ -34,6 +39,7 @@ const initialGoalForm: GoalForm = {
   description: '',
 };
 
+// Blank form state for a contribution (deposit or withdrawal)
 const initialForm: ContributionForm = {
   goalId: '',
   amount: '',
@@ -42,8 +48,10 @@ const initialForm: ContributionForm = {
   reason: '',
 };
 
+// The backend may return a status as a numeric enum value; this array maps index → string label
 const goalStatusLabels = ['Active', 'Completed', 'Paused', 'Abandoned'] as const;
 
+// Converts a goal status (which may be a number or a string) to a display label
 const formatGoalStatus = (status: SavingsGoalProgress['status']): string => {
   if (typeof status === 'number') {
     return goalStatusLabels[status] ?? String(status);
@@ -52,6 +60,7 @@ const formatGoalStatus = (status: SavingsGoalProgress['status']): string => {
   return status ?? '';
 };
 
+// Helper predicates used to determine how a goal can be interacted with
 const isCompletedGoal = (goal: SavingsGoalProgress) =>
   formatGoalStatus(goal.status) === 'Completed';
 
@@ -60,12 +69,17 @@ const isPausedGoal = (goal: SavingsGoalProgress) => formatGoalStatus(goal.status
 const isAbandonedGoal = (goal: SavingsGoalProgress) =>
   formatGoalStatus(goal.status) === 'Abandoned';
 
+// Only active goals (not completed, paused, or abandoned) accept new contributions
 const canContributeToGoal = (goal: SavingsGoalProgress) =>
   !isCompletedGoal(goal) && !isPausedGoal(goal) && !isAbandonedGoal(goal);
 
+// Returns the maximum allowed amount for the current contribution mode:
+// - deposit: how much is still needed to reach the target
+// - withdraw: how much is currently in the goal's balance
 const getContributionLimit = (goal: SavingsGoalProgress, mode: ContributionMode) =>
   Math.max(mode === 'withdraw' ? (goal.currentBalance ?? 0) : (goal.amountRemaining ?? 0), 0);
 
+// If the typed amount exceeds the limit for the current mode, clamp it to the maximum
 const clampContributionAmount = (
   value: string,
   goal: SavingsGoalProgress | null | undefined,
@@ -79,9 +93,12 @@ const clampContributionAmount = (
   const limit = getContributionLimit(goal, mode);
   if (amount <= limit) return value;
 
+  // If the limit is 0, clear the field; otherwise cap it at the limit
   return limit > 0 ? String(limit) : '';
 };
 
+// Determines which goal ID should be selected in the contribution form after a data refresh.
+// Priority: preferredGoalId (e.g. newly created goal) > currently selected goal > first in list
 const getSelectableGoalId = (
   goals: SavingsGoalProgress[],
   currentGoalId: string,
@@ -94,13 +111,17 @@ const getSelectableGoalId = (
   return preferredGoal?.id ?? currentGoal?.id ?? selectableGoals[0]?.id ?? '';
 };
 
+// Page for managing savings goals — create goals and record deposits or withdrawals
 export default function SavingsPage() {
   const fmt = useCurrencyFormatter();
+  // Ref used to move keyboard focus to the amount field when switching to withdrawal mode
   const amountInputRef = useRef<HTMLInputElement>(null);
+  // Goals must have a deadline at least 30 days in the future
   const minimumGoalDeadline = daysFromToday(30);
   const [goals, setGoals] = useState<SavingsGoalProgress[]>([]);
   const [goalForm, setGoalForm] = useState<GoalForm>(initialGoalForm);
   const [form, setForm] = useState<ContributionForm>(initialForm);
+  // contributionMode toggles between deposit and withdrawal
   const [contributionMode, setContributionMode] = useState<ContributionMode>('deposit');
   const [loading, setLoading] = useState(true);
   const [creatingGoal, setCreatingGoal] = useState(false);
@@ -108,15 +129,20 @@ export default function SavingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Derive the currently selected goal object from the goalId in the contribution form
   const selectedGoal = useMemo(
     () => goals.find((goal) => goal.id === form.goalId) ?? null,
-    [form.goalId, goals],
+    [form.goalId, goals], // Re-compute when the selected ID or the goals list changes
   );
+  // Only goals that can accept contributions are shown in the dropdown
   const selectableGoals = useMemo(() => goals.filter(canContributeToGoal), [goals]);
+  // Pre-compute the contribution limit so it can be displayed next to the amount field
   const contributionLimit = selectedGoal
     ? getContributionLimit(selectedGoal, contributionMode)
     : null;
 
+  // Refreshes the goal list and updates the contribution form's selected goal.
+  // preferredGoalId is used after creating a new goal so it is auto-selected
   const loadGoals = async (preferredGoalId?: string) => {
     const data = await apiFetch('/api/goals', SavingsGoalProgressListSchema);
     setGoals(data as unknown as SavingsGoalProgress[]);
@@ -130,6 +156,7 @@ export default function SavingsPage() {
     }));
   };
 
+  // Fetches goals on mount; uses a cancelled flag to avoid state updates after unmount
   useEffect(() => {
     let cancelled = false;
 
@@ -138,6 +165,7 @@ export default function SavingsPage() {
         const data = await apiFetch('/api/goals', SavingsGoalProgressListSchema);
         if (cancelled) return;
         setGoals(data as unknown as SavingsGoalProgress[]);
+        // Pre-select the first selectable goal in the contribution form
         setForm((current) => ({
           ...current,
           goalId: getSelectableGoalId(data as unknown as SavingsGoalProgress[], current.goalId),
@@ -151,31 +179,37 @@ export default function SavingsPage() {
 
     fetchGoals();
 
+    // Cleanup: prevent stale state update if the component unmounts mid-request
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, []); // Empty deps — fetch only once on mount
 
+  // Updates a single field in the new-goal form and clears any success message
   const updateGoalForm = (field: keyof GoalForm, value: string) => {
     setGoalForm((current) => ({ ...current, [field]: value }));
     setSuccess(null);
   };
 
+  // Updates a single field in the contribution form and clears any success message
   const updateForm = (field: keyof ContributionForm, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
     setSuccess(null);
   };
 
+  // Switches the selected goal and clamps the existing amount to the new goal's limit
   const updateContributionGoal = (goalId: string) => {
     const nextGoal = goals.find((goal) => goal.id === goalId) ?? null;
     setForm((current) => ({
       ...current,
       goalId,
+      // Clamp the amount so it doesn't exceed what's allowed for the new goal
       amount: clampContributionAmount(current.amount, nextGoal, contributionMode),
     }));
     setSuccess(null);
   };
 
+  // Updates the amount field, clamping it to the current goal's contribution limit
   const updateContributionAmount = (value: string) => {
     setForm((current) => ({
       ...current,
@@ -184,6 +218,7 @@ export default function SavingsPage() {
     setSuccess(null);
   };
 
+  // Switches deposit/withdraw mode and re-clamps the amount to the new limit for that mode
   const selectContributionMode = (mode: ContributionMode) => {
     setForm((current) => ({
       ...current,
@@ -193,6 +228,7 @@ export default function SavingsPage() {
     setSuccess(null);
   };
 
+  // Called from the goal progress list when the user clicks "Withdraw" on a specific goal
   const prepareWithdrawal = (goalId: string) => {
     setContributionMode('withdraw');
     setError(null);
@@ -204,9 +240,11 @@ export default function SavingsPage() {
       date: current.date || today(),
       reason: current.reason,
     }));
+    // Move focus to the amount field so the user can type immediately
     amountInputRef.current?.focus();
   };
 
+  // Validates and submits the new savings goal form
   const handleCreateGoal = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
@@ -233,6 +271,7 @@ export default function SavingsPage() {
         body: JSON.stringify({
           name: goalForm.name.trim(),
           targetAmount,
+          // Midnight local time converted to UTC ISO string
           deadline: new Date(`${goalForm.deadline}T00:00:00`).toISOString(),
           description: goalForm.description.trim() || null,
         }),
@@ -240,6 +279,7 @@ export default function SavingsPage() {
 
       setGoalForm(initialGoalForm);
       setSuccess(`Goal "${goal.name}" created.`);
+      // Pass the new goal's ID so it is automatically selected in the contribution form
       await loadGoals(goal.id);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unable to create goal');
@@ -248,12 +288,13 @@ export default function SavingsPage() {
     }
   };
 
+  // Validates and submits a deposit or withdrawal contribution for the selected goal
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
     setSuccess(null);
 
-    const amount = Math.abs(Number(form.amount));
+    const amount = Math.abs(Number(form.amount)); // Always work with positive amounts for validation
     if (!form.goalId) {
       setError('Choose a savings goal first.');
       return;
@@ -270,6 +311,7 @@ export default function SavingsPage() {
       setError('Enter an amount greater than zero.');
       return;
     }
+    // Enforce the per-mode limit computed from the goal's balance or remaining amount
     const limit = getContributionLimit(selectedGoal, contributionMode);
     if (amount > limit) {
       setError(
@@ -283,6 +325,7 @@ export default function SavingsPage() {
       setError('Choose a contribution date.');
       return;
     }
+    // Withdrawals require a reason so there is an audit trail
     if (contributionMode === 'withdraw' && !form.reason.trim()) {
       setError('Enter a withdrawal reason.');
       return;
@@ -290,12 +333,14 @@ export default function SavingsPage() {
 
     setSubmitting(true);
     try {
+      // Withdrawals are stored as negative amounts; deposits are positive
       const signedAmount = contributionMode === 'withdraw' ? -amount : amount;
       await apiFetch(`/api/goals/${form.goalId}/contributions`, GoalContributionSchema, {
         method: 'POST',
         body: JSON.stringify({
           amount: signedAmount,
           date: new Date(`${form.date}T00:00:00`).toISOString(),
+          // Send only the relevant extra field for the mode; the other is null
           reason: contributionMode === 'withdraw' ? form.reason.trim() : null,
           note: contributionMode === 'deposit' ? form.note.trim() || null : null,
         }),
@@ -307,6 +352,7 @@ export default function SavingsPage() {
           ? `Withdrawal recorded for ${goalName}.`
           : `Contribution added to ${goalName}.`,
       );
+      // Reset the form but preserve the selected goal so the user can quickly add another entry
       setForm((current) => ({
         ...initialForm,
         goalId: current.goalId,

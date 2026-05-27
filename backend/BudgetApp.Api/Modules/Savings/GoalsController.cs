@@ -13,6 +13,7 @@ public class GoalsController(
     ISavingsProgressService savingsProgressService,
     ISavingsService savingsService) : ApiControllerBase
 {
+    // Returns all savings goals for the authenticated user, enriched with current balance and projected completion
     [HttpGet]
     [ProducesResponseType(typeof(List<GoalProgressDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
@@ -21,6 +22,7 @@ public class GoalsController(
         return Ok(goals);
     }
 
+    // Returns a single goal by ID with its current progress; returns 404 if not found
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(GoalProgressDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetById(string id)
@@ -29,6 +31,7 @@ public class GoalsController(
         return goal is null ? NotFound() : Ok(goal);
     }
 
+    // Creates a new savings goal for the authenticated user and returns the created record
     [HttpPost]
     [ProducesResponseType(typeof(SavingsGoal), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] CreateGoalRequest request)
@@ -36,15 +39,18 @@ public class GoalsController(
         var goal = new SavingsGoal
         {
             UserId = UserId,
+            // Trim whitespace from the name so storage is consistent
             Name = request.Name.Trim(),
             TargetAmount = request.TargetAmount,
             Deadline = request.Deadline,
+            // Store null rather than an empty string for optional description
             Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim()
         };
         await goalRepo.InsertAsync(goal);
         return CreatedAtAction(nameof(GetById), new { id = goal.Id }, goal);
     }
 
+    // Updates the name, target amount, deadline, and description of an existing goal
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(string id, [FromBody] UpdateGoalRequest request)
     {
@@ -52,6 +58,7 @@ public class GoalsController(
         return updated ? NoContent() : NotFound();
     }
 
+    // Updates only the status of a goal (e.g. pausing or resuming it)
     [HttpPut("{id}/status")]
     public async Task<IActionResult> UpdateStatus(string id, [FromBody] UpdateStatusRequest request)
     {
@@ -59,6 +66,7 @@ public class GoalsController(
         return updated ? NoContent() : NotFound();
     }
 
+    // Withdraws any remaining balance and permanently marks the goal as Abandoned
     [HttpPost("{id}/abandon")]
     public async Task<IActionResult> Abandon(string id, [FromBody] AbandonGoalRequest request)
     {
@@ -74,6 +82,7 @@ public class GoalsController(
     }
 
 
+    // Permanently deletes a savings goal and all its data; returns 404 if not found
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {

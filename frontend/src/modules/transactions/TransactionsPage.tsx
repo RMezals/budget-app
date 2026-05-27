@@ -18,19 +18,24 @@ import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
+// Returns today's date as a YYYY-MM-DD string, used as the default date for new transactions
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
+// Captured once at module load so the budget month selector starts on the current month
 const currentYear = new Date().getFullYear();
 const currentMonth = new Date().getMonth() + 1;
 
+// Formats a year + 1-based month number into a human-readable label (e.g. "April 2024")
 function monthLabel(year: number, month: number) {
   return new Date(year, month - 1, 1).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
 }
 
 // ── types ──────────────────────────────────────────────────────────────────
 
+// Controls which of the two main panels (transactions list or budget editor) is shown
 type Tab = 'transactions' | 'budgets';
 
+// All editable fields for a single transaction form
 type TxForm = {
   amount: string;
   date: string;
@@ -39,6 +44,7 @@ type TxForm = {
   isIncome: boolean;
 };
 
+// Returns a blank form pre-filled with today's date and the first expense category
 const emptyTxForm = (categories: TransactionCategories): TxForm => ({
   amount: '',
   date: todayStr(),
@@ -49,11 +55,13 @@ const emptyTxForm = (categories: TransactionCategories): TxForm => ({
 
 // ── component ─────────────────────────────────────────────────────────────
 
+// Page that combines transaction management and monthly budget limits in two tabs
 export default function TransactionsPage() {
   const fmt = useCurrencyFormatter();
 
   const [tab, setTab] = useState<Tab>('transactions');
 
+  // Available categories are loaded once and used by both the add/edit form and filters
   const [categories, setCategories] = useState<TransactionCategories>({
     expense: [],
     income: [],
@@ -66,11 +74,13 @@ export default function TransactionsPage() {
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Filter state — each change triggers a re-fetch via the loadTransactions callback
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterKeyword, setFilterKeyword] = useState('');
 
+  // editingId is non-null when the form is in edit mode for an existing transaction
   const [editingId, setEditingId] = useState<string | null>(null);
   const [txForm, setTxForm] = useState<TxForm>({
     amount: '',
@@ -79,9 +89,11 @@ export default function TransactionsPage() {
     description: '',
     isIncome: false,
   });
+  // Used to move focus to the amount field automatically when editing a transaction
   const amountRef = useRef<HTMLInputElement>(null);
 
   // ── budgets state ────────────────────────────────────────────────────────
+  // budgetYear/budgetMonth control the month navigator at the top of the budgets tab
   const [budgetYear, setBudgetYear] = useState(currentYear);
   const [budgetMonth, setBudgetMonth] = useState(currentMonth);
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -89,25 +101,30 @@ export default function TransactionsPage() {
   const [budgetLoading, setBudgetLoading] = useState(false);
   const [budgetError, setBudgetError] = useState<string | null>(null);
   const [budgetSuccess, setBudgetSuccess] = useState<string | null>(null);
+  // limitInputs maps category → text input value so each row has its own controlled input
   const [limitInputs, setLimitInputs] = useState<Record<string, string>>({});
+  // savingCategory tracks which budget row is currently being saved (shows a spinner)
   const [savingCategory, setSavingCategory] = useState<string | null>(null);
 
-  // ── load categories ─────────────────────────────────────────────────────
+  // Fetches available categories on mount; also pre-fills the form category on first load
   useEffect(() => {
     apiFetch('/api/transactions/categories', TransactionCategoriesSchema)
       .then((cats) => {
         setCategories(cats);
+        // Only update the category if the form doesn't already have one set
         setTxForm((f) => ({ ...f, category: f.category || cats.expense[0] || '' }));
       })
       .catch(() => {});
-  }, []);
+  }, []); // Runs once on mount; category list doesn't change during a session
 
-  // ── load transactions ────────────────────────────────────────────────────
+  // Re-fetches the transaction list whenever any filter value changes
   const loadTransactions = useCallback(async () => {
     setTxLoading(true);
     setTxError(null);
     try {
+      // Build query params only for filters that have a value
       const params = new URLSearchParams();
+      // Date strings are converted to full ISO timestamps so the API gets UTC boundaries
       if (filterFrom) params.set('from', new Date(`${filterFrom}T00:00:00`).toISOString());
       if (filterTo) params.set('to', new Date(`${filterTo}T23:59:59`).toISOString());
       if (filterCategory) params.set('category', filterCategory);
@@ -118,13 +135,14 @@ export default function TransactionsPage() {
     } finally {
       setTxLoading(false);
     }
-  }, [filterFrom, filterTo, filterCategory, filterKeyword]);
+  }, [filterFrom, filterTo, filterCategory, filterKeyword]); // Re-create when any filter changes
 
+  // Trigger loadTransactions whenever filters change (the callback itself changes when deps change)
   useEffect(() => {
     loadTransactions();
   }, [loadTransactions]);
 
-  // ── load budgets ─────────────────────────────────────────────────────────
+  // Fetches budget limits and current usage for the selected year/month in parallel
   const loadBudgets = useCallback(async () => {
     setBudgetLoading(true);
     setBudgetError(null);
@@ -138,6 +156,7 @@ export default function TransactionsPage() {
       ]);
       setBudgets(b);
       setUsage(u);
+      // Initialise the limit text inputs from existing budget records
       const inputs: Record<string, string> = {};
       for (const cat of categories.expense ?? []) {
         const existing = b.find((x) => x.category === cat);
@@ -149,19 +168,23 @@ export default function TransactionsPage() {
     } finally {
       setBudgetLoading(false);
     }
-  }, [budgetYear, budgetMonth, categories]);
+  }, [budgetYear, budgetMonth, categories]); // Re-fetch when month or categories change
 
+  // Only load budgets when the budgets tab is active and categories are available
   useEffect(() => {
     if (tab === 'budgets' && (categories.expense?.length ?? 0) > 0) loadBudgets();
   }, [tab, loadBudgets, categories.expense?.length]);
 
   // ── form helpers ─────────────────────────────────────────────────────────
+
+  // Populates the form with an existing transaction's values and moves focus to the amount field
   const startEdit = (tx: Transaction) => {
+    // The API stores expenses as negative amounts; isIncome is derived from the sign
     const isIncome = (tx.amount ?? 0) > 0;
     setEditingId(tx.id ?? null);
     setTxForm({
-      amount: String(Math.abs(tx.amount ?? 0)),
-      date: (tx.date ?? '').slice(0, 10),
+      amount: String(Math.abs(tx.amount ?? 0)), // Always show the absolute value in the input
+      date: (tx.date ?? '').slice(0, 10), // Trim ISO timestamp to YYYY-MM-DD for the date picker
       category: tx.category ?? '',
       description: tx.description ?? '',
       isIncome,
@@ -171,6 +194,7 @@ export default function TransactionsPage() {
     amountRef.current?.focus();
   };
 
+  // Exits edit mode and resets the form to a blank state
   const cancelEdit = () => {
     setEditingId(null);
     setTxForm(emptyTxForm(categories));
@@ -178,10 +202,12 @@ export default function TransactionsPage() {
     setTxSuccess(null);
   };
 
+  // Updates a single form field; when switching income/expense, also resets the category
   const updateForm = (field: keyof TxForm, value: string | boolean) => {
     setTxForm((f) => {
       const next = { ...f, [field]: value };
       if (field === 'isIncome') {
+        // Switch the category list to match the selected transaction type
         const cats = value ? (categories.income ?? []) : (categories.expense ?? []);
         next.category = cats[0] ?? '';
       }
@@ -190,6 +216,7 @@ export default function TransactionsPage() {
     setTxSuccess(null);
   };
 
+  // Validates and submits the transaction form (handles both create and update)
   const handleTxSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault();
     setTxError(null);
@@ -205,9 +232,11 @@ export default function TransactionsPage() {
       return;
     }
 
+    // Expenses are stored as negative numbers in the database; income is positive
     const signedAmount = txForm.isIncome ? amount : -amount;
     const body = JSON.stringify({
       amount: signedAmount,
+      // Use noon UTC to avoid date shifting caused by timezone offsets
       date: new Date(`${txForm.date}T12:00:00`).toISOString(),
       category: txForm.category,
       description: txForm.description.trim() || null,
@@ -216,12 +245,15 @@ export default function TransactionsPage() {
     setSubmitting(true);
     try {
       if (editingId) {
+        // PUT updates the existing transaction
         await apiFetch(`/api/transactions/${editingId}`, { method: 'PUT', body });
         setTxSuccess('Transaction updated.');
       } else {
+        // POST creates a new transaction
         await apiFetch('/api/transactions', TransactionSchema, { method: 'POST', body });
         setTxSuccess('Transaction added.');
       }
+      // Reset form and refresh list after a successful save
       setEditingId(null);
       setTxForm(emptyTxForm(categories));
       await loadTransactions();
@@ -232,6 +264,7 @@ export default function TransactionsPage() {
     }
   };
 
+  // Asks for confirmation before deleting; also cancels edit mode if that transaction was open
   const handleDelete = async (id: string) => {
     if (!window.confirm('Delete this transaction?')) return;
     try {
@@ -243,6 +276,7 @@ export default function TransactionsPage() {
     }
   };
 
+  // Saves or updates the monthly spending limit for a single expense category
   const saveBudget = async (category: string) => {
     const raw = limitInputs[category];
     const limit = Number(raw);
@@ -252,6 +286,7 @@ export default function TransactionsPage() {
     }
     setBudgetError(null);
     setBudgetSuccess(null);
+    // Track which row is being saved so we can show a per-row spinner
     setSavingCategory(category);
     try {
       await apiFetch('/api/budgets', {
@@ -264,6 +299,7 @@ export default function TransactionsPage() {
         }),
       });
       setBudgetSuccess(`Budget saved for ${category}.`);
+      // Refresh budget + usage data so the progress bars reflect the new limit
       await loadBudgets();
     } catch (e) {
       setBudgetError(e instanceof Error ? e.message : 'Failed to save budget');
@@ -272,15 +308,18 @@ export default function TransactionsPage() {
     }
   };
 
+  // Looks up the real-time usage record for a given category (may be undefined if no usage yet)
   const getUsage = (category: string): TransactionBudgetUsage | undefined =>
     usage.find((u) => u.category === category);
 
+  // Summary totals derived from the current filtered transaction list
   const totalIncome = transactions
     .filter((t) => (t.amount ?? 0) > 0)
     .reduce((s, t) => s + (t.amount ?? 0), 0);
   const totalExpenses = transactions
     .filter((t) => (t.amount ?? 0) < 0)
-    .reduce((s, t) => s + Math.abs(t.amount ?? 0), 0);
+    .reduce((s, t) => s + Math.abs(t.amount ?? 0), 0); // abs() converts negative amounts for display
+  // Combined list used by the category filter dropdown
   const allCategories = [...(categories.expense ?? []), ...(categories.income ?? [])];
 
   return (

@@ -1,27 +1,22 @@
-/**
- * Client-side encryption utility for sensitive data like API keys
- * Uses Web Crypto API with AES-GCM encryption
- *
- * Security Note: Client-side encryption provides protection against casual inspection
- * and some attack vectors, but the encryption key must be derivable from client-side data.
- * This is more secure than plain text but not as secure as server-side encryption.
- */
+// Client-side encryption utility for sensitive data like API keys.
+// Uses the browser's built-in Web Crypto API with AES-GCM (authenticated encryption).
+// Security Note: the encryption key is stored in localStorage, so this protects against
+// casual inspection but not against XSS attacks. For production consider server-side storage.
 
+// localStorage key where the serialised encryption key is persisted between sessions
 const ENCRYPTION_KEY_NAME = 'app_encryption_key';
 const ALGORITHM = 'AES-GCM';
 const KEY_LENGTH = 256;
 
-/**
- * Generates or retrieves a persistent encryption key
- * The key is stored in IndexedDB for persistence across sessions
- */
+// Returns the existing AES key from localStorage or generates and stores a brand new one
 async function getOrCreateEncryptionKey(): Promise<CryptoKey> {
-  // Try to get existing key from IndexedDB
+  // Try to get existing key from localStorage (stored as JSON Web Key format)
   const storedKeyData = localStorage.getItem(ENCRYPTION_KEY_NAME);
 
   if (storedKeyData) {
     try {
       const keyData = JSON.parse(storedKeyData);
+      // importKey re-hydrates the raw JWK object into a usable CryptoKey
       const key = await crypto.subtle.importKey(
         'jwk',
         keyData,
@@ -31,63 +26,57 @@ async function getOrCreateEncryptionKey(): Promise<CryptoKey> {
       );
       return key;
     } catch (error) {
+      // If the stored key is corrupted, fall through and generate a fresh one
       console.warn('Failed to import stored key, generating new one:', error);
     }
   }
 
-  // Generate new key
+  // Generate a new random AES-256 key
   const key = await crypto.subtle.generateKey(
     { name: ALGORITHM, length: KEY_LENGTH },
-    true, // extractable
+    true, // extractable — must be true so we can export and persist it
     ['encrypt', 'decrypt'],
   );
 
-  // Store key for future use
+  // Export as JWK so it can be serialised to a plain string for localStorage
   const exportedKey = await crypto.subtle.exportKey('jwk', key);
   localStorage.setItem(ENCRYPTION_KEY_NAME, JSON.stringify(exportedKey));
 
   return key;
 }
 
-/**
- * Encrypts a string value
- * @param plaintext - The string to encrypt
- * @returns Base64-encoded encrypted data with IV
- */
+// Encrypts a plaintext string and returns a single base64 string containing the IV + ciphertext
 export async function encryptValue(plaintext: string): Promise<string> {
   if (!plaintext) return '';
 
   const key = await getOrCreateEncryptionKey();
-  const iv = crypto.getRandomValues(new Uint8Array(12)); // 96-bit IV for GCM
+  // AES-GCM requires a unique Initialisation Vector (IV) for every encryption operation
+  const iv = crypto.getRandomValues(new Uint8Array(12)); // 96-bit IV is the recommended size for GCM
   const encoder = new TextEncoder();
   const data = encoder.encode(plaintext);
 
   const encrypted = await crypto.subtle.encrypt({ name: ALGORITHM, iv }, key, data);
 
-  // Combine IV and encrypted data
+  // Prepend the IV to the ciphertext so decryption always has it available
   const combined = new Uint8Array(iv.length + encrypted.byteLength);
   combined.set(iv, 0);
   combined.set(new Uint8Array(encrypted), iv.length);
 
-  // Convert to base64
+  // Convert the raw bytes to a base64 string safe for localStorage
   return btoa(String.fromCharCode(...combined));
 }
 
-/**
- * Decrypts an encrypted string value
- * @param encryptedData - Base64-encoded encrypted data with IV
- * @returns Decrypted plaintext string
- */
+// Decrypts a base64-encoded string that was previously produced by encryptValue
 export async function decryptValue(encryptedData: string): Promise<string> {
   if (!encryptedData) return '';
 
   try {
     const key = await getOrCreateEncryptionKey();
 
-    // Decode from base64
+    // Decode the base64 string back to raw bytes
     const combined = Uint8Array.from(atob(encryptedData), (c) => c.charCodeAt(0));
 
-    // Extract IV and encrypted data
+    // Split the combined buffer back into the 12-byte IV and the remaining ciphertext
     const iv = combined.slice(0, 12);
     const data = combined.slice(12);
 
@@ -96,15 +85,14 @@ export async function decryptValue(encryptedData: string): Promise<string> {
     const decoder = new TextDecoder();
     return decoder.decode(decrypted);
   } catch (error) {
+    // Decryption can fail if the key has been cleared or the data is corrupted
     console.error('Decryption failed:', error);
     return '';
   }
 }
 
-/**
- * Clears the encryption key, making all encrypted data unreadable
- * Use this when the user logs out or wants to reset their encryption
- */
+// Removes the stored encryption key — all previously encrypted values become unreadable.
+// Call this on logout so another user on the same device cannot access the previous user's data.
 export function clearEncryptionKey(): void {
   localStorage.removeItem(ENCRYPTION_KEY_NAME);
 }

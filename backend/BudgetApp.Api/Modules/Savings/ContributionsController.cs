@@ -6,12 +6,14 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BudgetApp.Api.Modules.Savings;
 
+// Manages deposits and withdrawals for a specific savings goal (nested under /api/goals/{goalId}/contributions)
 [ApiController]
 [Route("api/goals/{goalId}/contributions")]
 public class ContributionsController(
     IGoalContributionRepository contributionRepo,
     ISavingsService savingsService) : ApiControllerBase
 {
+    // Returns all contribution records for the specified goal
     [HttpGet]
     [ProducesResponseType(typeof(List<GoalContribution>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(string goalId)
@@ -20,12 +22,14 @@ public class ContributionsController(
         return Ok(list);
     }
 
+    // Records a new deposit or withdrawal for the goal; negative amounts are treated as withdrawals
     [HttpPost]
     [ProducesResponseType(typeof(GoalContribution), StatusCodes.Status201Created)]
     public async Task<IActionResult> Add(string goalId, [FromBody] AddContributionRequest request)
     {
         try
         {
+            // Description and Note are aliases — Description takes priority if both are supplied
             var contribution = await savingsService.AddContributionAsync(
                 goalId, UserId, request.Amount, request.Date, request.Reason, request.Description ?? request.Note);
             return CreatedAtAction(nameof(GetAll), new { goalId }, contribution);
@@ -36,10 +40,12 @@ public class ContributionsController(
         }
         catch (InvalidOperationException ex)
         {
+            // Business rule violations (e.g. over-withdrawal, paused goal) are reported as 400 Bad Request
             return BadRequest(new { error = ex.Message });
         }
     }
 
+    // Updates the amount and optional reason for an existing contribution and recalculates the goal balance
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(GoalContribution), StatusCodes.Status200OK)]
     public async Task<IActionResult> Update(string goalId, string id, [FromBody] UpdateContributionRequest request)
@@ -65,12 +71,14 @@ public class ContributionsController(
         }
     }
 
+    // Deletes a contribution and triggers a full balance recalculation so the goal stays accurate
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string goalId, string id)
     {
         var deleted = await contributionRepo.DeleteAsync(id, goalId, UserId);
         if (!deleted) return NotFound();
 
+        // Recalculate because the deleted contribution may have affected the current balance and status
         await savingsService.RecalculateBalanceAsync(goalId, UserId);
         return NoContent();
     }

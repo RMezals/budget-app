@@ -4,14 +4,14 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BudgetApp.Api.Middleware;
 
-/// <summary>
-/// Global exception handler middleware that catches all unhandled exceptions
-/// and returns appropriate error responses without leaking sensitive information.
-/// </summary>
+// Global exception handler middleware that catches all unhandled exceptions
+// and returns appropriate error responses without leaking sensitive information.
 public class GlobalExceptionHandler(RequestDelegate next, ILogger<GlobalExceptionHandler> logger, IHostEnvironment env)
 {
+    // Generic message shown for unexpected errors so internal details are not exposed to the client
     private const string GenericErrorMessage = "An unexpected error occurred. Please try again later.";
 
+    // Called by the ASP.NET Core pipeline; wraps the rest of the pipeline in a try/catch
     public async Task InvokeAsync(HttpContext context)
     {
         try
@@ -24,6 +24,7 @@ public class GlobalExceptionHandler(RequestDelegate next, ILogger<GlobalExceptio
         }
     }
 
+    // Maps the exception type to an HTTP status code and writes a ProblemDetails JSON response
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         // Log the full exception details
@@ -32,7 +33,7 @@ public class GlobalExceptionHandler(RequestDelegate next, ILogger<GlobalExceptio
             context.Request.Method,
             context.Items["UserId"]);
 
-        // Determine status code and message based on exception type
+        // Map well-known exception types to appropriate HTTP status codes; everything else is 500
         var (statusCode, message) = exception switch
         {
             InvalidOperationException => (HttpStatusCode.ServiceUnavailable, exception.Message),
@@ -45,6 +46,7 @@ public class GlobalExceptionHandler(RequestDelegate next, ILogger<GlobalExceptio
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)statusCode;
 
+        // Build a standard ProblemDetails object (RFC 7807) for a consistent error response shape
         var problemDetails = new ProblemDetails
         {
             Status = (int)statusCode,
@@ -56,10 +58,12 @@ public class GlobalExceptionHandler(RequestDelegate next, ILogger<GlobalExceptio
         // In development, include more details for debugging
         if (env.IsDevelopment() && statusCode == HttpStatusCode.InternalServerError)
         {
+            // Only expose extra detail in development so production clients don't see stack information
             problemDetails.Extensions["exceptionType"] = exception.GetType().Name;
             problemDetails.Extensions["exceptionMessage"] = exception.Message;
         }
 
+        // Serialise to camelCase JSON to match the rest of the API's response format
         var json = JsonSerializer.Serialize(problemDetails, new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -68,6 +72,7 @@ public class GlobalExceptionHandler(RequestDelegate next, ILogger<GlobalExceptio
         await context.Response.WriteAsync(json);
     }
 
+    // Converts an HTTP status code to a short human-readable title string
     private static string GetTitleForStatusCode(HttpStatusCode statusCode) => statusCode switch
     {
         HttpStatusCode.BadRequest => "Bad Request",

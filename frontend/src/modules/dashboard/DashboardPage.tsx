@@ -14,16 +14,21 @@ import { getBudgetProgressColor } from '@/modules/dashboard/utils/budgetUtils';
 import { hasBudgetData, hasSavingsGoals } from '@/modules/dashboard/utils/dataChecks';
 import { useEffect, useState } from 'react';
 
+// Main dashboard page — shows financial overview, spending trend chart, and AI advisor
 export default function DashboardPage() {
   const fmt = useCurrencyFormatter();
+  // summary holds the data returned by GET /api/dashboard; null means still loading
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  // selectedGoals drives which advisor topics are sent to the backend
   const [selectedGoals, setSelectedGoals] = useState<string[]>(['save_more']);
   const [customQuestion, setCustomQuestion] = useState('');
 
+  // Fetch the last 12 months of spending trend data for the chart
   const { data: spendingTrend, loading: trendLoading } = useSpendingTrend(12);
+  // hasTrendData is true if at least one data point contains expense entries
   const hasTrendData = spendingTrend.some((p) => Object.keys(p.expenses ?? {}).length > 0);
 
-  // Custom hooks for advisor and API key management
+  // apiKeyManager handles the Claude API key modal and encrypted localStorage storage
   const apiKeyManager = useClaudeApiKey();
   const {
     advisor,
@@ -32,10 +37,12 @@ export default function DashboardPage() {
     runAdvisor,
   } = useAdvisor({
     claudeApiKey: apiKeyManager.apiKey,
+    // When Claude is selected but no key is stored, open the key input modal
     onClaudeKeyRequired: apiKeyManager.openModal,
   });
 
-  // Load dashboard summary on mount
+  // Fetches the dashboard summary once on mount; uses a cancelled flag to prevent
+  // state updates after unmount (e.g. if the user navigates away quickly)
   useEffect(() => {
     let cancelled = false;
     apiFetch('/api/dashboard', DashboardSummarySchema)
@@ -48,20 +55,24 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, []); // Empty deps — run once on mount only
 
+  // Merges the typed custom question into the goal list before sending to the advisor
   const handleRunAdvisor = async (provider: 'claude' | 'ollama') => {
     const goals = customQuestion.trim() ? [...selectedGoals, customQuestion.trim()] : selectedGoals;
 
     await runAdvisor(provider, goals);
   };
 
+  // Toggles a predefined goal in/out of the selectedGoals array
   const toggleGoal = (goal: string) => {
     setSelectedGoals((prev) =>
       prev.includes(goal) ? prev.filter((g) => g !== goal) : [...prev, goal],
     );
   };
 
+  // Saves the API key then immediately triggers the Claude advisor so the user gets results
+  // without having to click the button a second time after entering their key
   const handleSaveApiKey = async () => {
     await apiKeyManager.saveApiKey();
     // Auto-run Claude advisor after saving API key
@@ -73,6 +84,7 @@ export default function DashboardPage() {
     }
   };
 
+  // Show a full-page spinner until the summary arrives from the API
   if (!summary)
     return (
       <div className="d-flex justify-content-center py-5">
@@ -83,6 +95,7 @@ export default function DashboardPage() {
       </div>
     );
 
+  // Positive means the user saved money this month; negative means they overspent
   const netForMonth = (summary.monthlyIncome ?? 0) - (summary.monthlyExpenses ?? 0);
 
   return (

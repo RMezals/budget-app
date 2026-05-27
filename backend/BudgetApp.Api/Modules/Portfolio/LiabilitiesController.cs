@@ -9,6 +9,7 @@ namespace BudgetApp.Api.Modules.Portfolio;
 [Route("api/liabilities")]
 public class LiabilitiesController(ILiabilityRepository repo) : ApiControllerBase
 {
+    // Returns all liabilities (debts) for the authenticated user
     [HttpGet]
     [ProducesResponseType(typeof(List<Liability>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
@@ -17,6 +18,7 @@ public class LiabilitiesController(ILiabilityRepository repo) : ApiControllerBas
         return Ok(list);
     }
 
+    // Returns a single liability by ID; returns 404 if not found or not owned by the user
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(Liability), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetById(string id)
@@ -25,6 +27,7 @@ public class LiabilitiesController(ILiabilityRepository repo) : ApiControllerBas
         return item is null ? NotFound() : Ok(item);
     }
 
+    // Creates a new liability; the initial balance is stored as the first amount history entry
     [HttpPost]
     [ProducesResponseType(typeof(Liability), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] CreateLiabilityRequest request)
@@ -34,12 +37,14 @@ public class LiabilitiesController(ILiabilityRepository repo) : ApiControllerBas
             UserId = UserId,
             Name = request.Name,
             Type = request.Type,
+            // Seed the amount history with the starting balance so there is always at least one data point
             Amount = [new AmountEntry { Value = request.InitialAmount, Date = request.Date }]
         };
         await repo.InsertAsync(liability);
         return CreatedAtAction(nameof(GetById), new { id = liability.Id }, liability);
     }
 
+    // Updates the name and type of an existing liability (does not change the balance history)
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(string id, [FromBody] UpdateLiabilityRequest request)
     {
@@ -56,6 +61,7 @@ public class LiabilitiesController(ILiabilityRepository repo) : ApiControllerBas
         return updated ? NoContent() : NotFound();
     }
 
+    // Permanently deletes a liability and all its balance history
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
@@ -63,6 +69,7 @@ public class LiabilitiesController(ILiabilityRepository repo) : ApiControllerBas
         return deleted ? NoContent() : NotFound();
     }
 
+    // Returns the list of valid liability types (e.g. Loan, Mortgage) so the UI can populate a dropdown
     [HttpGet("types")]
     [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
     public IActionResult GetTypes() => Ok(BudgetApp.Api.Modules.Portfolio.Validators.LiabilityTypes.All);
