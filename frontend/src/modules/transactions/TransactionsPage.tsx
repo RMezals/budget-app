@@ -1,20 +1,22 @@
-import DatePicker from '@/components/DatePicker';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { apiFetch } from '../../api/client';
+import { apiFetch } from '@/api/client';
 import {
   BudgetListSchema,
   TransactionBudgetUsageListSchema,
   TransactionCategoriesSchema,
   TransactionListSchema,
   TransactionSchema,
-} from '../../api/schemas';
+} from '@/api/schemas';
 import type {
   Budget,
   Transaction,
   TransactionBudgetUsage,
   TransactionCategories,
-} from '../../api/types';
-import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
+  TransactionRequest,
+  UpsertBudgetRequest,
+} from '@/api/types';
+import DatePicker from '@/components/DatePicker';
+import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -240,7 +242,7 @@ export default function TransactionsPage() {
       date: new Date(`${txForm.date}T12:00:00`).toISOString(),
       category: txForm.category,
       description: txForm.description.trim() || null,
-    });
+    } satisfies TransactionRequest);
 
     setSubmitting(true);
     try {
@@ -296,7 +298,7 @@ export default function TransactionsPage() {
           month: budgetMonth,
           category,
           limitAmount: limit,
-        }),
+        } satisfies UpsertBudgetRequest),
       });
       setBudgetSuccess(`Budget saved for ${category}.`);
       // Refresh budget + usage data so the progress bars reflect the new limit

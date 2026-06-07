@@ -1,5 +1,20 @@
 import { apiFetch } from '@/api/client';
-import type { MonthlyPerformance, NetWorthHistoryPoint, PortfolioGainLoss } from '@/api/types';
+import {
+  MonthlyPerformanceListSchema,
+  NetWorthHistoryPointListSchema,
+  PortfolioGainLossSchema,
+} from '@/api/schemas';
+import type {
+  AddAmountRequest,
+  AddPriceRequest,
+  CreateAssetRequest,
+  CreateLiabilityRequest,
+  MonthlyPerformance,
+  NetWorthHistoryPoint,
+  PortfolioGainLoss,
+  UpdateAssetRequest,
+  UpdateLiabilityRequest,
+} from '@/api/types';
 import DatePicker from '@/components/DatePicker';
 import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
 import MonthPicker from '@/modules/portfolio/MonthPicker';
@@ -120,7 +135,7 @@ export default function PortfolioPage() {
   // Re-fetches unrealised gain/loss whenever the assets list changes (e.g. after a price update)
   // biome-ignore lint/correctness/useExhaustiveDependencies: re-fetch gain-loss whenever assets list changes
   useEffect(() => {
-    apiFetch<PortfolioGainLoss>('/api/assets/gain-loss')
+    apiFetch('/api/assets/gain-loss', PortfolioGainLossSchema)
       .then(setGlobalGainLoss)
       .catch(() => {}); // Silently ignore errors; the metric card will show "—"
   }, [assets]);
@@ -132,8 +147,9 @@ export default function PortfolioPage() {
       // Convert YYYY-MM strings to full ISO timestamps (first day of each month)
       const from = new Date(`${perfFrom}-01`).toISOString();
       const to = new Date(`${perfTo}-01`).toISOString();
-      const data = await apiFetch<MonthlyPerformance[]>(
+      const data = await apiFetch(
         `/api/assets/performance?from=${from}&to=${to}`,
+        MonthlyPerformanceListSchema,
       );
       setMonthlyPerf(data);
       setPerfLoaded(true);
@@ -165,8 +181,9 @@ export default function PortfolioPage() {
   async function loadNwHistory() {
     setNwLoading(true);
     try {
-      const data = await apiFetch<NetWorthHistoryPoint[]>(
+      const data = await apiFetch(
         `/api/networth/history?from=${new Date(nwFrom).toISOString()}&to=${new Date(nwTo).toISOString()}`,
+        NetWorthHistoryPointListSchema,
       );
       setNwHistory(data);
       setNwLoaded(true);
@@ -316,7 +333,7 @@ export default function PortfolioPage() {
             quantity: Number(assetForm.quantity),
             purchasePrice: Number(assetForm.purchasePrice),
             purchaseDate: assetForm.purchaseDate,
-          }),
+          } satisfies CreateAssetRequest),
         });
       } else if (assetModal === 'edit' && selectedAssetId) {
         // Editing only allows updating name, type, and quantity — not purchase details
@@ -326,13 +343,16 @@ export default function PortfolioPage() {
             name: assetForm.name.trim(),
             type: assetForm.type,
             quantity: Number(assetForm.quantity),
-          }),
+          } satisfies UpdateAssetRequest),
         });
       } else if (assetModal === 'price' && selectedAssetId) {
         // Adding a price creates a historical price record; the backend uses the latest one as current
         await apiFetch(`/api/assets/${selectedAssetId}/prices`, {
           method: 'POST',
-          body: JSON.stringify({ value: Number(priceForm.value), date: priceForm.date }),
+          body: JSON.stringify({
+            value: Number(priceForm.value),
+            date: priceForm.date,
+          } satisfies AddPriceRequest),
         });
       }
       setAssetModal(null);
@@ -413,18 +433,24 @@ export default function PortfolioPage() {
             type: liabilityForm.type,
             initialAmount: Number(liabilityForm.initialAmount),
             date: liabilityForm.date,
-          }),
+          } satisfies CreateLiabilityRequest),
         });
       } else if (liabilityModal === 'edit' && selectedLiabilityId) {
         await apiFetch(`/api/liabilities/${selectedLiabilityId}`, {
           method: 'PUT',
-          body: JSON.stringify({ name: liabilityForm.name.trim(), type: liabilityForm.type }),
+          body: JSON.stringify({
+            name: liabilityForm.name.trim(),
+            type: liabilityForm.type,
+          } satisfies UpdateLiabilityRequest),
         });
       } else if (liabilityModal === 'amount' && selectedLiabilityId) {
         // Recording a new balance snapshot; the backend uses the most-recent one as "current"
         await apiFetch(`/api/liabilities/${selectedLiabilityId}/amounts`, {
           method: 'POST',
-          body: JSON.stringify({ value: Number(amountForm.value), date: amountForm.date }),
+          body: JSON.stringify({
+            value: Number(amountForm.value),
+            date: amountForm.date,
+          } satisfies AddAmountRequest),
         });
       }
       setLiabilityModal(null);

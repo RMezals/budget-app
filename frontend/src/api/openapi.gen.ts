@@ -717,7 +717,37 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
-    put?: never;
+    put: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          goalId: string;
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: {
+        content: {
+          'application/json': components['schemas']['UpdateContributionRequest'];
+          'text/json': components['schemas']['UpdateContributionRequest'];
+          'application/*+json': components['schemas']['UpdateContributionRequest'];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'text/plain': components['schemas']['GoalContribution'];
+            'application/json': components['schemas']['GoalContribution'];
+            'text/json': components['schemas']['GoalContribution'];
+          };
+        };
+      };
+    };
     post?: never;
     delete: {
       parameters: {
@@ -2014,6 +2044,11 @@ export interface components {
       type?: string | null;
       /** Format: double */
       quantity?: number;
+    };
+    UpdateContributionRequest: {
+      /** Format: double */
+      amount?: number;
+      reason?: string | null;
     };
     UpdateGoalRequest: {
       name?: string | null;

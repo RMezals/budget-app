@@ -128,6 +128,33 @@ export const TransactionCategoriesSchema = z.object({
   income: z.array(z.string()),
 });
 
+// Portfolio schemas
+export const PortfolioGainLossSchema = z.object({
+  totalInvested: z.number().optional(),
+  currentValue: z.number().optional(),
+  totalGainLoss: z.number().optional(),
+  totalGainLossPercent: z.number().optional(),
+});
+
+export const MonthlyPerformanceSchema = z.object({
+  month: z.string().nullable().optional(),
+  startValue: z.number().optional(),
+  endValue: z.number().optional(),
+  gainLoss: z.number().optional(),
+  gainLossPercent: z.number().optional(),
+});
+
+export const MonthlyPerformanceListSchema = z.array(MonthlyPerformanceSchema);
+
+export const NetWorthHistoryPointSchema = z.object({
+  date: z.string().optional(),
+  totalAssets: z.number().optional(),
+  totalLiabilities: z.number().optional(),
+  netWorth: z.number().optional(),
+});
+
+export const NetWorthHistoryPointListSchema = z.array(NetWorthHistoryPointSchema);
+
 // Monthly Report schemas
 export const GoalContributionSummarySchema = z.object({
   goalId: z.string(),

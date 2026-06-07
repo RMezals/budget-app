@@ -1,12 +1,12 @@
-import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { apiFetch } from '../../api/client';
+import { apiFetch } from '@/api/client';
 import {
   GoalContributionSchema,
   SavingsGoalProgressListSchema,
   SavingsGoalSchema,
-} from '../../api/schemas';
-import type { SavingsGoalProgress } from '../../api/types';
-import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
+} from '@/api/schemas';
+import type { AddContributionRequest, CreateGoalRequest, SavingsGoalProgress } from '@/api/types';
+import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import GoalProgressSection from './GoalProgressSection';
 import SavingsFormsSection, {
   type ContributionForm,
@@ -145,11 +145,11 @@ export default function SavingsPage() {
   // preferredGoalId is used after creating a new goal so it is auto-selected
   const loadGoals = async (preferredGoalId?: string) => {
     const data = await apiFetch('/api/goals', SavingsGoalProgressListSchema);
-    setGoals(data as unknown as SavingsGoalProgress[]);
+    setGoals(data);
     setForm((current) => ({
       ...current,
       goalId: getSelectableGoalId(
-        data as unknown as SavingsGoalProgress[],
+        data,
         current.goalId,
         preferredGoalId,
       ),
@@ -164,11 +164,11 @@ export default function SavingsPage() {
       try {
         const data = await apiFetch('/api/goals', SavingsGoalProgressListSchema);
         if (cancelled) return;
-        setGoals(data as unknown as SavingsGoalProgress[]);
+        setGoals(data);
         // Pre-select the first selectable goal in the contribution form
         setForm((current) => ({
           ...current,
-          goalId: getSelectableGoalId(data as unknown as SavingsGoalProgress[], current.goalId),
+          goalId: getSelectableGoalId(data, current.goalId),
         }));
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Unable to load savings goals');
@@ -274,7 +274,7 @@ export default function SavingsPage() {
           // Midnight local time converted to UTC ISO string
           deadline: new Date(`${goalForm.deadline}T00:00:00`).toISOString(),
           description: goalForm.description.trim() || null,
-        }),
+        } satisfies CreateGoalRequest),
       });
 
       setGoalForm(initialGoalForm);
@@ -343,7 +343,7 @@ export default function SavingsPage() {
           // Send only the relevant extra field for the mode; the other is null
           reason: contributionMode === 'withdraw' ? form.reason.trim() : null,
           note: contributionMode === 'deposit' ? form.note.trim() || null : null,
-        }),
+        } satisfies AddContributionRequest),
       });
 
       const goalName = selectedGoal?.name ?? 'goal';

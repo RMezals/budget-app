@@ -1,4 +1,5 @@
 import { apiFetch } from '@/api/client';
+import type { UpdateProfileRequest } from '@/api/types';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { auth } from '@/firebase';
 import { SUPPORTED_CURRENCIES } from '@/utils/currency/constants';
@@ -107,7 +108,7 @@ export default function ProfileModal({ user, onClose }: Props) {
     try {
       await apiFetch('/api/auth/profile', {
         method: 'PUT',
-        body: JSON.stringify({ email: trimmed }),
+        body: JSON.stringify({ email: trimmed } satisfies UpdateProfileRequest),
       });
       // Reload the Firebase user to sync the updated email locally
       await auth?.currentUser?.reload();
@@ -128,7 +129,7 @@ export default function ProfileModal({ user, onClose }: Props) {
     try {
       await apiFetch('/api/auth/profile', {
         method: 'PUT',
-        body: JSON.stringify({ currency: currencyValue }),
+        body: JSON.stringify({ currency: currencyValue } satisfies UpdateProfileRequest),
       });
       // refreshCurrency forces a token refresh so the updated claim is visible app-wide
       await refreshCurrency();

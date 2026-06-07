@@ -1,4 +1,6 @@
+import type { z } from 'zod';
 import type { components } from './openapi.gen';
+import type { SavingsGoalProgressSchema } from './schemas';
 
 type S = components['schemas'];
 
@@ -8,7 +10,7 @@ export type GoalProgress = S['GoalProgress'];
 export type SpendingTrendPoint = S['SpendingTrendPoint'];
 
 export type SavingsGoal = S['SavingsGoal'];
-export type SavingsGoalProgress = S['GoalProgressDto'];
+export type SavingsGoalProgress = z.infer<typeof SavingsGoalProgressSchema>;
 export type GoalContribution = S['GoalContribution'];
 export type GoalStatus = S['GoalStatus'];
 export type ProjectionResult = S['ProjectionResult'];
@@ -47,6 +49,7 @@ export type UpdateGoalRequest = S['UpdateGoalRequest'];
 export type AbandonGoalRequest = S['AbandonGoalRequest'];
 export type UpdateStatusRequest = S['UpdateStatusRequest'];
 export type AddContributionRequest = S['AddContributionRequest'];
+export type UpdateContributionRequest = S['UpdateContributionRequest'];
 export type TransactionRequest = S['TransactionRequest'];
 export type UpsertBudgetRequest = S['UpsertBudgetRequest'];
 export type UpdateProfileRequest = S['UpdateProfileRequest'];

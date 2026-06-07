@@ -8,7 +8,8 @@ A full-stack personal finance application for tracking transactions, managing bu
 - **Transactions** — income/expense tracking with categories, date filters, and budget progress
 - **Savings Goals** — create goals, deposit/withdraw contributions, track progress per goal
 - **Portfolio** — assets and liabilities with price history, allocation breakdown, monthly performance, and day-by-day net worth history chart
-- **Profile** — change display name and password from the sidebar
+- **Reports** — monthly report combining income, expenses, savings contributions, and portfolio change, exportable as CSV or PDF
+- **Profile** — change display name, email, currency, and password from the sidebar
 - **AI Advisor** — personalised tips via Claude (cloud) or Ollama (local/free)
 - **Collapsible sidebar** — icon-only mode to save screen space
 - **Firebase Authentication** — sign up, log in, password reset
@@ -168,7 +169,9 @@ backend/BudgetApp.Api/
     ├── Dashboard/                # Summary + AI advisor
     ├── Transactions/             # Transactions & budgets
     ├── Savings/                  # Goals & contributions
-    └── Portfolio/                # Assets, liabilities, net worth history
+    ├── Portfolio/                # Assets, liabilities, net worth history
+    ├── Reports/                  # Monthly report generation & export
+    └── Dev/                      # Local data seeding
 ```
 
 **Authentication flow:**
@@ -185,24 +188,39 @@ frontend/src/
 ├── api/
 │   ├── client.ts                 # Fetch wrapper with auto auth token injection
 │   ├── schemas.ts                # Zod validation schemas
-│   └── types.ts                  # Derived TypeScript types
+│   ├── types.ts                  # Derived TypeScript types
+│   ├── openapi.gen.ts            # Generated OpenAPI types (npm run generate:api)
+│   └── generated/                # Generated API schema helpers
 ├── components/
 │   ├── AppNavLink.tsx            # Sidebar nav link (hides label when collapsed)
-│   └── DatePicker.tsx            # Shared calendar date picker component
+│   ├── DatePicker.tsx            # Shared calendar date picker component
+│   └── ErrorBoundary.tsx         # Catches render errors in the component tree
+├── contexts/
+│   └── CurrencyContext.tsx       # User currency preference
+├── hooks/
+│   └── useCurrencyFormatter.ts   # Formats amounts per the active currency
+├── utils/
+│   ├── currency/                 # Currency constants, formatter, token extractor
+│   └── encryption.ts             # Client-side encryption helper
 └── modules/
     ├── auth/
     │   ├── LoginPage.tsx         # Sign in / sign up
-    │   └── ProfileModal.tsx      # Change display name & password
+    │   └── ProfileModal.tsx      # Change display name, email, currency & password
     ├── dashboard/
     │   └── DashboardPage.tsx
     ├── transactions/
     │   └── TransactionsPage.tsx
     ├── savings/
     │   ├── SavingsPage.tsx
+    │   ├── GoalPage.tsx
     │   ├── SavingsFormsSection.tsx
     │   └── GoalProgressSection.tsx
-    └── portfolio/
-        └── PortfolioPage.tsx     # Assets, liabilities, performance, net worth chart
+    ├── portfolio/
+    │   ├── PortfolioPage.tsx     # Assets, liabilities, performance, net worth chart
+    │   ├── DatePicker.tsx
+    │   └── MonthPicker.tsx
+    └── reports/
+        └── ReportsPage.tsx       # Monthly report view with CSV/PDF export
 ```
 
 ---
@@ -218,12 +236,22 @@ BudgetApp.Tests/
 │   ├── DashboardControllerTests.cs
 │   ├── AdvisorServiceTests.cs
 │   ├── AdvisorControllerTests.cs
-│   └── ClaudeAdvisorTests.cs
+│   ├── ClaudeAdvisorTests.cs
+│   └── SpendingTrendServiceTests.cs
+├── Transactions/
+│   ├── TransactionsControllerTests.cs
+│   ├── BudgetServiceTests.cs
+│   └── BudgetsControllerTests.cs
 ├── Savings/
-│   └── SavingsServiceTests.cs
+│   ├── SavingsServiceTestBase.cs
+│   ├── SavingsServiceContributionTests.cs
+│   ├── SavingsServiceBalanceAndAbandonTests.cs
+│   └── SavingsProgressServiceTests.cs
 ├── Portfolio/
 │   ├── PortfolioCalculatorTests.cs  # Price/amount history resolution logic
 │   └── PortfolioServiceTests.cs     # Net worth, allocation, performance calculations
+├── Reports/
+│   └── MonthlyReportServiceTests.cs
 └── Helpers/
     └── FakeHttpHandler.cs
 ```
@@ -241,7 +269,7 @@ dotnet test BudgetApp.Tests/BudgetApp.Tests.csproj
 GitHub Actions runs on every pull request to `main` (`.github/workflows/ci.yml`):
 
 - **Backend** — restore, build (warnings as errors), format check, test
-- **Frontend** — install, Biome lint, TypeScript type-check
+- **Frontend** — install, Biome lint, TypeScript type-check, test
 
 ---
 
@@ -261,7 +289,7 @@ npm run dev         # Start dev server (http://localhost:5173)
 npm run build       # Production build
 npm run lint        # Biome lint
 npm run check       # Lint + format
-npx tsc --noEmit    # Type-check
+npx tsc -b          # Type-check
 ```
 
 **Docker:**
