@@ -1,6 +1,6 @@
 import type { MonthlyReport } from '@/api/types';
-import { jsPDF } from 'jspdf';
 import { monthLabel } from '@/modules/reports/utils/reportUtils';
+import { jsPDF } from 'jspdf';
 
 // Formats a raw number as a localised currency string for use in the PDF
 function formatAmount(value: number, currency: string): string {

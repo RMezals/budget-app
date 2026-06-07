@@ -7,12 +7,12 @@ import ProfileModal from '@/modules/auth/ProfileModal';
 import DashboardPage from '@/modules/dashboard/DashboardPage';
 import PortfolioPage from '@/modules/portfolio/PortfolioPage';
 import ReportsPage from '@/modules/reports/ReportsPage';
+import GoalPage from '@/modules/savings/GoalPage';
 import SavingsPage from '@/modules/savings/SavingsPage';
 import TransactionsPage from '@/modules/transactions/TransactionsPage';
 import { type User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import GoalPage from '@/modules/savings/GoalPage';
 
 type AuthState =
   | { status: 'loading' }
