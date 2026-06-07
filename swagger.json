@@ -1718,6 +1718,18 @@
         }
       }
     },
+    "/api/dev/seed": {
+      "post": {
+        "tags": [
+          "Seed"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/transactions": {
       "get": {
         "tags": [
