@@ -4,9 +4,9 @@ import type { MonthlyReport } from '@/api/types';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
 import { useState } from 'react';
-import { exportReportCsv } from './utils/exportCsv';
-import { exportReportPdf } from './utils/exportPdf';
-import { monthLabel } from './utils/reportUtils';
+import { exportReportCsv } from '@/modules/reports/utils/exportCsv';
+import { exportReportPdf } from '@/modules/reports/utils/exportPdf';
+import { monthLabel } from '@/modules/reports/utils/reportUtils';
 
 const now = new Date();
 const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;

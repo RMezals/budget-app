@@ -46,6 +46,8 @@ export const SavingsGoalProgressSchema = z.object({
 
 export const SavingsGoalProgressListSchema = z.array(SavingsGoalProgressSchema);
 
+export type SavingsGoalProgress = z.infer<typeof SavingsGoalProgressSchema>;
+
 export const SavingsGoalSchema = z.object({
   id: z.string(),
   userId: z.string(),

@@ -7,12 +7,12 @@ import {
 import type { AddContributionRequest, CreateGoalRequest, SavingsGoalProgress } from '@/api/types';
 import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import GoalProgressSection from './GoalProgressSection';
+import GoalProgressSection from '@/modules/savings/GoalProgressSection';
 import SavingsFormsSection, {
   type ContributionForm,
   type ContributionMode,
   type GoalForm,
-} from './SavingsFormsSection';
+} from '@/modules/savings/SavingsFormsSection';
 
 // Converts a Date to a YYYY-MM-DD string in the user's LOCAL timezone (not UTC)
 // This prevents date-picker values from shifting to the previous day in negative UTC offsets
