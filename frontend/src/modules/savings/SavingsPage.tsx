@@ -1,9 +1,5 @@
 import { apiFetch } from '@/api/client';
-import {
-  GoalContributionSchema,
-  SavingsGoalProgressListSchema,
-  SavingsGoalSchema,
-} from '@/api/schemas';
+import { SavingsGoalProgressListSchema, SavingsGoalProgressSchema } from '@/api/schemas';
 import type { AddContributionRequest, CreateGoalRequest, SavingsGoalProgress } from '@/api/types';
 import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
 import GoalProgressSection from '@/modules/savings/GoalProgressSection';
@@ -49,16 +45,7 @@ const initialForm: ContributionForm = {
 };
 
 // The backend may return a status as a numeric enum value; this array maps index → string label
-const goalStatusLabels = ['Active', 'Completed', 'Paused', 'Abandoned'] as const;
-
-// Converts a goal status (which may be a number or a string) to a display label
-const formatGoalStatus = (status: SavingsGoalProgress['status']): string => {
-  if (typeof status === 'number') {
-    return goalStatusLabels[status] ?? String(status);
-  }
-
-  return status ?? '';
-};
+const formatGoalStatus = (status: SavingsGoalProgress['status']): string => status ?? '';
 
 // Helper predicates used to determine how a goal can be interacted with
 const isCompletedGoal = (goal: SavingsGoalProgress) =>
@@ -262,7 +249,7 @@ export default function SavingsPage() {
 
     setCreatingGoal(true);
     try {
-      const goal = await apiFetch('/api/goals', SavingsGoalSchema, {
+      const goal = await apiFetch('/api/goals', SavingsGoalProgressSchema, {
         method: 'POST',
         body: JSON.stringify({
           name: goalForm.name.trim(),
@@ -276,7 +263,7 @@ export default function SavingsPage() {
       setGoalForm(initialGoalForm);
       setSuccess(`Goal "${goal.name}" created.`);
       // Pass the new goal's ID so it is automatically selected in the contribution form
-      await loadGoals(goal.id);
+      await loadGoals(goal.id ?? undefined);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unable to create goal');
     } finally {
@@ -331,7 +318,7 @@ export default function SavingsPage() {
     try {
       // Withdrawals are stored as negative amounts; deposits are positive
       const signedAmount = contributionMode === 'withdraw' ? -amount : amount;
-      await apiFetch(`/api/goals/${form.goalId}/contributions`, GoalContributionSchema, {
+      await apiFetch(`/api/goals/${form.goalId}/contributions`, {
         method: 'POST',
         body: JSON.stringify({
           amount: signedAmount,

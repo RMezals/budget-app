@@ -15,20 +15,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 const goalStatusLabels = ['Active', 'Completed', 'Paused', 'Abandoned'] as const;
 type GoalStatusLabel = (typeof goalStatusLabels)[number];
 
-const goalStatusValues: Record<GoalStatusLabel, 0 | 1 | 2 | 3> = {
-  Active: 0,
-  Completed: 1,
-  Paused: 2,
-  Abandoned: 3,
-};
-
-const formatGoalStatus = (status: SavingsGoalProgress['status']) => {
-  if (typeof status === 'number') {
-    return goalStatusLabels[status] ?? String(status);
-  }
-
-  return status;
-};
+const formatGoalStatus = (status: SavingsGoalProgress['status']) => status;
 
 const getStatusBadgeClass = (status: SavingsGoalProgress['status']) => {
   switch (formatGoalStatus(status)) {
@@ -246,14 +233,14 @@ export default function GoalPage() {
     try {
       await apiFetch(`/api/goals/${goalId}/status`, {
         method: 'PUT',
-        body: JSON.stringify({ status: goalStatusValues[status] } satisfies UpdateStatusRequest),
+        body: JSON.stringify({ status } satisfies UpdateStatusRequest),
       });
       if (status === 'Abandoned') {
         navigate('/savings', { replace: true });
         return;
       }
 
-      setGoal((current) => (current ? { ...current, status: goalStatusValues[status] } : current));
+      setGoal((current) => (current ? { ...current, status } : current));
     } catch (e) {
       setError(e instanceof Error ? e.message : `Unable to mark goal as ${status.toLowerCase()}`);
     } finally {

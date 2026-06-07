@@ -114,7 +114,7 @@ export default function TransactionsPage() {
       .then((cats) => {
         setCategories(cats);
         // Only update the category if the form doesn't already have one set
-        setTxForm((f) => ({ ...f, category: f.category || cats.expense[0] || '' }));
+        setTxForm((f) => ({ ...f, category: f.category || cats.expense?.[0] || '' }));
       })
       .catch(() => {});
   }, []); // Runs once on mount; category list doesn't change during a session
