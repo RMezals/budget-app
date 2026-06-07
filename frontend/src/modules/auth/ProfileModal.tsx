@@ -18,7 +18,7 @@ interface Props {
 }
 
 // Each tab in the modal maps to one of these section keys
-type Section = 'name' | 'email' | 'currency' | 'password';
+type Section = 'name' | 'email' | 'currency' | 'password' | 'dev';
 
 // Maps Firebase error codes to user-friendly messages shown in the modal
 function firebaseErrorMessage(code: string): string {
@@ -68,6 +68,11 @@ export default function ProfileModal({ user, onClose }: Props) {
   const [pwSaving, setPwSaving] = useState(false);
   const [pwSuccess, setPwSuccess] = useState('');
   const [pwError, setPwError] = useState('');
+
+  // Dev tools section state
+  const [seedLoading, setSeedLoading] = useState<string | null>(null);
+  const [seedResult, setSeedResult] = useState<string | null>(null);
+  const [seedError, setSeedError] = useState<string | null>(null);
 
   // Calls the Firebase Auth SDK directly — display name is not stored on the backend
   async function handleNameSave() {
@@ -178,11 +183,39 @@ export default function ProfileModal({ user, onClose }: Props) {
     }
   }
 
+  async function handleSeed(email: string) {
+    setSeedLoading(email);
+    setSeedResult(null);
+    setSeedError(null);
+    try {
+      const data = await apiFetch('/api/dev/seed/user', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
+      const r = data as {
+        transactions: number;
+        budgets: number;
+        goals: number;
+        contributions: number;
+        assets: number;
+        liabilities: number;
+      };
+      setSeedResult(
+        `Done — ${r.transactions} transactions, ${r.budgets} budgets, ${r.goals} goals, ${r.assets} assets, ${r.liabilities} liabilities`,
+      );
+    } catch (e: unknown) {
+      setSeedError((e as Error).message ?? 'Seed failed.');
+    } finally {
+      setSeedLoading(null);
+    }
+  }
+
   const tabs: { key: Section; label: string }[] = [
     { key: 'name', label: 'Display Name' },
     { key: 'email', label: 'Email' },
     { key: 'currency', label: 'Currency' },
     { key: 'password', label: 'Change Password' },
+    { key: 'dev', label: 'Dev Tools' },
   ];
 
   return (
@@ -319,6 +352,61 @@ export default function ProfileModal({ user, onClose }: Props) {
             </div>
           )}
 
+          {section === 'dev' && (
+            <div>
+              <p className="text-muted small mb-3">
+                Wipes your data and fills it with realistic test data. Only available in
+                development.
+              </p>
+              {seedError && <div className="alert alert-danger py-2 small mb-3">{seedError}</div>}
+              {seedResult && (
+                <div className="alert alert-success py-2 small mb-3">{seedResult}</div>
+              )}
+              {(
+                [
+                  {
+                    email: 'ausmoons@gmail.com',
+                    label: 'Profile A',
+                    description: '€3 200/mo · 3 goals · stocks + crypto · student loan',
+                  },
+                  {
+                    email: 'test@test.com',
+                    label: 'Profile B',
+                    description: '€5 000/mo · 2 goals · ETFs only · debt-free',
+                  },
+                  {
+                    email: 'endercave@gmail.com',
+                    label: 'Profile C',
+                    description: '€1 800/mo + gig · 3 goals · no investments · credit card debt',
+                  },
+                ] as const
+              ).map(({ email, label, description }) => (
+                <div key={email} className="card">
+                  <div className="card-body py-2 px-3">
+                    <div className="d-flex justify-content-between align-items-center">
+                      <div>
+                        <div className="small fw-semibold">
+                          {label} — {email}
+                        </div>
+                        <div className="text-muted" style={{ fontSize: '0.75rem' }}>
+                          {description}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-outline-primary btn-sm"
+                        onClick={() => handleSeed(email)}
+                        disabled={seedLoading !== null}
+                      >
+                        {seedLoading === email ? 'Seeding…' : 'Seed'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {section === 'password' && (
             <div>
               <p className="text-muted small mb-3">
@@ -433,6 +521,7 @@ export default function ProfileModal({ user, onClose }: Props) {
                 {pwSaving ? 'Updating…' : 'Change Password'}
               </button>
             )}
+            {section === 'dev' && null}
           </div>
         </div>
       </div>
