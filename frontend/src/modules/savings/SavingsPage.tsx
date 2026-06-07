@@ -148,11 +148,7 @@ export default function SavingsPage() {
     setGoals(data);
     setForm((current) => ({
       ...current,
-      goalId: getSelectableGoalId(
-        data,
-        current.goalId,
-        preferredGoalId,
-      ),
+      goalId: getSelectableGoalId(data, current.goalId, preferredGoalId),
     }));
   };
 
