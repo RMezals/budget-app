@@ -355,8 +355,7 @@ export default function ProfileModal({ user, onClose }: Props) {
           {section === 'dev' && (
             <div>
               <p className="text-muted small mb-3">
-                Wipes your data and fills it with realistic test data. Only available in
-                development.
+                Wipes your data and fills it with realistic test data.
               </p>
               {seedError && <div className="alert alert-danger py-2 small mb-3">{seedError}</div>}
               {seedResult && (
