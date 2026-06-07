@@ -1,6 +1,6 @@
+import type { SavingsGoalProgress } from '@/api/types';
 import DatePicker from '@/components/DatePicker';
 import type { FormEvent, RefObject } from 'react';
-import type { SavingsGoalProgress } from '../../api/types';
 
 export type GoalForm = {
   name: string;

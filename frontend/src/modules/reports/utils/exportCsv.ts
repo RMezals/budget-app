@@ -1,5 +1,5 @@
 import type { MonthlyReport } from '@/api/types';
-import { monthLabel } from './reportUtils';
+import { monthLabel } from '@/modules/reports/utils/reportUtils';
 
 // Converts a 2-D array of strings into properly quoted CSV rows.
 // Each cell is wrapped in double quotes and any internal double quotes are escaped by doubling them.

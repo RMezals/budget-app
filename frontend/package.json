@@ -10,7 +10,7 @@
     "format": "biome format --write .",
     "check": "biome check --write .",
     "preview": "vite preview",
-    "generate:api": "openapi-typescript http://localhost:5000/swagger/v1/swagger.json -o src/api/openapi.gen.ts"
+    "generate:schemas": "orval --config orval.config.ts"
   },
   "dependencies": {
     "bootstrap": "^5.3.8",
@@ -28,7 +28,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
-    "openapi-typescript": "^7.13.0",
+    "orval": "^7.13.2",
     "typescript": "~5.9.3",
     "vite": "^8.0.1"
   }

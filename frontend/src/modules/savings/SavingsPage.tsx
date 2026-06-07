@@ -1,18 +1,14 @@
-import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { apiFetch } from '../../api/client';
-import {
-  GoalContributionSchema,
-  SavingsGoalProgressListSchema,
-  SavingsGoalSchema,
-} from '../../api/schemas';
-import type { SavingsGoalProgress } from '../../api/types';
-import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
-import GoalProgressSection from './GoalProgressSection';
+import { apiFetch } from '@/api/client';
+import { SavingsGoalProgressListSchema, SavingsGoalProgressSchema } from '@/api/schemas';
+import type { AddContributionRequest, CreateGoalRequest, SavingsGoalProgress } from '@/api/types';
+import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
+import GoalProgressSection from '@/modules/savings/GoalProgressSection';
 import SavingsFormsSection, {
   type ContributionForm,
   type ContributionMode,
   type GoalForm,
-} from './SavingsFormsSection';
+} from '@/modules/savings/SavingsFormsSection';
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 // Converts a Date to a YYYY-MM-DD string in the user's LOCAL timezone (not UTC)
 // This prevents date-picker values from shifting to the previous day in negative UTC offsets
@@ -49,16 +45,7 @@ const initialForm: ContributionForm = {
 };
 
 // The backend may return a status as a numeric enum value; this array maps index → string label
-const goalStatusLabels = ['Active', 'Completed', 'Paused', 'Abandoned'] as const;
-
-// Converts a goal status (which may be a number or a string) to a display label
-const formatGoalStatus = (status: SavingsGoalProgress['status']): string => {
-  if (typeof status === 'number') {
-    return goalStatusLabels[status] ?? String(status);
-  }
-
-  return status ?? '';
-};
+const formatGoalStatus = (status: SavingsGoalProgress['status']): string => status ?? '';
 
 // Helper predicates used to determine how a goal can be interacted with
 const isCompletedGoal = (goal: SavingsGoalProgress) =>
@@ -145,14 +132,10 @@ export default function SavingsPage() {
   // preferredGoalId is used after creating a new goal so it is auto-selected
   const loadGoals = async (preferredGoalId?: string) => {
     const data = await apiFetch('/api/goals', SavingsGoalProgressListSchema);
-    setGoals(data as unknown as SavingsGoalProgress[]);
+    setGoals(data);
     setForm((current) => ({
       ...current,
-      goalId: getSelectableGoalId(
-        data as unknown as SavingsGoalProgress[],
-        current.goalId,
-        preferredGoalId,
-      ),
+      goalId: getSelectableGoalId(data, current.goalId, preferredGoalId),
     }));
   };
 
@@ -164,11 +147,11 @@ export default function SavingsPage() {
       try {
         const data = await apiFetch('/api/goals', SavingsGoalProgressListSchema);
         if (cancelled) return;
-        setGoals(data as unknown as SavingsGoalProgress[]);
+        setGoals(data);
         // Pre-select the first selectable goal in the contribution form
         setForm((current) => ({
           ...current,
-          goalId: getSelectableGoalId(data as unknown as SavingsGoalProgress[], current.goalId),
+          goalId: getSelectableGoalId(data, current.goalId),
         }));
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Unable to load savings goals');
@@ -266,7 +249,7 @@ export default function SavingsPage() {
 
     setCreatingGoal(true);
     try {
-      const goal = await apiFetch('/api/goals', SavingsGoalSchema, {
+      const goal = await apiFetch('/api/goals', SavingsGoalProgressSchema, {
         method: 'POST',
         body: JSON.stringify({
           name: goalForm.name.trim(),
@@ -274,13 +257,13 @@ export default function SavingsPage() {
           // Midnight local time converted to UTC ISO string
           deadline: new Date(`${goalForm.deadline}T00:00:00`).toISOString(),
           description: goalForm.description.trim() || null,
-        }),
+        } satisfies CreateGoalRequest),
       });
 
       setGoalForm(initialGoalForm);
       setSuccess(`Goal "${goal.name}" created.`);
       // Pass the new goal's ID so it is automatically selected in the contribution form
-      await loadGoals(goal.id);
+      await loadGoals(goal.id ?? undefined);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unable to create goal');
     } finally {
@@ -335,7 +318,7 @@ export default function SavingsPage() {
     try {
       // Withdrawals are stored as negative amounts; deposits are positive
       const signedAmount = contributionMode === 'withdraw' ? -amount : amount;
-      await apiFetch(`/api/goals/${form.goalId}/contributions`, GoalContributionSchema, {
+      await apiFetch(`/api/goals/${form.goalId}/contributions`, {
         method: 'POST',
         body: JSON.stringify({
           amount: signedAmount,
@@ -343,7 +326,7 @@ export default function SavingsPage() {
           // Send only the relevant extra field for the mode; the other is null
           reason: contributionMode === 'withdraw' ? form.reason.trim() : null,
           note: contributionMode === 'deposit' ? form.note.trim() || null : null,
-        }),
+        } satisfies AddContributionRequest),
       });
 
       const goalName = selectedGoal?.name ?? 'goal';

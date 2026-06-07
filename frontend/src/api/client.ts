@@ -1,5 +1,5 @@
+import { auth, firebaseConfigured } from '@/firebase';
 import type { z } from 'zod';
-import { auth, firebaseConfigured } from '../firebase';
 
 // Base API URL is read from the Vite environment variable, falling back to local dev server
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5000';

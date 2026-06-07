@@ -1,27 +1,21 @@
+import { apiFetch } from '@/api/client';
+import { GoalContributionListSchema, SavingsGoalProgressSchema } from '@/api/schemas';
+import type {
+  AbandonGoalRequest,
+  GoalContribution,
+  SavingsGoalProgress,
+  UpdateContributionRequest,
+  UpdateGoalRequest,
+  UpdateStatusRequest,
+} from '@/api/types';
+import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { apiFetch } from '../../api/client';
-import { GoalContributionListSchema, SavingsGoalProgressSchema } from '../../api/schemas';
-import type { GoalContribution, SavingsGoalProgress } from '../../api/types';
-import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 
 const goalStatusLabels = ['Active', 'Completed', 'Paused', 'Abandoned'] as const;
 type GoalStatusLabel = (typeof goalStatusLabels)[number];
 
-const goalStatusValues: Record<GoalStatusLabel, 0 | 1 | 2 | 3> = {
-  Active: 0,
-  Completed: 1,
-  Paused: 2,
-  Abandoned: 3,
-};
-
-const formatGoalStatus = (status: SavingsGoalProgress['status']) => {
-  if (typeof status === 'number') {
-    return goalStatusLabels[status] ?? String(status);
-  }
-
-  return status;
-};
+const formatGoalStatus = (status: SavingsGoalProgress['status']) => status;
 
 const getStatusBadgeClass = (status: SavingsGoalProgress['status']) => {
   switch (formatGoalStatus(status)) {
@@ -172,7 +166,7 @@ export default function GoalPage() {
       apiFetch(`/api/goals/${goalId}/contributions`, GoalContributionListSchema),
     ]);
 
-    return { goalData: goalData as unknown as SavingsGoalProgress, contributionData };
+    return { goalData, contributionData };
   }, [goalId]);
 
   useEffect(() => {
@@ -239,14 +233,14 @@ export default function GoalPage() {
     try {
       await apiFetch(`/api/goals/${goalId}/status`, {
         method: 'PUT',
-        body: JSON.stringify({ status: goalStatusValues[status] }),
+        body: JSON.stringify({ status } satisfies UpdateStatusRequest),
       });
       if (status === 'Abandoned') {
         navigate('/savings', { replace: true });
         return;
       }
 
-      setGoal((current) => (current ? { ...current, status: goalStatusValues[status] } : current));
+      setGoal((current) => (current ? { ...current, status } : current));
     } catch (e) {
       setError(e instanceof Error ? e.message : `Unable to mark goal as ${status.toLowerCase()}`);
     } finally {
@@ -290,7 +284,7 @@ export default function GoalPage() {
         body: JSON.stringify({
           amount: signedAmount,
           reason: contributionEditForm.reason.trim() || null,
-        }),
+        } satisfies UpdateContributionRequest),
       });
 
       const { goalData, contributionData } = await fetchGoalDetails();
@@ -339,7 +333,7 @@ export default function GoalPage() {
           targetAmount,
           deadline: new Date(`${goalEditForm.deadline}T00:00:00`).toISOString(),
           description: goalEditForm.description.trim() || null,
-        }),
+        } satisfies UpdateGoalRequest),
       });
       const { goalData, contributionData } = await fetchGoalDetails();
       setGoal(goalData);
@@ -367,7 +361,7 @@ export default function GoalPage() {
             (goal.currentBalance ?? 0) > 0
               ? `Withdrew ${fmt(goal.currentBalance ?? 0)} before abandoning ${goal.name}.`
               : `Abandoned ${goal.name}.`,
-        }),
+        } satisfies AbandonGoalRequest),
       });
       navigate('/savings', { replace: true });
     } catch (e) {

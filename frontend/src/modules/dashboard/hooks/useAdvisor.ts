@@ -1,6 +1,6 @@
 import { apiFetch } from '@/api/client';
 import { AdvisorResultSchema } from '@/api/schemas';
-import type { AdvisorResult } from '@/api/types';
+import type { AdvisorResult, AnalyseRequest } from '@/api/types';
 import { useState } from 'react';
 
 export interface UseAdvisorOptions {
@@ -50,7 +50,7 @@ export function useAdvisor(options: UseAdvisorOptions): UseAdvisorReturn {
           goals,
           // Only send the API key when using Claude; Ollama runs locally and needs no key
           apiKey: provider === 'claude' ? claudeApiKey : undefined,
-        }),
+        } satisfies AnalyseRequest),
       });
       setAdvisor(result);
     } catch (e) {

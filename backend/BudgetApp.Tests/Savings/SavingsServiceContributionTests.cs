@@ -186,7 +186,7 @@ public class SavingsServiceContributionTests : SavingsServiceTestBase
                 "Deposit",
                 null));
 
-        Assert.Equal("Contribution amount must be greater than zero.", ex.Message);
+        Assert.Equal("Contribution amount cannot be zero.", ex.Message);
         GoalMock.Verify(g => g.GetByIdAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         ContributionMock.Verify(c => c.InsertAsync(It.IsAny<GoalContribution>()), Times.Never);
     }

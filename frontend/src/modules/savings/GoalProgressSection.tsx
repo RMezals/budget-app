@@ -1,5 +1,5 @@
+import type { SavingsGoalProgress } from '@/api/types';
 import { Link } from 'react-router-dom';
-import type { SavingsGoalProgress } from '../../api/types';
 
 type GoalProgressSectionProps = {
   goals: SavingsGoalProgress[];
