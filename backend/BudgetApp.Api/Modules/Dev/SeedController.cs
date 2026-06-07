@@ -5,22 +5,34 @@ namespace BudgetApp.Api.Modules.Dev;
 
 [ApiController]
 [Route("api/dev")]
-public class SeedController(ISeedService seedService, IWebHostEnvironment env) : ApiControllerBase
+public class SeedController(ISeedService seedService) : ApiControllerBase
 {
-    /// <summary>
-    /// Clears and re-seeds realistic sample data for the authenticated user.
-    /// Only available in Development.
-    /// </summary>
-    [HttpPost("seed")]
-    public async Task<IActionResult> Seed()
-    {
-        if (!env.IsDevelopment())
-            return Forbid();
+    public record SeedUserRequest(string Email);
 
-        var result = await seedService.SeedAsync(UserId);
+    // Known demo emails mapped to their seed profiles
+    private static readonly Dictionary<string, string> KnownProfiles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["ausmoons@gmail.com"] = "A",
+        ["test@test.com"] = "B",
+        ["endercave@gmail.com"] = "C",
+    };
+
+    [HttpPost("seed/user")]
+    public async Task<IActionResult> SeedUser([FromBody] SeedUserRequest request)
+    {
+        if (!KnownProfiles.TryGetValue(request.Email, out var profile))
+            return BadRequest(new { error = $"'{request.Email}' is not a known demo email. Use one of: {string.Join(", ", KnownProfiles.Keys)}" });
+
+        var result = profile switch
+        {
+            "A" => await seedService.SeedAsync(UserId),
+            "B" => await seedService.SeedSecondaryAsync(UserId),
+            _ => await seedService.SeedTertiaryAsync(UserId),
+        };
+
         return Ok(new
         {
-            message = "Seed complete",
+            message = $"Seed complete — Profile {profile} ({request.Email})",
             userId = UserId,
             transactions = result.Transactions,
             budgets = result.Budgets,

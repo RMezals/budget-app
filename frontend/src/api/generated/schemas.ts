@@ -492,6 +492,17 @@ export const getApiReportsMonthlyResponse = zod.object({
 })
 
 
+export const postApiDevSeedUserBody = zod.object({
+  "email": zod.string().nullish()
+})
+
+
+export const postApiDevTokenBody = zod.object({
+  "email": zod.string().nullish(),
+  "password": zod.string().nullish()
+})
+
+
 export const getApiTransactionsQueryParams = zod.object({
   "from": zod.iso.datetime({}).optional(),
   "to": zod.iso.datetime({}).optional(),

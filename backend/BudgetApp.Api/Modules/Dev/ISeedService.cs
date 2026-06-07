@@ -5,4 +5,6 @@ public record SeedResult(int Transactions, int Budgets, int Goals, int Contribut
 public interface ISeedService
 {
     Task<SeedResult> SeedAsync(string userId);
+    Task<SeedResult> SeedSecondaryAsync(string userId);
+    Task<SeedResult> SeedTertiaryAsync(string userId);
 }
